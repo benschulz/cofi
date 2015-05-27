@@ -1,0 +1,16 @@
+module .cofi.lang;
+package .cofi.lang.primitives;
+
+public class Int32 {
+    @RuntimeImplemented
+    public asString() : String {}
+
+    @RuntimeImplemented
+    public lessThan(other : Int32) : Bool {}
+
+    @RuntimeImplemented
+    public plus(other : Int32) : Int32 {}
+
+    @RuntimeImplemented
+    public plusOverflowing(other : Int32) : Int32 {}
+}

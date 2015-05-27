@@ -1,0 +1,6 @@
+module .cofi.lang;
+package .cofi.lang.collect;
+
+public trait FixList<E> extends List<E> {
+    public setAt(index : Natural) To (e : E) : E;
+}

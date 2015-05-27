@@ -1,0 +1,6 @@
+module .cofi.lang;
+package .cofi.lang;
+
+public trait Gettable<+T> extends Variable<T> {
+    public get() : T;
+}

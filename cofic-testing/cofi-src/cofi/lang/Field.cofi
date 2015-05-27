@@ -1,0 +1,12 @@
+module .cofi.lang;
+package .cofi.lang;
+
+public trait Field<T> extends Gettable<T>, Settable<T> {}
+
+class FieldImpl<T> extends Field<T> {
+    @RuntimeImplemented
+    public get() : T {}
+
+    @RuntimeImplemented
+    public set(value : T) : () {}
+}

@@ -1,0 +1,12 @@
+module .cofi.lang;
+package .cofi.lang.collect;
+
+public trait MutableList<E> extends List<E> {
+    public setAt(index : Natural) To (e : E) : E;
+    
+    public append(e : E) : ();
+    
+    public appendAll(l : List<E>) : () {
+        l.get().forEach(append);
+    }
+}

@@ -1,0 +1,6 @@
+module .cofi.lang;
+package .cofi.lang;
+
+public trait AbstractionBody<P> {
+    public invoke(p : P) : ();
+}

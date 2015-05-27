@@ -1,0 +1,4 @@
+module .cofi.lang;
+package .cofi.lang;
+
+public trait Variable<+-T> {}

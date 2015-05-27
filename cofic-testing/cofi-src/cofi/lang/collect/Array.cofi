@@ -1,0 +1,13 @@
+module .cofi.lang;
+package .cofi.lang.collect;
+
+public class Array<E>(size : Natural) extends FixList<E> {
+    @RuntimeImplemented
+    public get(index : Natural) : E {}
+
+    @RuntimeImplemented
+    public length() : Natural {}
+
+    @RuntimeImplemented
+    public setAt(index : Natural) To (e : E) : E {}
+}

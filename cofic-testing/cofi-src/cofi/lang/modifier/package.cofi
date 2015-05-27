@@ -1,0 +1,4 @@
+module .cofi.lang;
+package .cofi.lang.modifier;
+
+public package {}

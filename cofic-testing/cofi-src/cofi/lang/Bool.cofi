@@ -1,0 +1,34 @@
+module .cofi.lang;
+package .cofi.lang;
+
+public object Bool {
+	object TRUE extends Bool {
+		public and(other : Bool) : Bool { return (other.get()); }
+		public ifTrue(body : Function0<()>) : () { body.get()(); }
+		public ifFalse(body : Function0<()>) : () { }
+		public not() : Bool { return (FALSE); }
+		public or(other : Bool) : Bool { return (this); }
+	}
+	object FALSE extends Bool {
+		public and(other : Bool) : Bool { return (this); }
+		public ifTrue(body : Function0<()>) : () { }
+		public ifFalse(body : Function0<()>) : () { body.get()(); }
+		public not() : Bool { return (TRUE); }
+		public or(other : Bool) : Bool { return (other.get()); }
+	}
+	
+	public while(condition : Function0<Bool>, body : Function0<()>) : () {
+		condition.get()().ifTrue({ ->
+			body.get()();
+			while(condition.get(), body.get());
+		});
+	}
+}
+
+public trait Bool {
+    public and(other : Bool) : Bool;
+    public ifTrue(body : Function0<()>) : ();
+    public ifFalse(body : Function0<()>) : ();
+    public not() : Bool;
+    public or(other : Bool) : Bool;
+}

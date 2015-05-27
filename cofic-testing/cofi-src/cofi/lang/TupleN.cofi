@@ -1,0 +1,7 @@
+module .cofi.lang;
+package .cofi.lang;
+
+public class Tuple1<A> extends Tuple<A> {}
+public class Tuple2<A, B> extends Tuple<Object> {}
+public class Tuple3<A, B, X> extends Tuple<Object> {}
+public class Tuple4<A, B, X, D> extends Tuple<Object> {}

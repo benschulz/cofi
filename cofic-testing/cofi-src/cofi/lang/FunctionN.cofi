@@ -1,0 +1,8 @@
+module .cofi.lang;
+package .cofi.lang;
+
+public trait Function0<+R> extends Function<(), R> {}
+public trait Function1<-P, +R> extends Function<P, R> {}
+public trait Function2<-P1, -P2, +R> extends Function<(P1, P2), R> {}
+public trait Function3<-P1, -P2, -P3, +R> extends Function<(P1, P2, P3), R> {}
+public trait Function4<-P1, -P2, -P3, -P4, +R> extends Function<(P1, P2, P3, P4), R> {}

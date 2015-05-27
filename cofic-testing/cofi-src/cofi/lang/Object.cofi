@@ -1,0 +1,7 @@
+module .cofi.lang;
+package .cofi.lang;
+
+import .cofi.lang.collect.FixList;
+import .cofi.lang.collect.ImmutableList;
+
+public class Object {}

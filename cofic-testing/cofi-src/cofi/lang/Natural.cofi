@@ -1,0 +1,41 @@
+module .cofi.lang;
+package .cofi.lang;
+
+import .cofi.lang.primitives.Int32;
+
+public abstract class Natural {
+    public asString() : String {}
+
+    public equalTo(other : Natural) : Bool {}
+
+    public greaterThan(other : Natural) : Bool {}
+
+    public lessThan(other : Natural) : Bool {}
+
+    public plus(addend : Natural) : Natural {}
+}
+
+class SmallNatural(magnitude : Int32) extends Natural {
+    private Field mag : Int32 := magnitude.get();
+
+    public asString() : String {
+        return (mag.get().asString());
+    }
+
+    public equalTo(other : Natural) : Bool {}
+
+    public greaterThan(other : Natural) : Bool {}
+
+    public lessThan(other : Natural) : Bool {
+        o : SmallNatural := SmallNatural.cast(other.get());
+
+        return (mag.get().lessThan(o.get().mag.get()));
+    }
+
+    public plus(addend : Natural) : Natural {
+        a : SmallNatural := SmallNatural.cast(addend.get());
+        sum : Int32 := mag.get().plus(a.get().mag.get());
+
+        return (SmallNatural.create(sum.get()));
+    }
+}

@@ -1,0 +1,6 @@
+module .cofi.lang;
+package .cofi.lang;
+
+public trait Function<-P, +R> {
+    public apply(v1 : P) : R;
+}

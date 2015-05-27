@@ -1,0 +1,8 @@
+module .cofi.lang;
+package .cofi.lang;
+
+import .cofi.lang.collect.ImmutableList;
+
+public trait Application {
+    public start(args : ImmutableList<String>) : ();
+}

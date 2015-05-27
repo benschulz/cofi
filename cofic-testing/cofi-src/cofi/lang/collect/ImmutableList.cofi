@@ -1,0 +1,5 @@
+module .cofi.lang;
+package .cofi.lang.collect;
+
+public trait ImmutableList<E> extends List<E> {
+}

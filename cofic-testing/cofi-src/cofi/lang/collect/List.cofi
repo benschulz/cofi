@@ -1,0 +1,17 @@
+module .cofi.lang;
+package .cofi.lang.collect;
+
+public trait List<E> {
+    public forEach(body : Function1<E, ()>) : () {
+        i : Natural := 0;
+
+        Bool.while({ -> return (i.get().lessThan(length())); }, { ->
+            body.get()(get(i.get()));
+            i := i.get().plus(1);
+        });
+    }
+    
+    public get(index : Natural) : E;
+    
+    public length() : Natural;
+}

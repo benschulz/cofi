@@ -1,0 +1,6 @@
+module .cofi.lang;
+package .cofi.lang;
+
+public trait Settable<-T> extends Variable<T> {
+    public set(value : T) : ();
+}

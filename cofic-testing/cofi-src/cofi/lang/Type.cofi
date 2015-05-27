@@ -1,0 +1,7 @@
+module .cofi.lang;
+package .cofi.lang;
+
+public class Type<T> {
+    @RuntimeImplemented
+    public cast(o : Object) : T {}
+}

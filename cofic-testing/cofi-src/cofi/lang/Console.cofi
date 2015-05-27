@@ -1,0 +1,7 @@
+module .cofi.lang;
+package .cofi.lang;
+
+public object Console {
+    @RuntimeImplemented
+    public println(value : Object) : () {}
+}

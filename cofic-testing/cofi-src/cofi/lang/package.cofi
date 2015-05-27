@@ -1,0 +1,7 @@
+module .cofi.lang;
+package .cofi.lang;
+
+public package {
+    @RuntimeImplemented
+    public return<implicit R>(implicit cf : CallFrame<R>, value : R) : () {}
+}
