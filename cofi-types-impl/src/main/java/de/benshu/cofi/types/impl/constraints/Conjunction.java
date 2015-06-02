@@ -45,6 +45,7 @@ import static de.benshu.commons.core.streams.Collectors.map;
 import static de.benshu.commons.core.streams.Collectors.setMultimap;
 
 public final class Conjunction<X extends TypeSystemContext<X>> extends Monosemous<X> {
+    // TODO way too complicated.. needs to be refactored
     private static <X extends TypeSystemContext<X>> ImmutableMap<TypeVariableImpl<X, ?>, TypeVariableImpl<X, ?>> getEquivalents(
             Iterable<Map.Entry<TypeVariableImpl<X, ?>, Constraint<X>>> constraints,
             ImmutableMap<TypeVariableImpl<X, ?>, TypeVariableImpl<X, ?>> equivalentsA,
@@ -474,16 +475,13 @@ public final class Conjunction<X extends TypeSystemContext<X>> extends Monosemou
     }
 
     ImmutableSet<ImmutableSet<TypeVariableImpl<X, ?>>> getQuotientSet() {
-        ImmutableSetMultimap.Builder<TypeVariableImpl<X, ?>, TypeVariableImpl<X, ?>> builder = ImmutableSetMultimap.builder();
-
-        for (Map.Entry<TypeVariableImpl<X, ?>, TypeVariableImpl<X, ?>> entry : getEquivalents().entrySet()) {
-            builder.put(entry.getValue(), entry.getKey());
-        }
-
         @SuppressWarnings("unchecked")
         // guaranteed by ImmutableSetMultimap
-                ImmutableCollection<ImmutableSet<TypeVariableImpl<X, ?>>> equivalenceClasses = (ImmutableCollection<ImmutableSet<TypeVariableImpl<X, ?>>>) (Object) builder
-                .build().asMap().values();
+        final ImmutableCollection<ImmutableSet<TypeVariableImpl<X, ?>>> equivalenceClasses =
+                (ImmutableCollection<ImmutableSet<TypeVariableImpl<X, ?>>>) (Object) getEquivalents().entrySet().stream()
+                .map(e -> immutableEntry(e.getValue(), e.getKey()))
+                .collect(setMultimap())
+                .asMap().values();
         return ImmutableSet.copyOf(equivalenceClasses);
     }
 

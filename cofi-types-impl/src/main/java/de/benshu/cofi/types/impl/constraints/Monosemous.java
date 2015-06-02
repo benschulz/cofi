@@ -11,7 +11,6 @@ import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 
 import java.util.stream.Stream;
 
-// TODO Conjunction should be enough (i.e. no NoneImpl and no Monosemous).
 public abstract class Monosemous<X extends TypeSystemContext<X>> extends AbstractConstraints<X> {
     public abstract Monosemous<X> getParent();
 

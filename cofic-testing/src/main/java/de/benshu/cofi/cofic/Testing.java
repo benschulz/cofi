@@ -43,7 +43,7 @@ public class Testing {
         Logger.getRootLogger()
                 .addAppender(new ConsoleAppender(new PatternLayout(PatternLayout.DEFAULT_CONVERSION_PATTERN)));
 
-        warmup(10);
+        warmup(0);
 
         final long time = run();
         System.out.println();
