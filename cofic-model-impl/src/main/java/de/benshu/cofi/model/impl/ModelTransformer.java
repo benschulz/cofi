@@ -51,14 +51,6 @@ public interface ModelTransformer<X extends ModelContext<X>, N, L extends N, D e
         return typeExpression == null ? Optional.none() : Optional.some(typeExpression.accept(this));
     }
 
-    default S transformAbstractionStatement(AbstractionStatement<X> abstractionStatement) {
-        throw new AssertionError();
-    }
-
-    default N transformAbstractionStatementPiece(AbstractionStatement.Piece<X> abstractionStatementPiece) {
-        throw new AssertionError();
-    }
-
     default N transformAnnotation(AnnotationImpl<X> annotation) {
         throw new AssertionError();
     }
@@ -104,10 +96,6 @@ public interface ModelTransformer<X extends ModelContext<X>, N, L extends N, D e
     }
 
     default E transformFunctionInvocationExpression(FunctionInvocationExpression<X> functionInvocationExpression) {
-        throw new AssertionError();
-    }
-
-    default S transformFunctionInvocationStatement(FunctionInvocationStatement<X> functionInvocationStatement) {
         throw new AssertionError();
     }
 

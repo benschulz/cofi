@@ -13,7 +13,6 @@ import de.benshu.cofi.cofic.frontend.namespace.AbstractResolution;
 import de.benshu.cofi.cofic.frontend.namespace.NamespaceTrackingVisitor;
 import de.benshu.cofi.cofic.frontend.namespace.ParametersNs;
 import de.benshu.cofi.common.Fqn;
-import de.benshu.cofi.model.impl.AbstractionStatement;
 import de.benshu.cofi.model.impl.Assignment;
 import de.benshu.cofi.model.impl.Closure;
 import de.benshu.cofi.model.impl.CompilationUnit;
@@ -21,7 +20,6 @@ import de.benshu.cofi.model.impl.ExpressionNode;
 import de.benshu.cofi.model.impl.ExpressionStatement;
 import de.benshu.cofi.model.impl.FunctionInvocation;
 import de.benshu.cofi.model.impl.FunctionInvocationExpression;
-import de.benshu.cofi.model.impl.FunctionInvocationStatement;
 import de.benshu.cofi.model.impl.LiteralExpression;
 import de.benshu.cofi.model.impl.LocalVariableDeclaration;
 import de.benshu.cofi.model.impl.MemberAccessExpression;
@@ -36,7 +34,6 @@ import de.benshu.cofi.types.impl.FunctionTypes;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
-import de.benshu.cofi.types.impl.TypeSystemImpl;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.members.AbstractMember;
 import de.benshu.commons.core.Optional;
@@ -66,77 +63,6 @@ public class ImplementationTyper {
 
             this.pass = pass;
             this.inferencer = new ExpressionTreeInferencer(pass);
-        }
-
-        @Override
-        public ImplementationDataBuilder visitAbstractionStatement(AbstractionStatement<Pass> abstractionStatement, ImplementationDataBuilder aggregate) {
-            if (abstractionStatement.pieces.get(0).arguments.isEmpty() || !tryDispatchOnFirstArg(abstractionStatement, aggregate)) {
-                throw null;
-            }
-
-            TypeSystemImpl<Pass> types = pass.getTypeSystem();
-            inferencer.infer(pass, getContextualConstraints(), types.getTop());
-
-            return aggregate;
-        }
-
-        private boolean tryDispatchOnFirstArg(AbstractionStatement<Pass> abstractionStatement, ImplementationDataBuilder aggregate) {
-            AbstractionStatement.Piece<Pass> piece0 = abstractionStatement.pieces.get(0);
-
-            ExpressionTreeInferencer backup = inferencer;
-            inferencer = new ExpressionTreeInferencer(pass);
-            visit(piece0.arguments.get(0), aggregate);
-
-            // TODO specific inference
-            inferencer.infer(pass, getContextualConstraints(), pass.getTypeSystem().getTop());
-            inferencer = backup;
-
-            ProperTypeMixin<Pass, ?> lookUpType = aggregate.lookUpProperTypeOf(piece0.arguments.get(0));
-
-            for (AbstractMember<Pass> _ : lookUpType.lookupMember(abstractionStatement.getName().stream().map(Token::getLexeme).collect(joining()))) {
-                dispatchOnFirstArg(abstractionStatement, aggregate);
-                return true;
-            }
-            return false;
-        }
-
-        private void dispatchOnFirstArg(final AbstractionStatement<Pass> abstractionStatement, ImplementationDataBuilder aggregate) {
-            final AbstractionStatement.Piece<Pass> piece0 = abstractionStatement.pieces.get(0);
-
-            visit(piece0.arguments.get(0), aggregate);
-
-            inferencer.accessMember(new InferMemberAccess() {
-                @Override
-                public void setTypeArgs(AbstractMember<Pass> member, AbstractTypeList<Pass, ?> typeArgs) {
-                    if (!typeArgs.isEmpty())
-                        throw null;
-//                    abstractionStatement.setTypeArgs(typeArgs);
-                }
-
-                @Override
-                public Optional<AbstractTypeList<Pass, ?>> getTypeArgs() {
-                    return none();
-                }
-
-                @Override
-                public String getName() {
-                    return piece0.name.getLexeme();
-                }
-            });
-
-            inferencer.beginInvocation(new FunctionInvocationInference(abstractionStatement) {
-                @Override
-                public int getArgCount() {
-                    return piece0.arguments.size() - 1;
-                }
-            });
-
-            for (int i = 1; i < piece0.arguments.size(); ++i) {
-                visit(piece0.arguments.get(i), aggregate);
-            }
-            visit(piece0.closure, aggregate);
-
-            inferencer.endInvocation();
         }
 
         @Override
@@ -203,15 +129,6 @@ public class ImplementationTyper {
             }));
             visitAll(functionInvocationExpression.args, aggregate);
             inferencer.endInvocation();
-
-            return aggregate;
-        }
-
-        @Override
-        public ImplementationDataBuilder visitFunctionInvocationStatement(FunctionInvocationStatement<Pass> functionInvocationStatement, ImplementationDataBuilder aggregate) {
-            visitAll(functionInvocationStatement.annotations, aggregate);
-            visit(functionInvocationStatement.name, aggregate);
-            visitAll(functionInvocationStatement.arguments, aggregate);
 
             return aggregate;
         }

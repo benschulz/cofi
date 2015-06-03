@@ -23,14 +23,6 @@ public interface ModelVisitor<X extends ModelContext<X>, T> {
         return modelNodes == null ? aggregate : visitAll(modelNodes, aggregate);
     }
 
-    default T visitAbstractionStatement(AbstractionStatement<X> abstractionStatement, T aggregate) {
-        return defaultAction(aggregate);
-    }
-
-    default T visitAbstractionStatementPiece(AbstractionStatement.Piece<X> abstractionStatementPiece, T aggregate) {
-        return defaultAction(aggregate);
-    }
-
     default T visitAnnotation(AnnotationImpl<X> annotation, T aggregate) {
         return defaultAction(aggregate);
     }
@@ -76,10 +68,6 @@ public interface ModelVisitor<X extends ModelContext<X>, T> {
     }
 
     default T visitFunctionInvocationExpression(FunctionInvocationExpression<X> functionInvocationExpression, T aggregate) {
-        return defaultAction(aggregate);
-    }
-
-    default T visitFunctionInvocationStatement(FunctionInvocationStatement<X> functionInvocationStatement, T aggregate) {
         return defaultAction(aggregate);
     }
 

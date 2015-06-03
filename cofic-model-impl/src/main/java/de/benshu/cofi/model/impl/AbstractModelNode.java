@@ -12,16 +12,6 @@ abstract class AbstractModelNode<X extends ModelContext<X>> implements ModelNode
     public AbstractModelNode() { }
 
     @Override
-    public boolean isSynthetic() {
-        return false;
-    }
-
-    @Override // FIXME remove
-    public void markSynthetic() {
-        throw null;
-    }
-
-    @Override
     public final boolean equals(Object obj) {
         return super.equals(obj);
     }

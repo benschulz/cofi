@@ -3,7 +3,6 @@ package de.benshu.cofi.parser;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import de.benshu.cofi.model.impl.AbstractionStatement;
 import de.benshu.cofi.model.impl.AnnotationImpl;
 import de.benshu.cofi.model.impl.Assignment;
 import de.benshu.cofi.model.impl.ClassDeclaration;
@@ -90,8 +89,6 @@ public enum EarleyCofiParser {
     private static final NonTerminal ANNOTATION = NonTerminal.create("Annotation", factory(AnnotationImpl.class));
     private static final NonTerminal ANNOTATION_PROPERTY_ASSIGNMENT = NonTerminal.create("AnnotationPropertyAssignment", factory(AnnotationImpl.PropertyAssignment.class));
     private static final NonTerminal ANNOTATION_PROPERTY_ASSIGNMENTS = NonTerminal.createReturnPairA("AnnotationPropertyAssignments");
-    private static final NonTerminal ABSTRACTION_STATEMENT = NonTerminal.create("AbstractionStatement", factory(AbstractionStatement.class));
-    private static final NonTerminal ABSTRACTION_STATEMENT_PIECE = NonTerminal.create("AbstractionStatementPiece", factory(AbstractionStatement.Piece.class));
     private static final NonTerminal ABSTRACTION_STATEMENT_PIECES = NonTerminal.create("AbstractionStatementPieces", listFactory());
     private static final NonTerminal ANNOTATIONS = NonTerminal.create("Annotations", listFactory());
     private static final NonTerminal ARGUMENT_LIST = NonTerminal.createReturnPairA("ArgumentList", listFactory());
@@ -141,7 +138,6 @@ public enum EarleyCofiParser {
     private static final NonTerminal PARAMETERS_OPT = NonTerminal.createPassThrough("ParametersOpt");
     private static final NonTerminal PARAMETERS = NonTerminal.createPassThrough("Parameters");
     private static final NonTerminal PAREN_TYPE = NonTerminal.createPassThrough("ParenType");
-    private static final NonTerminal PARGUMETERS = NonTerminal.create("Pargumeters", factory(AbstractionStatement.Parguments.class));
     private static final NonTerminal PRIMARY_EXPRESSION = NonTerminal.createPassThrough("PrimaryExpression");
     private static final NonTerminal PROPERTY_DECLARATION = NonTerminal.create("PropertyDeclaration", factory(PropertyDeclaration.class));
     private static final NonTerminal RELATIVE_NAME = NonTerminal.create("RelativeName", factory(RelativeNameImpl.class));
@@ -167,14 +163,6 @@ public enum EarleyCofiParser {
     private static final NonTerminal VARIABLE_TRAITS = NonTerminal.createReturnPairA("VariableTraits", listFactory());
 
     // ------------------- RULES -----------------------------------------------------------------------------------------
-
-    static final Rule ABSTRACTION_STATEMENT_____ANNOTATIONS__ABSTRACTION_STATEMENT_PIECES = Rule.create(
-            ABSTRACTION_STATEMENT, production(ANNOTATIONS, ABSTRACTION_STATEMENT_PIECES), 1, 0, 2);
-    static final Rule ABSTRACTION_STATEMENT_____ANNOTATIONS__NAME_EXPRESSION__DOT__ABSTRACTION_STATEMENT_PIECES = Rule.create(
-            ABSTRACTION_STATEMENT, production(ANNOTATIONS, NAME_EXPRESSION, DOT, ABSTRACTION_STATEMENT_PIECES), 1, 2, 4);
-
-    static final Rule ABSTRACTION_STATEMENT_PIECE_____IDENTIFIER__PARGUMETERS__LBRACE__STATEMENTS__RBRACE = Rule.create(
-            ABSTRACTION_STATEMENT_PIECE, production(IDENTIFIER, PARGUMETERS, LBRACE, STATEMENTS, RBRACE), 1, 2, 4);
 
     static final Rule ANNOTATION_____AT__NAMED_TYPE = Rule.create(ANNOTATION, production(AT, NAMED_TYPE), 2, 0, 0);
     static final Rule ANNOTATION_____AT__NAMED_TYPE__LPAREN__EXPRESSION__RPAREN = Rule.create(ANNOTATION,
@@ -304,11 +292,6 @@ public enum EarleyCofiParser {
 
     static final Rule PAREN_TYPE_____TUPLE_TYPE = Rule.createPassThrough(PAREN_TYPE, TUPLE_TYPE);
 
-    static final Rule PARGUMETERS_____LPAREN__EMPTY_PARAMETER_LIST__ARGUMENTS__RPAREN = Rule.create(PARGUMETERS,
-            production(LPAREN, EMPTY_PARAMETER_LIST, ARGUMENT_LIST, RPAREN), 2, 3);
-    static final Rule PARGUMETERS_____LPAREN__PARAMETER_LIST__LT_MINUS__ARGUMENTS__RPAREN = Rule.create(PARGUMETERS,
-            production(LPAREN, PARAMETER_LIST, LT_MINUS, ARGUMENT_LIST, RPAREN), 2, 4);
-
     static final Rule PRIMARY_EXPRESSION_____FUNCTION_INVOCATION_EXPRESSION = Rule.createPassThrough(PRIMARY_EXPRESSION,
             FUNCTION_INVOCATION_EXPRESSION);
     static final Rule PRIMARY_EXPRESSION_____CLOSURE = Rule.createPassThrough(PRIMARY_EXPRESSION, CLOSURE);
@@ -337,7 +320,6 @@ public enum EarleyCofiParser {
     static final Rule RELATIVE_NAME_____IDENTIFIER__TYPE_ARGUMENTS = Rule.create(RELATIVE_NAME, production(IDENTIFIER, TYPE_ARGUMENTS), 1, 2);
 
     static final Rule STATEMENT_____ASSIGNMENT = Rule.createPassThrough(STATEMENT, ASSIGNMENT);
-    static final Rule STATEMENT_____ABSTRACTION_STATEMENT = Rule.createPassThrough(STATEMENT, ABSTRACTION_STATEMENT);
     static final Rule STATEMENT_____EXPRESSION_STATEMENT = Rule.createPassThrough(STATEMENT, EXPRESSION_STATEMENT);
     static final Rule STATEMENT_____LOCAL_VARIABLE_DECLARATION = Rule.createPassThrough(STATEMENT, LOCAL_VARIABLE_DECLARATION);
 
@@ -420,7 +402,6 @@ public enum EarleyCofiParser {
             }
         }
 
-        builder.addAll(Rule.createList(ABSTRACTION_STATEMENT_PIECES, ABSTRACTION_STATEMENT_PIECE, NEW_LINE, false));
         builder.addAll(Rule.createList(ANNOTATIONS, ANNOTATION, true));
         builder.addAll(Rule.createList(FULLY_QUALIFIED_NAME_ELEMENTS, FULLY_QUALIFIED_NAME_ELEMENT, false));
         builder.addAll(Rule.createList(IMPORTS, IMPORT_STATEMENT, true));

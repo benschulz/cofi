@@ -66,11 +66,6 @@ public class ClassDeclaration<X extends ModelContext<X>> extends AbstractTypeDec
         return typeParameters;
     }
 
-    @Override
-    public boolean isSynthetic() {
-        throw null;
-    }
-
     public ImmutableList<ParameterImpl<X>> getParameters() {
         return parameters;
     }

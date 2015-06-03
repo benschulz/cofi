@@ -6,22 +6,6 @@ import de.benshu.cofi.parser.lexer.Token;
 public class TraversingModelVisitor<X extends ModelContext<X>, T> implements ModelVisitor<X, T> {
 
     @Override
-    public T visitAbstractionStatement(AbstractionStatement<X> abstractionStatement, T aggregate) {
-        aggregate = visitAll(abstractionStatement.annotations, aggregate);
-        aggregate = visitNonNull(abstractionStatement.qualifier, aggregate);
-        aggregate = visitAll(abstractionStatement.pieces, aggregate);
-        return aggregate;
-    }
-
-    @Override
-    public T visitAbstractionStatementPiece(AbstractionStatement.Piece<X> abstractionStatementPiece, T aggregate) {
-        aggregate = visitToken(abstractionStatementPiece.name, aggregate);
-        aggregate = visitAll(abstractionStatementPiece.arguments, aggregate);
-        aggregate = visit(abstractionStatementPiece.closure, aggregate);
-        return aggregate;
-    }
-
-    @Override
     public T visitAnnotation(AnnotationImpl<X> annotation, T aggregate) {
         aggregate = visit(annotation.getTypeExpression(), aggregate);
         aggregate = visitAllNonNull(annotation.propertyAssignments, aggregate);
@@ -107,14 +91,6 @@ public class TraversingModelVisitor<X extends ModelContext<X>, T> implements Mod
     public T visitFunctionInvocationExpression(FunctionInvocationExpression<X> functionInvocationExpression, T aggregate) {
         aggregate = visit(functionInvocationExpression.primary, aggregate);
         aggregate = visitAll(functionInvocationExpression.args, aggregate);
-        return aggregate;
-    }
-
-    @Override
-    public T visitFunctionInvocationStatement(FunctionInvocationStatement<X> functionInvocationStatement, T aggregate) {
-        aggregate = visitAll(functionInvocationStatement.annotations, aggregate);
-        aggregate = visit(functionInvocationStatement.name, aggregate);
-        aggregate = visitAll(functionInvocationStatement.arguments, aggregate);
         return aggregate;
     }
 
