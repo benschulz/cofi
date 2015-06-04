@@ -4,10 +4,10 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import de.benshu.cofi.model.impl.AnnotationImpl;
-import de.benshu.cofi.model.impl.Assignment;
 import de.benshu.cofi.model.impl.ClassDeclaration;
 import de.benshu.cofi.model.impl.Closure;
 import de.benshu.cofi.model.impl.CompilationUnit;
+import de.benshu.cofi.model.impl.ExpressionNode;
 import de.benshu.cofi.model.impl.ExpressionStatement;
 import de.benshu.cofi.model.impl.FullyQualifiedName;
 import de.benshu.cofi.model.impl.FunctionInvocationExpression;
@@ -27,13 +27,18 @@ import de.benshu.cofi.model.impl.PackageObjectDeclaration;
 import de.benshu.cofi.model.impl.ParameterImpl;
 import de.benshu.cofi.model.impl.PropertyDeclaration;
 import de.benshu.cofi.model.impl.RelativeNameImpl;
-import de.benshu.cofi.model.impl.ThisExpr;
+import de.benshu.cofi.model.impl.SomeModelContext;
+import de.benshu.cofi.model.impl.Statement;
+import de.benshu.cofi.model.impl.ThisExpression;
 import de.benshu.cofi.model.impl.TraitDeclaration;
 import de.benshu.cofi.model.impl.TypeBody;
 import de.benshu.cofi.model.impl.TypeExpression;
 import de.benshu.cofi.model.impl.TypeParamDecl;
 import de.benshu.cofi.model.impl.TypeParameters;
 import de.benshu.cofi.model.impl.UnionDeclaration;
+import de.benshu.cofi.model.impl.UserDefinedNodeTransformation;
+import de.benshu.cofi.model.impl.UserDefinedStatement;
+import de.benshu.cofi.parser.lexer.ArtificialToken;
 import de.benshu.cofi.parser.lexer.Token;
 import de.benshu.cofi.parser.lexer.impl.TokenStreamImpl;
 
@@ -93,7 +98,28 @@ public enum EarleyCofiParser {
     private static final NonTerminal ANNOTATIONS = NonTerminal.create("Annotations", listFactory());
     private static final NonTerminal ARGUMENT_LIST = NonTerminal.createReturnPairA("ArgumentList", listFactory());
     private static final NonTerminal ARGUMENTS = NonTerminal.createPassThrough("Arguments");
-    private static final NonTerminal ASSIGNMENT = NonTerminal.create("Assignment", factory(Assignment.class));
+    private static final NonTerminal ASSIGNMENT = NonTerminal.create("Assignment", args -> new UserDefinedStatement<>(
+            ImmutableList.copyOf(args),
+            new UserDefinedNodeTransformation<SomeModelContext, UserDefinedStatement<SomeModelContext>, Statement<SomeModelContext>>() {
+                @Override
+                public Statement<SomeModelContext> apply(UserDefinedStatement<SomeModelContext> untransformed) {
+                    return ExpressionStatement.of(
+                            ImmutableList.of(),
+                            FunctionInvocationExpression.of(
+                                    MemberAccessExpression.of(
+                                            (ExpressionNode<SomeModelContext>) untransformed.getSymbol(0),
+                                            RelativeNameImpl.of(ArtificialToken.create(Token.Kind.IDENTIFIER, "set"))
+                                    ),
+                                    ImmutableList.of((ExpressionNode<SomeModelContext>) untransformed.getSymbol(1))
+                            ));
+                }
+
+                @Override
+                public boolean test(Statement<SomeModelContext> transformed, SomeModelContext context) {
+                    throw null;
+                }
+            }
+    ));
     private static final NonTerminal CLASS_DECLARATION = NonTerminal.create("ClassDeclaration", factory(ClassDeclaration.class));
     private static final NonTerminal CLOSURE = NonTerminal.create("Closure", factory(Closure.class));
     private static final NonTerminal CLOSURE_CASE = NonTerminal.create("ClosureCase", factory(Closure.Case.class));
@@ -143,7 +169,7 @@ public enum EarleyCofiParser {
     private static final NonTerminal RELATIVE_NAME = NonTerminal.create("RelativeName", factory(RelativeNameImpl.class));
     private static final NonTerminal STATEMENT = NonTerminal.createPassThrough("Statement");
     private static final NonTerminal STATEMENTS = NonTerminal.create("Statements", listFactory());
-    private static final NonTerminal THIS_EXPRESSION = NonTerminal.create("ThisExpression", factory(ThisExpr.class));
+    private static final NonTerminal THIS_EXPRESSION = NonTerminal.create("ThisExpression", factory(ThisExpression.class));
     private static final NonTerminal TRAIT_DECLARATION = NonTerminal.create("TraitDeclaration", factory(TraitDeclaration.class));
     private static final NonTerminal TYPE_DECLARATION = NonTerminal.createPassThrough("AbstractTypeDeclaration");
     private static final NonTerminal TUPLE_TYPE = NonTerminal.create("TupleType", factory(TypeExpression.class));

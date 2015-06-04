@@ -27,7 +27,7 @@ public class LiteralExpression<X extends ModelContext<X>> extends ExpressionNode
     }
 
     @Override
-    public <N, L extends N, D extends L, S extends N, E extends N, T extends E> E accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
+    public <N, L extends N, D extends L, S extends N, E extends N, T extends N> E accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
         return transformer.transformLiteralExpression(this);
     }
 

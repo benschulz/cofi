@@ -215,8 +215,8 @@ public class TraversingModelVisitor<X extends ModelContext<X>, T> implements Mod
     }
 
     @Override
-    public T visitThisExpr(ThisExpr<X> thisExpr, T aggregate) {
-        aggregate = visitToken(thisExpr.token, aggregate);
+    public T visitThisExpr(ThisExpression<X> thisExpression, T aggregate) {
+        aggregate = visitToken(thisExpression.token, aggregate);
         return aggregate;
     }
 

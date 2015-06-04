@@ -143,7 +143,7 @@ public interface ModelVisitor<X extends ModelContext<X>, T> {
         return defaultAction(aggregate);
     }
 
-    default T visitThisExpr(ThisExpr<X> thisExpr, T aggregate) {
+    default T visitThisExpr(ThisExpression<X> thisExpression, T aggregate) {
         return defaultAction(aggregate);
     }
 
@@ -168,6 +168,14 @@ public interface ModelVisitor<X extends ModelContext<X>, T> {
     }
 
     default T visitUnionDeclaration(UnionDeclaration<X> unionDeclaration, T aggregate) {
+        return defaultAction(aggregate);
+    }
+
+    default T visitUserDefinedExpressionNode(UserDefinedExpression<X> userDefinedExpression, T aggregate) {
+        return defaultAction(aggregate);
+    }
+
+    default T visitUserDefinedStatementNode(UserDefinedStatement<X> userDefinedStatement, T aggregate) {
         return defaultAction(aggregate);
     }
 }

@@ -25,7 +25,7 @@ public class Closure<X extends ModelContext<X>> extends ExpressionNode<X> {
         }
 
         @Override
-        public <N, L extends N, D extends L, S extends N, E extends N, T extends E> N accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
+        public <N, L extends N, D extends L, S extends N, E extends N, T extends N> N accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
             return transformer.transformClosureCase(this);
         }
     }
@@ -36,7 +36,6 @@ public class Closure<X extends ModelContext<X>> extends ExpressionNode<X> {
     }
 
     public final ImmutableList<Case<X>> cases;
-    private ProperTypeMixin<X, ?> type;
 
     private Closure(ImmutableList<Case<X>> cases) {
         this.cases = cases;
@@ -44,16 +43,11 @@ public class Closure<X extends ModelContext<X>> extends ExpressionNode<X> {
 
     @Override
     public <T> T accept(ModelVisitor<X, T> visitor, T aggregate) {
-      return   visitor.visitClosure(this, aggregate);
+        return visitor.visitClosure(this, aggregate);
     }
 
     @Override
-    public <N, L extends N, D extends L, S extends N, E extends N, T extends E> E accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
+    public <N, L extends N, D extends L, S extends N, E extends N, T extends N> E accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
         return transformer.transformClosure(this);
-    }
-
-    public boolean isLongReturn() { // TODO does not belong here
-        throw null;
-//        return getParent() instanceof AbstractionStatement.Piece;
     }
 }

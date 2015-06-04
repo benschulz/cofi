@@ -25,11 +25,11 @@ import de.benshu.cofi.model.impl.TraitDeclaration;
 import de.benshu.cofi.model.impl.TraversingModelVisitor;
 import de.benshu.cofi.model.impl.TupleTypeExpression;
 import de.benshu.cofi.model.impl.UnionDeclaration;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -207,7 +207,7 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
     protected T visitStatements(ImmutableList<Statement<Pass>> statements, T aggregate) {
         for (int i = 0; i < statements.size(); ++i) {
             final Statement<Pass> statement = statements.get(i);
-            statement.accept(this, aggregate);
+            visitStatement(statement, aggregate);
 
             // ugly
             if (statement instanceof LocalVariableDeclaration) {
@@ -220,6 +220,10 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
         }
 
         return aggregate;
+    }
+
+    protected T visitStatement(Statement<Pass> statement, T aggregate) {
+        return visit(statement, aggregate);
     }
 
     @Override

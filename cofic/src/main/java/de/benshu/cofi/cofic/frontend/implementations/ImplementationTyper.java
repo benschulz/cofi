@@ -3,7 +3,6 @@ package de.benshu.cofi.cofic.frontend.implementations;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.frontend.infer.ExpressionTreeInferencer;
 import de.benshu.cofi.cofic.frontend.infer.InferClosure;
@@ -26,22 +25,24 @@ import de.benshu.cofi.model.impl.MemberAccessExpression;
 import de.benshu.cofi.model.impl.NameExpression;
 import de.benshu.cofi.model.impl.PropertyDeclaration;
 import de.benshu.cofi.model.impl.RootExpression;
-import de.benshu.cofi.model.impl.ThisExpr;
+import de.benshu.cofi.model.impl.Statement;
+import de.benshu.cofi.model.impl.ThisExpression;
+import de.benshu.cofi.model.impl.TransformedUserDefinedNodes;
 import de.benshu.cofi.parser.lexer.Token;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.cofi.types.impl.FunctionTypes;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.members.AbstractMember;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.commons.core.Optional;
 
 import java.util.function.Consumer;
 
 import static de.benshu.cofi.types.impl.lists.AbstractTypeList.typeList;
-import static de.benshu.commons.core.Optional.none;
+import static de.benshu.commons.core.streams.Collectors.single;
 import static java.util.stream.Collectors.joining;
 
 public class ImplementationTyper {
@@ -271,10 +272,21 @@ public class ImplementationTyper {
         }
 
         @Override
-        public ImplementationDataBuilder visitThisExpr(ThisExpr<Pass> thisExpr, ImplementationDataBuilder aggregate) {
+        protected ImplementationDataBuilder visitStatement(Statement<Pass> statement, ImplementationDataBuilder aggregate) {
+            final TransformedUserDefinedNodes<Pass, Statement<Pass>> transformed = new UserDefinedNodeTransformer<Pass>()
+                    .transform(statement);
+
+            return transformed.stream()
+                    .map(t -> t.getTransformedNode())
+                    .map(t -> visit(t, aggregate))
+                    .collect(single());
+        }
+
+        @Override
+        public ImplementationDataBuilder visitThisExpr(ThisExpression<Pass> thisExpression, ImplementationDataBuilder aggregate) {
             ProperTypeMixin<Pass, ?> type = pass.lookUpTypeOf(getContainingTypeDeclaration()).applyTrivially();
 
-            aggregate.defineTypeOf(thisExpr, type);
+            aggregate.defineTypeOf(thisExpression, type);
             inferencer.pushValue(type);
 
             return aggregate;

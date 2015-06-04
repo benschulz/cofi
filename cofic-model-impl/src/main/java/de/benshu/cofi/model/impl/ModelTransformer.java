@@ -2,7 +2,7 @@ package de.benshu.cofi.model.impl;
 
 import de.benshu.commons.core.Optional;
 
-public interface ModelTransformer<X extends ModelContext<X>, N, L extends N, D extends L, S extends N, E extends N, T extends E> {
+public interface ModelTransformer<X extends ModelContext<X>, N, L extends N, D extends L, S extends N, E extends N, T extends N> {
     default N transform(ModelNodeMixin<X> node) {
         return node.accept(this);
     }
@@ -163,7 +163,7 @@ public interface ModelTransformer<X extends ModelContext<X>, N, L extends N, D e
         throw new AssertionError();
     }
 
-    default E transformRootExpression(RootExpression<X> rootExpression){
+    default E transformRootExpression(RootExpression<X> rootExpression) {
         throw new AssertionError();
     }
 
@@ -171,7 +171,7 @@ public interface ModelTransformer<X extends ModelContext<X>, N, L extends N, D e
         throw new AssertionError();
     }
 
-    default E transformThisExpr(ThisExpr<X> thisExpr) {
+    default E transformThisExpr(ThisExpression<X> thisExpression) {
         throw new AssertionError();
     }
 
@@ -196,6 +196,14 @@ public interface ModelTransformer<X extends ModelContext<X>, N, L extends N, D e
     }
 
     default D transformUnionDeclaration(UnionDeclaration<X> unionDeclaration) {
+        throw new AssertionError();
+    }
+
+    default E transformUserDefinedExpressionNode(UserDefinedExpression<X> userDefinedExpression) {
+        throw new AssertionError();
+    }
+
+    default S transformUserDefinedStatementNode(UserDefinedStatement<X> userDefinedStatement) {
         throw new AssertionError();
     }
 }

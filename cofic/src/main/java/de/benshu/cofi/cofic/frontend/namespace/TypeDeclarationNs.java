@@ -6,7 +6,7 @@ import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.ExpressionNode;
 import de.benshu.cofi.model.impl.ObjectDeclaration;
-import de.benshu.cofi.model.impl.ThisExpr;
+import de.benshu.cofi.model.impl.ThisExpression;
 import de.benshu.cofi.parser.lexer.ArtificialToken;
 import de.benshu.cofi.parser.lexer.Token;
 import de.benshu.cofi.types.impl.TypeMixin;
@@ -79,7 +79,7 @@ class TypeDeclarationNs extends AbstractNamespace {
                     boolean thisAccessible = Objects.equals(fromNamespace.getContainingTypeDeclaration(), typeDeclaration);
 
                     final ExpressionNode<Pass> implicitPrimary = thisAccessible
-                            ? ThisExpr.of(ArtificialToken.create(Token.Kind.THIS, "this"))
+                            ? ThisExpression.of(ArtificialToken.create(Token.Kind.THIS, "this"))
                             : getAccessor();
 
                     return new DefaultResolution(m.getType(), implicitPrimary, m);

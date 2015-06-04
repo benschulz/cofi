@@ -21,7 +21,7 @@ import de.benshu.cofi.model.impl.ModelTransformer;
 import de.benshu.cofi.model.impl.ObjectDeclaration;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
 import de.benshu.cofi.model.impl.ParameterImpl;
-import de.benshu.cofi.model.impl.ThisExpr;
+import de.benshu.cofi.model.impl.ThisExpression;
 import de.benshu.cofi.model.impl.TraitDeclaration;
 import de.benshu.cofi.model.impl.UnionDeclaration;
 import de.benshu.cofi.runtime.AbstractObject;
@@ -48,7 +48,6 @@ import de.benshu.cofi.runtime.PropertyDeclaration;
 import de.benshu.cofi.runtime.RootExpression;
 import de.benshu.cofi.runtime.SingletonCompanion;
 import de.benshu.cofi.runtime.Statement;
-import de.benshu.cofi.runtime.ThisExpression;
 import de.benshu.cofi.runtime.Trait;
 import de.benshu.cofi.runtime.TypeBody;
 import de.benshu.cofi.runtime.TypeExpression;
@@ -378,8 +377,8 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
     }
 
     @Override
-    public Constructor<Expression> transformThisExpr(ThisExpr<Pass> thisExpr) {
-        return as -> new ThisExpression(as, x -> pass.lookUpTypeOf(thisExpr).unbind());
+    public Constructor<Expression> transformThisExpr(ThisExpression<Pass> thisExpression) {
+        return as -> new de.benshu.cofi.runtime.ThisExpression(as, x -> pass.lookUpTypeOf(thisExpression).unbind());
     }
 
     @Override

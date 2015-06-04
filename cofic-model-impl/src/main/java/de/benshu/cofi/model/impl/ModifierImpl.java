@@ -92,7 +92,7 @@ public class ModifierImpl<X extends ModelContext<X>> extends AnnotationImpl<X> i
     }
 
     @Override
-    public <N, L extends N, D extends L, S extends N, E extends N, T extends E> N accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
+    public <N, L extends N, D extends L, S extends N, E extends N, T extends N> N accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
         return transformer.transformModifier(this);
     }
 
