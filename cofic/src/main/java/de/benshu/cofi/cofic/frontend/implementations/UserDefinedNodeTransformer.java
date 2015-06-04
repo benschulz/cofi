@@ -51,11 +51,8 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
                     );
 
                     return new TransformedUserDefinedNode<>(
-                            transformed,
-                            ImmutableMap.<ModelNodeMixin<X>, ModelNodeMixin<X>>builder()
-                                    .put(expressionStatement, transformed)
-                                    .putAll(t.getTransformations())
-                                    .build());
+                            transformed
+                    );
                 }));
     }
 
@@ -76,12 +73,7 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
                         c.subList(1, c.size()).stream().map(TransformedUserDefinedNode::getTransformedNode).collect(list())
                 );
 
-                ImmutableMap.Builder<ModelNodeMixin<X>, ModelNodeMixin<X>> transformations = ImmutableMap.<ModelNodeMixin<X>, ModelNodeMixin<X>>builder();
-
-                transformations.put(functionInvocationExpression, transformed);
-                c.stream().forEach(t -> transformations.putAll(t.getTransformations()));
-
-                return new TransformedUserDefinedNode<>(transformed, transformations.build());
+                return new TransformedUserDefinedNode<>(transformed);
             });
         });
     }
@@ -104,11 +96,8 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
                     );
 
                     return new TransformedUserDefinedNode<>(
-                            transformed,
-                            ImmutableMap.<ModelNodeMixin<X>, ModelNodeMixin<X>>builder()
-                                    .put(localVariableDeclaration, transformed)
-                                    .putAll(t.getTransformations())
-                                    .build());
+                            transformed
+                    );
                 }));
     }
 
@@ -119,11 +108,8 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
                     MemberAccessExpression<X> transformed = MemberAccessExpression.of(t.getTransformedNode(), memberAccessExpression.name);
 
                     return new TransformedUserDefinedNode<>(
-                            transformed,
-                            ImmutableMap.<ModelNodeMixin<X>, ModelNodeMixin<X>>builder()
-                                    .put(memberAccessExpression, transformed)
-                                    .putAll(t.getTransformations())
-                                    .build());
+                            transformed
+                    );
                 }));
     }
 
@@ -142,11 +128,7 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
         return TransformedUserDefinedNodes.of(() -> userDefinedStatement.transform()
                 .flatMap(outer -> transform(outer.getTransformedNode()).stream()
                         .map(inner -> new TransformedUserDefinedNode<>(
-                                inner.getTransformedNode(),
-                                ImmutableMap.<ModelNodeMixin<X>, ModelNodeMixin<X>>builder()
-                                        .put(userDefinedStatement, inner.getTransformedNode())
-                                        .putAll(inner.getTransformations())
-                                        .build()
+                                inner.getTransformedNode()
                         ))));
     }
 

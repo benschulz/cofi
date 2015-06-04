@@ -88,6 +88,8 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
 
     private final Pass pass;
 
+    private final TransformedStatementTransformer transformedStatementTransformer = new TransformedStatementTransformer();
+
     private ToRuntimeModelTransformer(Pass pass) {
         this.pass = pass;
     }
@@ -197,11 +199,7 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
     public Constructor<Statement> transformExpressionStatement(de.benshu.cofi.model.impl.ExpressionStatement<Pass> expressionStatement) {
         de.benshu.cofi.model.impl.ExpressionStatement<Pass> transformed = (de.benshu.cofi.model.impl.ExpressionStatement<Pass>) pass.lookUpTransformationOf(expressionStatement);
 
-        return as -> new ExpressionStatement(
-                as,
-                transformed.annotations.stream().map(this::transformAnnotation).map(this::covariant).collect(set()),
-                covariant(transform(transformed.expression))
-        );
+        return transformedStatementTransformer.transformExpressionStatement(transformed);
     }
 
     @Override
@@ -226,13 +224,7 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
     public Constructor<Statement> transformLocalVariableDeclaration(de.benshu.cofi.model.impl.LocalVariableDeclaration<Pass> localVariableDeclaration) {
         de.benshu.cofi.model.impl.LocalVariableDeclaration<Pass> transformed = (de.benshu.cofi.model.impl.LocalVariableDeclaration<Pass>) pass.lookUpTransformationOf(localVariableDeclaration);
 
-        return as -> new LocalVariableDeclaration(
-                as,
-                transformAnnotationsOf(transformed),
-                transformed.getName(),
-                x -> pass.lookUpProperTypeOf(transformed.type).unbind(),
-                transformNonNull(transformed.value).map(this::covariant)
-        );
+        return transformedStatementTransformer.transformLocalVariableDeclaration(transformed);
     }
 
     @Override
@@ -415,7 +407,7 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
 
     @Override
     public Constructor<? extends Statement> transformUserDefinedStatementNode(UserDefinedStatement<Pass> userDefinedStatement) {
-        return transform(pass.lookUpTransformationOf(userDefinedStatement));
+        return transformedStatementTransformer.transform(pass.lookUpTransformationOf(userDefinedStatement));
     }
 
     private ImmutableSet<Constructor<Annotation>> transformAnnotationsOf(AnnotatedNodeMixin<Pass> annotatedNode) {
@@ -426,5 +418,39 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
 
     private <T> Constructor<T> covariant(Constructor<? extends T> constructor) {
         return constructor::construct;
+    }
+
+    private class TransformedStatementTransformer implements ModelTransformer<
+            Pass,
+            Constructor<? extends ModelNode>,
+            Constructor<? extends TypeBody.Containable>,
+            Constructor<? extends AbstractTypeDeclaration>,
+            Constructor<? extends Statement>,
+            Constructor<? extends Expression>,
+            Constructor<? extends TypeExpression>> {
+
+        @Override
+        public Constructor<Statement> transformExpressionStatement(de.benshu.cofi.model.impl.ExpressionStatement<Pass> expressionStatement) {
+            ToRuntimeModelTransformer outer = ToRuntimeModelTransformer.this;
+
+            return as -> new ExpressionStatement(
+                    as,
+                    outer.transformAnnotationsOf(expressionStatement),
+                    covariant(outer.transform(expressionStatement.expression))
+            );
+        }
+
+        @Override
+        public Constructor<Statement> transformLocalVariableDeclaration(de.benshu.cofi.model.impl.LocalVariableDeclaration<Pass> localVariableDeclaration) {
+            ToRuntimeModelTransformer outer = ToRuntimeModelTransformer.this;
+
+            return as -> new LocalVariableDeclaration(
+                    as,
+                    outer.transformAnnotationsOf(localVariableDeclaration),
+                    localVariableDeclaration.getName(),
+                    x -> pass.lookUpProperTypeOf(localVariableDeclaration.type).unbind(),
+                    outer.transformNonNull(localVariableDeclaration.value).map(outer::covariant)
+            );
+        }
     }
 }

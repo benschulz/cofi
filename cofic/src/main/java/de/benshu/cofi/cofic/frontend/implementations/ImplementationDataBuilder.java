@@ -7,10 +7,9 @@ import de.benshu.cofi.cofic.frontend.GenericModelData;
 import de.benshu.cofi.cofic.frontend.GenericModelDataBuilder;
 import de.benshu.cofi.cofic.frontend.namespace.AbstractResolution;
 import de.benshu.cofi.model.impl.ExpressionNode;
-import de.benshu.cofi.model.impl.ModelNodeMixin;
 import de.benshu.cofi.model.impl.NameExpression;
 import de.benshu.cofi.model.impl.NameImpl;
-import de.benshu.cofi.model.impl.UserDefinedNode;
+import de.benshu.cofi.model.impl.Statement;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.commons.core.exception.UnexpectedBranchException;
@@ -18,7 +17,7 @@ import de.benshu.commons.core.exception.UnexpectedBranchException;
 import java.util.Map;
 
 public class ImplementationDataBuilder extends GenericModelDataBuilder<ImplementationDataBuilder, ImplementationData> {
-    private final ImmutableMap.Builder<ModelNodeMixin<Pass>, ModelNodeMixin<Pass>> transformations = ImmutableMap.builder();
+    private final ImmutableMap.Builder<Statement<Pass>, Statement<Pass>> transformations = ImmutableMap.builder();
     private final ImmutableMap.Builder<NameExpression<Pass>, AbstractResolution> nameResolutions = ImmutableMap.builder();
     private final ImmutableMap.Builder<NameImpl<Pass>, AbstractTypeList<Pass, ?>> nameTypeArguments = ImmutableMap.builder();
     private final Map<ExpressionNode<Pass>, ProperTypeMixin<Pass, ?>> expressionTypes = Maps.newHashMap();
@@ -41,8 +40,8 @@ public class ImplementationDataBuilder extends GenericModelDataBuilder<Implement
         return super.addAll(other);
     }
 
-    public ImplementationDataBuilder defineTransformations(ImmutableMap<ModelNodeMixin<Pass>, ModelNodeMixin<Pass>> transformations) {
-        this.transformations.putAll(transformations);
+    public ImplementationDataBuilder defineTransformation(Statement<Pass> untransformed, Statement<Pass> transformed) {
+        this.transformations.put(untransformed, transformed);
 
         return this;
     }

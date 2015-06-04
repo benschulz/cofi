@@ -228,7 +228,7 @@ public class ImplementationTyper {
                     .transform(statement);
 
             return transformed.stream()
-                    .map(t -> visit(t.getTransformedNode(), aggregate.copy().defineTransformations(t.getTransformations())))
+                    .map(t -> visit(t.getTransformedNode(), aggregate.copy().defineTransformation(statement, t.getTransformedNode())))
                     .collect(single());
         }
 

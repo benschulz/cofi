@@ -252,12 +252,8 @@ public class Pass implements ModelContext<Pass> {
     }
 
     public Statement<Pass> lookUpTransformationOf(Statement<Pass> untransformed) {
-        final Statement<Pass> transformed = (Statement<Pass>) implementationData.transformations.get(untransformed);
-        return transformed == null ? untransformed : transformed;
-    }
-
-    public ExpressionNode<Pass> lookUpTransformationOf(ExpressionNode<Pass> untransformed) {
-        final ExpressionNode<Pass> transformed = (ExpressionNode<Pass>) implementationData.transformations.get(untransformed);
-        return transformed == null ? untransformed : transformed;
+        final Statement<Pass> transformed = implementationData.transformations.get(untransformed);
+        checkState(transformed != null);
+        return transformed;
     }
 }

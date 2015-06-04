@@ -1,7 +1,6 @@
 package de.benshu.cofi.model.impl;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 import java.util.stream.Stream;
 
@@ -37,6 +36,6 @@ public class UserDefinedExpression<X extends ModelContext<X>> extends Expression
     public Stream<TransformedUserDefinedNode<X, ExpressionNode<X>>> transform() {
         return transformations.stream()
                 .map(t -> t.apply(this))
-                .map(t -> new TransformedUserDefinedNode<>(t, ImmutableMap.of(this, t)));
+                .map(t -> new TransformedUserDefinedNode<>(t));
     }
 }
