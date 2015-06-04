@@ -20,17 +20,17 @@ class ModuleNs extends AbstractNamespace {
     }
 
     @Override
-    protected Optional<AbstractNamespace> tryResolveNamespaceLocally(String name, Source.Snippet src) {
-        return cofiLangNs().tryResolveNamespaceLocally(name, src);
+    protected Optional<AbstractNamespace> tryResolveNamespaceLocally(LookUp lookUp, String name, Source.Snippet src) {
+        return cofiLangNs(lookUp).tryResolveNamespaceLocally(lookUp, name, src);
     }
 
     @Override
-    protected Optional<AbstractResolution> tryResolveLocally(AbstractNamespace fromNamespace, String name) {
-        return cofiLangNs().tryResolveLocally(fromNamespace, name);
+    protected Optional<AbstractResolution> tryResolveLocally(LookUp lookUp, AbstractNamespace fromNamespace, String name) {
+        return cofiLangNs(lookUp).tryResolveLocally(lookUp, fromNamespace, name);
     }
 
-    private PackageObjectNs cofiLangNs() {
+    private PackageObjectNs cofiLangNs(LookUp lookUp) {
         final Fqn cofiLangFqn = Fqn.from("cofi", "lang");
-        return PackageObjectNs.create(this, cofiLangFqn, pass.lookUpPackageObjectDeclarationOf(cofiLangFqn));
+        return PackageObjectNs.create(this, cofiLangFqn, lookUp.lookUpPackageObjectDeclarationOf(cofiLangFqn));
     }
 }

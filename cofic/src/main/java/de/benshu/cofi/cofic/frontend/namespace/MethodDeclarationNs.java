@@ -25,22 +25,22 @@ class MethodDeclarationNs extends AbstractNamespace {
     }
 
     @Override
-    public AbstractConstraints<Pass> getContextualConstraints() {
+    public AbstractConstraints<Pass> getContextualConstraints(LookUp lookUp) {
         final MethodDeclarationImpl.Piece<Pass> firstPiece = methodDeclaration.pieces.get(0);
 
         return firstPiece.typeParameters.declarations.isEmpty() // TODO This is a bad branch. Method declarations should all have proper (contextual) constraints.
-                ? super.getContextualConstraints()
-                : pass.lookUpTypeParametersOf(firstPiece).getConstraints();
+                ? super.getContextualConstraints(lookUp)
+                : lookUp.lookUpTypeParametersOf(firstPiece).getConstraints();
     }
 
     @Override
-    protected Optional<AbstractResolution> tryResolveLocally(AbstractNamespace fromNamespace, String name) {
+    protected Optional<AbstractResolution> tryResolveLocally(LookUp lookUp, AbstractNamespace fromNamespace, String name) {
         for (MethodDeclarationImpl.Piece<Pass> mdp : methodDeclaration.pieces)
             for (ParameterImpl<Pass> p : mdp.params)
                 if (p.name.getLexeme().equals(name)) {
                     // TODO This is duplicated for ParameterNs/LocalVariableNs
-                    final ProperTypeMixin<Pass, ?> valueType = aggregate.lookUpProperTypeOf(p.type);
-                    final ProperTypeMixin<Pass, ?> variableType = pass.getTypeSystem().lookUp("Field").apply(AbstractTypeList.of(valueType));
+                    final ProperTypeMixin<Pass, ?> valueType = lookUp.lookUpProperTypeOf(p.type);
+                    final ProperTypeMixin<Pass, ?> variableType = lookUp.getTypeSystem().lookUp("Field").apply(AbstractTypeList.of(valueType));
                     return some(new DefaultResolution(variableType));
                 }
 

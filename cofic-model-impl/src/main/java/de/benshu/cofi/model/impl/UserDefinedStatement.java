@@ -1,6 +1,7 @@
 package de.benshu.cofi.model.impl;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.stream.Stream;
 
@@ -37,6 +38,7 @@ public class UserDefinedStatement<X extends ModelContext<X>>
 
     public Stream<TransformedUserDefinedNode<X, Statement<X>>> transform() {
         return transformations.stream()
-                .map(t -> new TransformedUserDefinedNode<>(t.apply(this)));
+                .map(t -> t.apply(this))
+                .map(t -> new TransformedUserDefinedNode<>(t, ImmutableMap.of(this, t)));
     }
 }

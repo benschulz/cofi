@@ -12,22 +12,22 @@ import de.benshu.commons.core.Optional;
 
 import static de.benshu.commons.core.Optional.some;
 
-public class OverloadedClosureInferencer implements OverloadedExpressionInferencer {
-    private final InferClosure closure;
+public class OverloadedClosureInferencer<T> implements OverloadedExpressionInferencer<T> {
+    private final InferClosure<T> closure;
 
-    public OverloadedClosureInferencer(InferClosure closure) {
+    public OverloadedClosureInferencer(InferClosure<T> closure) {
         this.closure = closure;
     }
 
     @Override
-    public Iterable<ExpressionInferencer> unoverload() {
-        return ImmutableList.<ExpressionInferencer>of(new Unoverloaded(closure));
+    public Iterable<ExpressionInferencer<T>> unoverload() {
+        return ImmutableList.<ExpressionInferencer<T>>of(new Unoverloaded<T>(closure));
     }
 
-    private static class Unoverloaded implements ExpressionInferencer {
-        private final InferClosure closure;
+    private static class Unoverloaded<T> implements ExpressionInferencer<T> {
+        private final InferClosure<T> closure;
 
-        public Unoverloaded(InferClosure closure) {
+        public Unoverloaded(InferClosure<T> closure) {
             this.closure = closure;
         }
 
@@ -37,9 +37,9 @@ public class OverloadedClosureInferencer implements OverloadedExpressionInferenc
         }
 
         @Override
-        public Optional<Parametrization<Pass>> inferGeneric(Pass pass, TypeParameterListImpl<Pass> params, int offset, final AbstractConstraints<Pass> constraints,
-                                                            final ProperTypeMixin<Pass, ?> context) {
-            Parametrization<Pass> p = new Parametrization<Pass>() {
+        public Optional<Parametrization<Pass, T>> inferGeneric(Pass pass, TypeParameterListImpl<Pass> params, int offset, final AbstractConstraints<Pass> constraints,
+                                                               final ProperTypeMixin<Pass, ?> context) {
+            Parametrization<Pass, T> p = new Parametrization<Pass, T>() {
                 @Override
                 public ProperTypeMixin<Pass, ?> getExplicitType() {
                     return context;
@@ -51,8 +51,8 @@ public class OverloadedClosureInferencer implements OverloadedExpressionInferenc
                 }
 
                 @Override
-                public void apply(Substitutions<Pass> substitutions) {
-                    closure.setSignature(getImplicitType().substitute(substitutions));
+                public T apply(Substitutions<Pass> substitutions, T aggregate) {
+                    return closure.setSignature(getImplicitType().substitute(substitutions), aggregate);
                 }
             };
             return some(p);

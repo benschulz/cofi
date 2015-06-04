@@ -5,10 +5,10 @@ import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.members.AbstractMember;
 import de.benshu.commons.core.Optional;
 
-public interface InferMemberAccess {
+public interface InferMemberAccess<T> {
     String getName();
 
     Optional<AbstractTypeList<Pass, ?>> getTypeArgs();
 
-    void setTypeArgs(AbstractMember<Pass> member, AbstractTypeList<Pass, ?> typeArgs);
+    T setTypeArgs(AbstractMember<Pass> member, AbstractTypeList<Pass, ?> typeArgs, T aggregate);
 }

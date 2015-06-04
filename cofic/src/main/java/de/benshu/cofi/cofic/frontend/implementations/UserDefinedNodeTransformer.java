@@ -1,7 +1,7 @@
 package de.benshu.cofi.cofic.frontend.implementations;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import de.benshu.cofi.model.impl.Assignment;
 import de.benshu.cofi.model.impl.Closure;
 import de.benshu.cofi.model.impl.ExpressionNode;
 import de.benshu.cofi.model.impl.ExpressionStatement;
@@ -10,6 +10,7 @@ import de.benshu.cofi.model.impl.LiteralExpression;
 import de.benshu.cofi.model.impl.LocalVariableDeclaration;
 import de.benshu.cofi.model.impl.MemberAccessExpression;
 import de.benshu.cofi.model.impl.ModelContext;
+import de.benshu.cofi.model.impl.ModelNodeMixin;
 import de.benshu.cofi.model.impl.ModelTransformer;
 import de.benshu.cofi.model.impl.NameExpression;
 import de.benshu.cofi.model.impl.Statement;
@@ -18,12 +19,12 @@ import de.benshu.cofi.model.impl.TransformedUserDefinedNode;
 import de.benshu.cofi.model.impl.TransformedUserDefinedNodes;
 import de.benshu.cofi.model.impl.UserDefinedStatement;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
 import static de.benshu.commons.core.streams.Collectors.list;
+import static de.benshu.commons.core.streams.Collectors.map;
 import static de.benshu.commons.core.streams.Collectors.set;
 
 public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements ModelTransformer<
@@ -36,22 +37,6 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
         TransformedUserDefinedNodes<X, ?>> {
 
     @Override
-    public TransformedUserDefinedNodes<X, Statement<X>> transformAssignment(Assignment<X> assignment) {
-        return TransformedUserDefinedNodes.of(() -> {
-            final Set<List<TransformedUserDefinedNode<X, ExpressionNode<X>>>> product = Sets.cartesianProduct(Arrays.asList(
-                    transform(assignment.lhs).stream().collect(set()),
-                    transform(assignment.rhs).stream().collect(set())
-            ));
-
-            return product.stream()
-                    .map(c -> new TransformedUserDefinedNode<>(Assignment.of(
-                            c.get(0).getTransformedNode(),
-                            c.get(1).getTransformedNode()
-                    )));
-        });
-    }
-
-    @Override
     public TransformedUserDefinedNodes<X, ExpressionNode<X>> transformClosure(Closure<X> closure) {
         return TransformedUserDefinedNodes.of(() -> Stream.of(new TransformedUserDefinedNode<>(closure)));
     }
@@ -59,10 +44,19 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
     @Override
     public TransformedUserDefinedNodes<X, Statement<X>> transformExpressionStatement(ExpressionStatement<X> expressionStatement) {
         return TransformedUserDefinedNodes.of(() -> transform(expressionStatement.expression).stream()
-                .map(t -> new TransformedUserDefinedNode<>(ExpressionStatement.of(
-                        expressionStatement.annotations,
-                        t.getTransformedNode()
-                ))));
+                .map(t -> {
+                    ExpressionStatement<X> transformed = ExpressionStatement.of(
+                            expressionStatement.annotations,
+                            t.getTransformedNode()
+                    );
+
+                    return new TransformedUserDefinedNode<>(
+                            transformed,
+                            ImmutableMap.<ModelNodeMixin<X>, ModelNodeMixin<X>>builder()
+                                    .put(expressionStatement, transformed)
+                                    .putAll(t.getTransformations())
+                                    .build());
+                }));
     }
 
     @Override
@@ -76,10 +70,19 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
                                     .map(t -> t.stream().collect(set()))
                     ).collect(list()));
 
-            return product.stream().map(c -> new TransformedUserDefinedNode<>(FunctionInvocationExpression.of(
-                    c.get(0).getTransformedNode(),
-                    c.subList(1, c.size()).stream().map(TransformedUserDefinedNode::getTransformedNode).collect(list())
-            )));
+            return product.stream().map(c -> {
+                FunctionInvocationExpression<X> transformed = FunctionInvocationExpression.of(
+                        c.get(0).getTransformedNode(),
+                        c.subList(1, c.size()).stream().map(TransformedUserDefinedNode::getTransformedNode).collect(list())
+                );
+
+                ImmutableMap.Builder<ModelNodeMixin<X>, ModelNodeMixin<X>> transformations = ImmutableMap.<ModelNodeMixin<X>, ModelNodeMixin<X>>builder();
+
+                transformations.put(functionInvocationExpression, transformed);
+                c.stream().forEach(t -> transformations.putAll(t.getTransformations()));
+
+                return new TransformedUserDefinedNode<>(transformed, transformations.build());
+            });
         });
     }
 
@@ -91,19 +94,37 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
     @Override
     public TransformedUserDefinedNodes<X, Statement<X>> transformLocalVariableDeclaration(LocalVariableDeclaration<X> localVariableDeclaration) {
         return TransformedUserDefinedNodes.of(() -> transform(localVariableDeclaration.value).stream()
-                .map(t -> new TransformedUserDefinedNode<>(LocalVariableDeclaration.of(
-                        localVariableDeclaration.annotations,
-                        localVariableDeclaration.modifiers,
-                        localVariableDeclaration.name,
-                        localVariableDeclaration.type,
-                        t.getTransformedNode()
-                ))));
+                .map(t -> {
+                    LocalVariableDeclaration<X> transformed = LocalVariableDeclaration.of(
+                            localVariableDeclaration.annotations,
+                            localVariableDeclaration.modifiers,
+                            localVariableDeclaration.name,
+                            localVariableDeclaration.type,
+                            t.getTransformedNode()
+                    );
+
+                    return new TransformedUserDefinedNode<>(
+                            transformed,
+                            ImmutableMap.<ModelNodeMixin<X>, ModelNodeMixin<X>>builder()
+                                    .put(localVariableDeclaration, transformed)
+                                    .putAll(t.getTransformations())
+                                    .build());
+                }));
     }
 
     @Override
     public TransformedUserDefinedNodes<X, ExpressionNode<X>> transformMemberAccessExpression(MemberAccessExpression<X> memberAccessExpression) {
         return TransformedUserDefinedNodes.of(() -> transform(memberAccessExpression.primary).stream()
-                .map(t -> new TransformedUserDefinedNode<>(MemberAccessExpression.of(t.getTransformedNode(), memberAccessExpression.name))));
+                .map(t -> {
+                    MemberAccessExpression<X> transformed = MemberAccessExpression.of(t.getTransformedNode(), memberAccessExpression.name);
+
+                    return new TransformedUserDefinedNode<>(
+                            transformed,
+                            ImmutableMap.<ModelNodeMixin<X>, ModelNodeMixin<X>>builder()
+                                    .put(memberAccessExpression, transformed)
+                                    .putAll(t.getTransformations())
+                                    .build());
+                }));
     }
 
     @Override
@@ -119,7 +140,14 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
     @Override
     public TransformedUserDefinedNodes<X, Statement<X>> transformUserDefinedStatementNode(UserDefinedStatement<X> userDefinedStatement) {
         return TransformedUserDefinedNodes.of(() -> userDefinedStatement.transform()
-                .flatMap(t -> transform(t.getTransformedNode()).stream()
-                        .map(tn -> new TransformedUserDefinedNode<>(tn.getTransformedNode()))));
+                .flatMap(outer -> transform(outer.getTransformedNode()).stream()
+                        .map(inner -> new TransformedUserDefinedNode<>(
+                                inner.getTransformedNode(),
+                                ImmutableMap.<ModelNodeMixin<X>, ModelNodeMixin<X>>builder()
+                                        .put(userDefinedStatement, inner.getTransformedNode())
+                                        .putAll(inner.getTransformations())
+                                        .build()
+                        ))));
     }
+
 }

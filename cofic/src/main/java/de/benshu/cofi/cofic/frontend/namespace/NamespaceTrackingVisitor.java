@@ -2,6 +2,7 @@ package de.benshu.cofi.cofic.frontend.namespace;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.frontend.GenericModelDataBuilder;
 import de.benshu.cofi.common.Fqn;
@@ -67,18 +68,18 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
 
     @Override
     public T visitCompilationUnit(CompilationUnit<Pass> compilationUnit, T aggregate) {
-        namespaces.push(RootNs.create(pass, aggregate));
+        namespaces.push(RootNs.create());
 
-        visit(compilationUnit.moduleDeclaration, aggregate);
+        aggregate =  visit(compilationUnit.moduleDeclaration, aggregate);
         namespaces.push(ModuleNs.wrap(getNs(), compilationUnit.moduleDeclaration));
 
-        visit(compilationUnit.packageDeclaration, aggregate);
+        aggregate =  visit(compilationUnit.packageDeclaration, aggregate);
         final Fqn packageFqn = compilationUnit.packageDeclaration.name.fqn;
         namespaces.push(PackageNs.wrap(getNs(), packageFqn, pass.lookUpPackageObjectDeclarationOf(packageFqn)));
 
-        visitAll(compilationUnit.imports, aggregate);
+        aggregate = visitAll(compilationUnit.imports, aggregate);
 
-        visitAll(compilationUnit.declarations, aggregate);
+        aggregate =  visitAll(compilationUnit.declarations, aggregate);
 
         namespaces.pop();
         namespaces.pop();
@@ -93,7 +94,7 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
 
     @Override
     public T visitImportStatement(ImportStatement<Pass> importStatement, T aggregate) {
-        visit(importStatement.name, aggregate);
+        aggregate = visit(importStatement.name, aggregate);
         namespaces.push(ImportNs.wrap(namespaces.peek(), importStatement));
         return aggregate;
     }
@@ -109,8 +110,7 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
                 throw new UnsupportedOperationException();
         }
 
-        aggregate.defineTypeOf(literalTypeExpression, type);
-        return aggregate;
+        return aggregate.defineTypeOf(literalTypeExpression, type);
     }
 
     protected T visitMethodBody(MethodDeclarationImpl<Pass> methodDeclaration, T aggregate) {
@@ -122,17 +122,17 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
     public T visitMethodDeclaration(MethodDeclarationImpl<Pass> methodDeclaration, T aggregate) {
         namespaces.push(MethodDeclarationNs.wrap(getNs(), methodDeclaration));
 
-        visitAll(methodDeclaration.annotations, aggregate);
-        visitAll(methodDeclaration.modifiers, aggregate);
+        aggregate = visitAll(methodDeclaration.annotations, aggregate);
+        aggregate = visitAll(methodDeclaration.modifiers, aggregate);
 
         for (MethodDeclarationImpl.Piece<Pass> piece : methodDeclaration.pieces) {
             namespaces.push(TypeParametersNs.wrap(getNs(), piece));
             visit(piece, aggregate);
         }
 
-        methodDeclaration.returnType.accept(this, aggregate);
+        aggregate = visit(methodDeclaration.returnType, aggregate);
 
-        visitMethodBody(methodDeclaration, aggregate);
+        aggregate = visitMethodBody(methodDeclaration, aggregate);
 
         for (int i = 0; i < methodDeclaration.pieces.size(); ++i) {
             namespaces.pop();
@@ -143,8 +143,8 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
 
     @Override
     public T visitMethodDeclarationPiece(MethodDeclarationImpl.Piece<Pass> piece, T aggregate) {
-        visit(piece.typeParameters, aggregate);
-        visitAll(piece.params, aggregate);
+        aggregate = visit(piece.typeParameters, aggregate);
+        aggregate = visitAll(piece.params, aggregate);
         return aggregate;
     }
 
@@ -157,12 +157,11 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
     public T visitNamedType(NamedTypeExpression<Pass> namedType, T aggregate) {
         visit(namedType.name, aggregate);
 
-        aggregate.defineTypeOf(namedType, resolveAndConstructTypeName(namedType.name, aggregate));
-        return aggregate;
+        return aggregate.defineTypeOf(namedType, resolveAndConstructTypeName(namedType.name, aggregate));
     }
 
     protected final TypeMixin<Pass, ?> resolveAndConstructTypeName(NameImpl<Pass> name, T aggregate) {
-        final TypeMixin<Pass, ?> resolvedType = resolveTypeName(name);
+        final TypeMixin<Pass, ?> resolvedType = resolveTypeName(name, aggregate);
 
         if (resolvedType instanceof TypeConstructorMixin<?, ?, ?>) {
             final TypeConstructorMixin<Pass, ?, ?> typeConstructor = (TypeConstructorMixin<Pass, ?, ?>) resolvedType;
@@ -176,17 +175,11 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
         return resolvedType;
     }
 
-    protected final TypeMixin<Pass, ?> resolveTypeName(NameImpl<Pass> name) {
-        return getNs().resolveType(name);
-    }
-
     @Override
     public T visitNameExpression(NameExpression<Pass> nameExpression, T aggregate) {
         Preconditions.checkState(nameExpression.name.ids.size() == 1);
 
-        visit(nameExpression.name, aggregate);
-
-        return aggregate;
+        return visit(nameExpression.name, aggregate);
     }
 
     @Override
@@ -207,13 +200,13 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
     protected T visitStatements(ImmutableList<Statement<Pass>> statements, T aggregate) {
         for (int i = 0; i < statements.size(); ++i) {
             final Statement<Pass> statement = statements.get(i);
-            visitStatement(statement, aggregate);
+            aggregate = visitStatement(statement, aggregate);
 
             // ugly
             if (statement instanceof LocalVariableDeclaration) {
                 final LocalVariableDeclaration<Pass> lvd = (LocalVariableDeclaration<Pass>) statement;
                 namespaces.push(LocalVariableDeclarationNs.wrap(getNs(), lvd));
-                visitStatements(statements.subList(i + 1, statements.size()), aggregate);
+                aggregate = visitStatements(statements.subList(i + 1, statements.size()), aggregate);
                 namespaces.pop();
                 return aggregate;
             }
@@ -235,9 +228,8 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
     public T visitTupleType(TupleTypeExpression<Pass> tupleType, T aggregate) {
         visitAll(tupleType.types, aggregate);
 
-        aggregate.defineTypeOf(tupleType, pass.getTypeSystem().getTuple(tupleType.types.size())
+        return aggregate.defineTypeOf(tupleType, pass.getTypeSystem().getTuple(tupleType.types.size())
                 .apply(tupleType.types.stream().map(aggregate::lookUpTypeOf).collect(typeList())));
-        return aggregate;
     }
 
     protected T visitTypeBody(AbstractTypeDeclaration<Pass> typeDeclaration, T aggregate) {
@@ -245,8 +237,8 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
     }
 
     protected T visitTypeDeclaration(AbstractTypeDeclaration<Pass> typeDeclaration, T aggregate) {
-        visitAll(typeDeclaration.annotations, aggregate);
-        visitAll(typeDeclaration.modifiers, aggregate);
+        aggregate = visitAll(typeDeclaration.annotations, aggregate);
+        aggregate = visitAll(typeDeclaration.modifiers, aggregate);
 
         namespaces.push(typeDeclaration instanceof PackageObjectDeclaration<?>
                 ? PackageObjectNs.wrap(getNs(), getNs().getPackageFqn(), (PackageObjectDeclaration<Pass>) typeDeclaration)
@@ -258,14 +250,14 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
         else
             namespaces.push(TypeParametersNs.wrap(getNs(), typeDeclaration));
 
-        visit(typeDeclaration.getTypeParameters(), aggregate);
+        aggregate = visit(typeDeclaration.getTypeParameters(), aggregate);
 
-        visitAll(typeDeclaration.getParameters(), aggregate);
-        visitAll(typeDeclaration.extending, aggregate);
+        aggregate = visitAll(typeDeclaration.getParameters(), aggregate);
+        aggregate = visitAll(typeDeclaration.extending, aggregate);
 
         namespaces.push(ParametersNs.wrap(getNs(), typeDeclaration.getParameters()));
 
-        visitTypeBody(typeDeclaration, aggregate);
+        aggregate = visitTypeBody(typeDeclaration, aggregate);
 
         popNs();
         if (typeDeclaration instanceof ObjectDeclaration<?>)
@@ -283,7 +275,19 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
         return visitTypeDeclaration(unionDeclaration, aggregate);
     }
 
-    protected AbstractConstraints<Pass> getContextualConstraints() {
-        return getNs().getContextualConstraints();
+    protected final TypeMixin<Pass, ?> resolveTypeName(NameImpl<Pass> name, T aggregate) {
+        return getNs().resolveType(lookUp(aggregate), name);
+    }
+
+    protected final AbstractResolution resolve(NameImpl<Pass> name, T aggregate) {
+        return getNs().resolve(lookUp(aggregate), Iterables.getOnlyElement(name.ids).getLexeme());
+    }
+
+    protected AbstractConstraints<Pass> getContextualConstraints(T aggregate) {
+        return getNs().getContextualConstraints(lookUp(aggregate));
+    }
+
+    private LookUp lookUp(T aggregate) {
+        return new LookUp(pass, aggregate);
     }
 }

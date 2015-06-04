@@ -59,10 +59,6 @@ public interface ModelTransformer<X extends ModelContext<X>, N, L extends N, D e
         throw new AssertionError();
     }
 
-    default S transformAssignment(Assignment<X> assignment) {
-        throw new AssertionError();
-    }
-
     default D transformClassDeclaration(ClassDeclaration<X> classDeclaration) {
         throw new AssertionError();
     }

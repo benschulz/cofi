@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.frontend.namespace.AbstractResolution;
 import de.benshu.cofi.common.Fqn;
@@ -24,10 +23,10 @@ import de.benshu.cofi.model.impl.ParameterImpl;
 import de.benshu.cofi.model.impl.ThisExpression;
 import de.benshu.cofi.model.impl.TraitDeclaration;
 import de.benshu.cofi.model.impl.UnionDeclaration;
+import de.benshu.cofi.model.impl.UserDefinedStatement;
 import de.benshu.cofi.runtime.AbstractObject;
 import de.benshu.cofi.runtime.AbstractTypeDeclaration;
 import de.benshu.cofi.runtime.Annotation;
-import de.benshu.cofi.runtime.Assignment;
 import de.benshu.cofi.runtime.Class;
 import de.benshu.cofi.runtime.Closure;
 import de.benshu.cofi.runtime.Companion;
@@ -133,7 +132,7 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
                 .map(c -> ((Constructor<AbstractTypeDeclaration>) c))
                 .collect(set());
 
-        final TemplateTypeConstructor type = packageObjectDeclaration.getType(pass).unbind();
+        final TemplateTypeConstructor type = pass.lookUpTypeOf(packageObjectDeclaration).unbind();
         return as -> new Package(
                 as,
                 transformAnnotationsOf(packageObjectDeclaration),
@@ -155,15 +154,6 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
                         .map(this::transformAnnotationPropertyAssignment)
                         .map(this::covariant)
                         .collect(set())
-        );
-    }
-
-    @Override
-    public Constructor<Statement> transformAssignment(de.benshu.cofi.model.impl.Assignment<Pass> assignment) {
-        return as -> new Assignment(
-                as,
-                covariant(transform(assignment.lhs)),
-                covariant(transform(assignment.rhs))
         );
     }
 
@@ -205,10 +195,12 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
 
     @Override
     public Constructor<Statement> transformExpressionStatement(de.benshu.cofi.model.impl.ExpressionStatement<Pass> expressionStatement) {
+        de.benshu.cofi.model.impl.ExpressionStatement<Pass> transformed = (de.benshu.cofi.model.impl.ExpressionStatement<Pass>) pass.lookUpTransformationOf(expressionStatement);
+
         return as -> new ExpressionStatement(
                 as,
-                expressionStatement.annotations.stream().map(this::transformAnnotation).map(this::covariant).collect(set()),
-                covariant(transform(expressionStatement.expression))
+                transformed.annotations.stream().map(this::transformAnnotation).map(this::covariant).collect(set()),
+                covariant(transform(transformed.expression))
         );
     }
 
@@ -232,12 +224,14 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
 
     @Override
     public Constructor<Statement> transformLocalVariableDeclaration(de.benshu.cofi.model.impl.LocalVariableDeclaration<Pass> localVariableDeclaration) {
+        de.benshu.cofi.model.impl.LocalVariableDeclaration<Pass> transformed = (de.benshu.cofi.model.impl.LocalVariableDeclaration<Pass>) pass.lookUpTransformationOf(localVariableDeclaration);
+
         return as -> new LocalVariableDeclaration(
                 as,
-                transformAnnotationsOf(localVariableDeclaration),
-                localVariableDeclaration.getName(),
-                x -> pass.lookUpProperTypeOf(localVariableDeclaration.type).unbind(),
-                transformNonNull(localVariableDeclaration.value).map(this::covariant)
+                transformAnnotationsOf(transformed),
+                transformed.getName(),
+                x -> pass.lookUpProperTypeOf(transformed.type).unbind(),
+                transformNonNull(transformed.value).map(this::covariant)
         );
     }
 
@@ -417,6 +411,11 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
                 transformTypeBody(unionDeclaration.body),
                 (Constructor<Companion>) transformObjectDeclaration(pass.lookUpCompanionObjectOf(unionDeclaration))
         );
+    }
+
+    @Override
+    public Constructor<? extends Statement> transformUserDefinedStatementNode(UserDefinedStatement<Pass> userDefinedStatement) {
+        return transform(pass.lookUpTransformationOf(userDefinedStatement));
     }
 
     private ImmutableSet<Constructor<Annotation>> transformAnnotationsOf(AnnotatedNodeMixin<Pass> annotatedNode) {

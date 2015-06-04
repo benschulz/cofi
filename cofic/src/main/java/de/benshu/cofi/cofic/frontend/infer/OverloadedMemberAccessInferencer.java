@@ -3,18 +3,12 @@ package de.benshu.cofi.cofic.frontend.infer;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.frontend.Implicits;
 import de.benshu.cofi.cofic.frontend.Owners;
 import de.benshu.cofi.inference.Parametrization;
-import de.benshu.cofi.types.MemberSort;
 import de.benshu.cofi.types.Variance;
-import de.benshu.cofi.types.impl.intersections.AbstractIntersectionType;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.cofi.types.impl.AdHoc;
-import de.benshu.cofi.types.impl.intersections.AnonymousIntersectionType;
 import de.benshu.cofi.types.impl.FunctionTypes;
 import de.benshu.cofi.types.impl.NullaryTypeConstructor;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
@@ -26,10 +20,12 @@ import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 import de.benshu.cofi.types.impl.declarations.Interpreter;
 import de.benshu.cofi.types.impl.declarations.TypeParameterListDeclaration;
+import de.benshu.cofi.types.impl.intersections.AbstractIntersectionType;
+import de.benshu.cofi.types.impl.intersections.AnonymousIntersectionType;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.members.AbstractMember;
-import de.benshu.cofi.types.impl.members.MethodImpl;
-import de.benshu.cofi.types.impl.members.MethodSignatureImpl;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Optional;
 import de.benshu.commons.core.Pair;
@@ -41,9 +37,9 @@ import static de.benshu.cofi.types.impl.constraints.AbstractConstraints.trivial;
 import static de.benshu.commons.core.Optional.none;
 import static de.benshu.commons.core.Optional.some;
 
-public class OverloadedMemberAccessInferencer implements OverloadedExpressionInferencer {
-    private static int determineTypeArgCount(Pass pass, ExpressionInferencer primary, InferMemberAccess memberAccess,
-                                             Optional<? extends AbstractMember<Pass>> member) {
+public class OverloadedMemberAccessInferencer<T> implements OverloadedExpressionInferencer<T> {
+    private static <T> int determineTypeArgCount(Pass pass, ExpressionInferencer<T> primary, InferMemberAccess<T> memberAccess,
+                                                 Optional<? extends AbstractMember<Pass>> member) {
         for (AbstractMember<Pass> m : member) {
             return memberAccess.getTypeArgs()
                     .map(args -> primary.getTypeArgCount())
@@ -53,7 +49,7 @@ public class OverloadedMemberAccessInferencer implements OverloadedExpressionInf
         return -1;
     }
 
-    private static ProperTypeConstructorMixin<Pass, ?, ?> determineImplicitType(Pass pass, InferMemberAccess memberAccess, AbstractMember<Pass> member) {
+    private static <T> ProperTypeConstructorMixin<Pass, ?, ?> determineImplicitType(Pass pass, InferMemberAccess<T> memberAccess, AbstractMember<Pass> member) {
         Implicits implicits = member.getTags().getOrFallbackToDefault(Implicits.TAG);
         ProperTypeConstructorMixin<Pass, ?, ?> type = member.getType();
 
@@ -159,18 +155,18 @@ public class OverloadedMemberAccessInferencer implements OverloadedExpressionInf
     }
 
     private final Pass pass;
-    private final OverloadedExpressionInferencer primary;
-    private final InferMemberAccess memberAccess;
+    private final OverloadedExpressionInferencer<T> primary;
+    private final InferMemberAccess<T> memberAccess;
 
-    public OverloadedMemberAccessInferencer(Pass pass, OverloadedExpressionInferencer primary, InferMemberAccess memberAccess) {
+    public OverloadedMemberAccessInferencer(Pass pass, OverloadedExpressionInferencer<T> primary, InferMemberAccess<T> memberAccess) {
         this.pass = pass;
         this.primary = primary;
         this.memberAccess = memberAccess;
     }
 
     @Override
-    public Iterable<ExpressionInferencer> unoverload() {
-        return Iterables.concat(Iterables.transform(primary.unoverload(), new PerPrimaryMapper(pass, primary, memberAccess)));
+    public Iterable<ExpressionInferencer<T>> unoverload() {
+        return Iterables.concat(Iterables.transform(primary.unoverload(), new PerPrimaryMapper<T>(pass, primary, memberAccess)));
     }
 
     @Override
@@ -178,13 +174,13 @@ public class OverloadedMemberAccessInferencer implements OverloadedExpressionInf
         return primary + "." + memberAccess.getName();
     }
 
-    private static final class SimpleUnoverloaded extends AbstractExpressionInferencer {
-        private final ExpressionInferencer primary;
+    private static final class SimpleUnoverloaded<T> extends AbstractExpressionInferencer<T> {
+        private final ExpressionInferencer<T> primary;
         private final ProperTypeMixin<Pass, ?> primaryContext;
-        private final InferMemberAccess memberAccess;
+        private final InferMemberAccess<T> memberAccess;
         private final Optional<AbstractMember<Pass>> member;
 
-        private SimpleUnoverloaded(Pass pass, ExpressionInferencer primary, ProperTypeMixin<Pass, ?> primaryContext, InferMemberAccess memberAccess, Optional<AbstractMember<Pass>> member) {
+        private SimpleUnoverloaded(Pass pass, ExpressionInferencer<T> primary, ProperTypeMixin<Pass, ?> primaryContext, InferMemberAccess<T> memberAccess, Optional<AbstractMember<Pass>> member) {
             super(determineTypeArgCount(pass, primary, memberAccess, member));
             this.primary = primary;
             this.primaryContext = primaryContext;
@@ -192,22 +188,22 @@ public class OverloadedMemberAccessInferencer implements OverloadedExpressionInf
             this.member = member;
         }
 
-        public SimpleUnoverloaded(Pass pass, ExpressionInferencer primary, ProperTypeMixin<Pass, ?> primaryContext, InferMemberAccess memberAccess) {
+        public SimpleUnoverloaded(Pass pass, ExpressionInferencer<T> primary, ProperTypeMixin<Pass, ?> primaryContext, InferMemberAccess<T> memberAccess) {
             this(pass, primary, primaryContext, memberAccess, primaryContext.lookupMember(memberAccess.getName()));
         }
 
         @Override
-        public Optional<Parametrization<Pass>> inferGeneric(Pass pass, TypeParameterListImpl<Pass> params, int offset,
-                                                            AbstractConstraints<Pass> constraints, ProperTypeMixin<Pass, ?> context) {
+        public Optional<Parametrization<Pass, T>> inferGeneric(Pass pass, TypeParameterListImpl<Pass> params, int offset,
+                                                               AbstractConstraints<Pass> constraints, ProperTypeMixin<Pass, ?> context) {
             for (AbstractMember<Pass> _ : member)
-                for (Parametrization<Pass> p : primary.inferGeneric(pass, params, offset, constraints, primaryContext))
+                for (Parametrization<Pass, T> p : primary.inferGeneric(pass, params, offset, constraints, primaryContext))
                     for (AbstractMember<Pass> m : p.getImplicitType().lookupMember(_.getName()))
                         return some(wrapParameterization(pass, p, m, offset));
 
             return none();
         }
 
-        private Parametrization<Pass> wrapParameterization(Pass pass, final Parametrization<Pass> p, final AbstractMember<Pass> m, int offset) {
+        private Parametrization<Pass, T> wrapParameterization(Pass pass, final Parametrization<Pass, T> p, final AbstractMember<Pass> m, int offset) {
             int implicitTpCount = m.getTags().getOrFallbackToDefault(Implicits.TAG).getTypeParamCount();
 
             final int fromIndex = offset + primary.getTypeArgCount() + implicitTpCount;
@@ -215,7 +211,7 @@ public class OverloadedMemberAccessInferencer implements OverloadedExpressionInf
 
             final AbstractConstraints<Pass> constraints = transferConstraints(pass, m, p.getConstraints(), fromIndex, toIndex);
 
-            return new Parametrization<Pass>() {
+            return new Parametrization<Pass, T>() {
                 @Override
                 public ProperTypeMixin<Pass, ?> getImplicitType() {
                     TypeParameterListImpl<Pass> params = p.getConstraints().getTypeParams();
@@ -239,18 +235,20 @@ public class OverloadedMemberAccessInferencer implements OverloadedExpressionInf
                 }
 
                 @Override
-                public void apply(Substitutions<Pass> substitutions) {
-                    p.apply(substitutions);
+                public T apply(Substitutions<Pass> substitutions, T aggregate) {
+                    aggregate = p.apply(substitutions, aggregate);
 
                     int implicitTpCount = m.getTags().getOrFallbackToDefault(Implicits.TAG).getTypeParamCount();
                     if (implicitTpCount > 0) {
                         if (toIndex != fromIndex)
                             throw null;
 
-                        memberAccess.setTypeArgs(m, inferImplicitTypeArgs(pass, m));
+                        aggregate = memberAccess.setTypeArgs(m, inferImplicitTypeArgs(pass, m), aggregate);
                     } else {
-                        memberAccess.setTypeArgs(m, getConstraints().getTypeParams().getVariables().subList(fromIndex, toIndex).map(substitutions::substitute));
+                        aggregate = memberAccess.setTypeArgs(m, getConstraints().getTypeParams().getVariables().subList(fromIndex, toIndex).map(substitutions::substitute), aggregate);
                     }
+
+                    return aggregate;
                 }
             };
         }
@@ -272,21 +270,21 @@ public class OverloadedMemberAccessInferencer implements OverloadedExpressionInf
         }
     }
 
-    private static final class PerPrimaryMapper implements Function<ExpressionInferencer, Iterable<ExpressionInferencer>> {
+    private static final class PerPrimaryMapper<T> implements Function<ExpressionInferencer<T>, Iterable<ExpressionInferencer<T>>> {
         private final Pass pass;
-        private final InferMemberAccess memberAccess;
+        private final InferMemberAccess<T> memberAccess;
 
-        public PerPrimaryMapper(Pass pass, OverloadedExpressionInferencer primary, InferMemberAccess memberAccess) {
+        public PerPrimaryMapper(Pass pass, OverloadedExpressionInferencer<T> primary, InferMemberAccess<T> memberAccess) {
             this.pass = pass;
             this.memberAccess = memberAccess;
         }
 
         @Override
-        public Iterable<ExpressionInferencer> apply(ExpressionInferencer primary) {
+        public Iterable<ExpressionInferencer<T>> apply(ExpressionInferencer<T> primary) {
             for (ProperTypeMixin<Pass, ?> pst : primary.inferSpecific(pass)) {
                 AbstractMember<Pass> member = pst.lookupMember(memberAccess.getName()).get();
                 AbstractTypeList<Pass, ProperTypeMixin<Pass, ?>> owners = member.getTags().get(Owners.TAG).getOwners();
-                return owners.<ExpressionInferencer>mapAny(o -> new SimpleUnoverloaded(pass, primary, o, memberAccess));
+                return owners.<ExpressionInferencer<T>>mapAny(o -> new SimpleUnoverloaded<T>(pass, primary, o, memberAccess));
             }
             return ImmutableList.of();
         }

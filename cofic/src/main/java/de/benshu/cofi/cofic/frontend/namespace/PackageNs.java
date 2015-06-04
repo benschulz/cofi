@@ -38,16 +38,16 @@ class PackageNs extends AbstractNamespace {
     }
 
     @Override
-    protected Optional<AbstractNamespace> tryResolveNamespaceLocally(String name, Source.Snippet src) {
-        return packageObjectNs().tryResolveNamespaceLocally(name, src);
+    protected Optional<AbstractNamespace> tryResolveNamespaceLocally(LookUp lookUp, String name, Source.Snippet src) {
+        return packageObjectNs(lookUp).tryResolveNamespaceLocally(lookUp, name, src);
     }
 
     @Override
-    protected Optional<AbstractResolution> tryResolveLocally(AbstractNamespace fromNamespace, String name) {
-        return packageObjectNs().tryResolveLocally(fromNamespace, name);
+    protected Optional<AbstractResolution> tryResolveLocally(LookUp lookUp, AbstractNamespace fromNamespace, String name) {
+        return packageObjectNs(lookUp).tryResolveLocally(lookUp, fromNamespace, name);
     }
 
-    private PackageObjectNs packageObjectNs() {
-        return PackageObjectNs.create(this, packageFqn, pass.lookUpPackageObjectDeclarationOf(packageFqn));
+    private PackageObjectNs packageObjectNs(LookUp lookUp) {
+        return PackageObjectNs.create(this, packageFqn, lookUp.lookUpPackageObjectDeclarationOf(packageFqn));
     }
 }

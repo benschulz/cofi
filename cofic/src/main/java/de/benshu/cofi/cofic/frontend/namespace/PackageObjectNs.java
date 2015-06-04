@@ -40,7 +40,7 @@ public class PackageObjectNs extends AbstractNamespace {
     }
 
     @Override
-    ExpressionNode<Pass> getAccessor() {
+    ExpressionNode<Pass> getAccessor(LookUp lookUp) {
         return getAccessor(packageFqn);
     }
 
@@ -50,13 +50,13 @@ public class PackageObjectNs extends AbstractNamespace {
     }
 
     @Override
-    protected de.benshu.commons.core.Optional<AbstractNamespace> tryResolveNamespaceLocally(String name, Source.Snippet src) {
+    protected de.benshu.commons.core.Optional<AbstractNamespace> tryResolveNamespaceLocally(LookUp lookUp, String name, Source.Snippet src) {
         final Fqn childFqn = packageFqn.getChild(name);
 
-        for (PackageObjectDeclaration<Pass> packageObjectDeclaration : pass.tryLookUpPackageObjectDeclarationOf(childFqn))
+        for (PackageObjectDeclaration<Pass> packageObjectDeclaration : lookUp.tryLookUpPackageObjectDeclarationOf(childFqn))
             return some(PackageObjectNs.create(this, childFqn, packageObjectDeclaration));
 
-        final ImmutableSet<AbstractTypeDeclaration<Pass>> tlds = pass.lookUpTopLevelDeclarationIn(packageObjectDeclaration);
+        final ImmutableSet<AbstractTypeDeclaration<Pass>> tlds = lookUp.lookUpTopLevelDeclarationIn(packageObjectDeclaration);
 
         final Optional<AbstractTypeDeclaration<Pass>> tld = tlds.stream()
                 .filter(d -> d.getName().equals(name))
@@ -67,8 +67,8 @@ public class PackageObjectNs extends AbstractNamespace {
     }
 
     @Override
-    protected de.benshu.commons.core.Optional<AbstractResolution> tryResolveLocally(AbstractNamespace fromNamespace, String name) {
-        return packageObjectDeclaration.getType(pass).applyTrivially().lookupMember(name)
-                .map(m -> new DefaultResolution(m.getType(), getAccessor(), m));
+    protected de.benshu.commons.core.Optional<AbstractResolution> tryResolveLocally(LookUp lookUp, AbstractNamespace fromNamespace, String name) {
+        return lookUp.lookUpTypeOf(packageObjectDeclaration).applyTrivially().lookupMember(name)
+                .map(m -> new DefaultResolution(m.getType(), getAccessor(lookUp), m));
     }
 }

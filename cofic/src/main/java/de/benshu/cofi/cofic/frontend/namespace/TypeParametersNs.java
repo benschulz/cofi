@@ -26,10 +26,10 @@ public class TypeParametersNs extends AbstractNamespace {
     }
 
     @Override
-    protected Optional<AbstractNamespace> tryResolveNamespaceLocally(String name, Source.Snippet src) {
+    protected Optional<AbstractNamespace> tryResolveNamespaceLocally(LookUp lookUp, String name, Source.Snippet src) {
         for (int i = 0; i < typeParameterized.getTypeParameters().declarations.size(); ++i) {
             final TypeParamDecl<Pass> parameter = typeParameterized.getTypeParameters().declarations.get(i);
-            final TypeVariableImpl<Pass, ?> variable = pass.lookUpTypeParametersOf(typeParameterized).getVariables().get(i);
+            final TypeVariableImpl<Pass, ?> variable = lookUp.lookUpTypeParametersOf(typeParameterized).getVariables().get(i);
 
             if (parameter.name.getLexeme().equals(name))
                 return some(EmptyNamespace.create(this, variable));

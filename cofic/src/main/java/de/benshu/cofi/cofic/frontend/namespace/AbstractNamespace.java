@@ -3,7 +3,6 @@ package de.benshu.cofi.cofic.frontend.namespace;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.cofic.Pass;
-import de.benshu.cofi.cofic.frontend.GenericModelDataBuilder;
 import de.benshu.cofi.cofic.notes.CofiNote;
 import de.benshu.cofi.cofic.notes.ImmutableNote;
 import de.benshu.cofi.cofic.notes.PrintStreamNotes;
@@ -28,20 +27,13 @@ import static de.benshu.commons.core.Optional.none;
 import static de.benshu.commons.core.Optional.some;
 
 public abstract class AbstractNamespace implements Namespace<Pass> {
-    // TODO Preferebly add a LookUp-object parameter to the resolve methods.
-    final Pass pass;
-    final GenericModelDataBuilder<?, ?> aggregate;
     final AbstractNamespace parent;
 
-    AbstractNamespace(Pass pass, GenericModelDataBuilder<?, ?> aggregate) {
-        this.pass = pass;
-        this.aggregate = aggregate;
+    AbstractNamespace() {
         this.parent = null;
     }
 
     AbstractNamespace(AbstractNamespace parent) {
-        this.pass = parent.pass;
-        this.aggregate = parent.aggregate;
         this.parent = parent;
     }
 
@@ -49,8 +41,8 @@ public abstract class AbstractNamespace implements Namespace<Pass> {
         return getParent().getContainingTypeDeclaration();
     }
 
-    public AbstractConstraints<Pass> getContextualConstraints() {
-        return getParent().getContextualConstraints();
+    public AbstractConstraints<Pass> getContextualConstraints(LookUp lookUp) {
+        return getParent().getContextualConstraints(lookUp);
     }
 
     public Fqn getPackageFqn() {
@@ -71,7 +63,7 @@ public abstract class AbstractNamespace implements Namespace<Pass> {
         return parent == null ? this : parent.getRoot();
     }
 
-    ExpressionNode<Pass> getAccessor() {
+    ExpressionNode<Pass> getAccessor(LookUp lookUp) {
         throw new UnsupportedOperationException();
     }
 
@@ -85,54 +77,54 @@ public abstract class AbstractNamespace implements Namespace<Pass> {
         return MemberAccessExpression.of(index > 0 ? getAccessor(fqn, index - 1) : RootExpression.of(), RelativeNameImpl.of(id));
     }
 
-    public TypeMixin<Pass, ?> resolveType(NameImpl<Pass> name) {
+    public TypeMixin<Pass, ?> resolveType(LookUp lookUp, NameImpl<Pass> name) {
         final ImmutableList<String> ids = ImmutableList.copyOf(name.ids.stream().map(Token::getLexeme).iterator());
         final Source.Snippet src = name.ids.get(0).getTokenString(name.ids.get(name.ids.size() - 1));
 
         return name instanceof FullyQualifiedName
-                ? getRoot().resolveNamespace(ids, src)
-                : resolveNamespace(ids, src);
+                ? getRoot().resolveNamespace(lookUp, ids, src)
+                : resolveNamespace(lookUp, ids, src);
 
     }
 
-    private TypeMixin<Pass, ?> resolveNamespace(ImmutableList<String> ids, Snippet src) {
-        for (AbstractNamespace resolvedInThisScope : tryResolveNamespace(ids, src))
-            return resolvedInThisScope.asType();
+    private TypeMixin<Pass, ?> resolveNamespace(LookUp lookUp, ImmutableList<String> ids, Snippet src) {
+        for (AbstractNamespace resolvedInThisScope : tryResolveNamespace(lookUp, ids, src))
+            return resolvedInThisScope.asType(lookUp);
         return fail(ids, src).getType();
     }
 
-    final Optional<AbstractNamespace> tryResolveNamespace(ImmutableList<String> ids, Snippet src) {
+    final Optional<AbstractNamespace> tryResolveNamespace(LookUp lookUp, ImmutableList<String> ids, Snippet src) {
         Optional<AbstractNamespace> current = some(this);
         for (String id : ids)
-            current = current.flatMap(c -> c.tryResolveNamespaceLocally(id, src));
-        return current.or(() -> parent == null ? none() : parent.tryResolveNamespace(ids, src));
+            current = current.flatMap(c -> c.tryResolveNamespaceLocally(lookUp, id, src));
+        return current.or(() -> parent == null ? none() : parent.tryResolveNamespace(lookUp, ids, src));
     }
 
-    Optional<AbstractNamespace> tryResolveNamespaceLocally(String name, Snippet src) {
+    Optional<AbstractNamespace> tryResolveNamespaceLocally(LookUp lookUp, String name, Snippet src) {
         return none();
     }
 
-    TypeMixin<Pass, ?> asType() {
+    TypeMixin<Pass, ?> asType(LookUp lookUp) {
         throw new UnsupportedOperationException(this.getClass().toString());
     }
 
 
-    public AbstractResolution resolve(String name) {
-        return resolve(this, name);
+    public AbstractResolution resolve(LookUp lookUp, String name) {
+        return resolve(lookUp, this, name);
     }
 
-    public AbstractResolution resolve(AbstractNamespace fromNamespace, String name) {
-        for (AbstractResolution resolvedInThisScope : tryResolveLocally(fromNamespace, name))
+    public AbstractResolution resolve(LookUp lookUp, AbstractNamespace fromNamespace, String name) {
+        for (AbstractResolution resolvedInThisScope : tryResolveLocally(lookUp, fromNamespace, name))
             return resolvedInThisScope;
 
         return parent == null
                 ? new ErrorResolution()
-                : parent.resolve(fromNamespace, name);
+                : parent.resolve(lookUp, fromNamespace, name);
     }
 
-    Optional<AbstractResolution> tryResolveLocally(AbstractNamespace fromNamespace, String name) {
-        return tryResolveNamespaceLocally(name, ArtificialToken.create(Token.Kind.IDENTIFIER, name))
-                .map(ns -> ns.asType())
+    Optional<AbstractResolution> tryResolveLocally(LookUp lookUp, AbstractNamespace fromNamespace, String name) {
+        return tryResolveNamespaceLocally(lookUp, name, ArtificialToken.create(Token.Kind.IDENTIFIER, name))
+                .map(ns -> ns.asType(lookUp))
                 .map(DefaultResolution::new);
     }
 

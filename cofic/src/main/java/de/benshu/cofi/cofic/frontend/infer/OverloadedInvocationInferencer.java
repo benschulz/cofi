@@ -5,19 +5,18 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.inference.Parametrization;
-import de.benshu.cofi.types.impl.intersections.AbstractIntersectionType;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.cofi.types.impl.FunctionTypes;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.Substitutions;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
+import de.benshu.cofi.types.impl.intersections.AbstractIntersectionType;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.commons.core.Optional;
 
 import java.util.ArrayDeque;
@@ -32,40 +31,40 @@ import static de.benshu.commons.core.Optional.none;
 import static de.benshu.commons.core.Optional.some;
 import static java.util.stream.Collectors.joining;
 
-public class OverloadedInvocationInferencer implements OverloadedExpressionInferencer {
+public class OverloadedInvocationInferencer<T> implements OverloadedExpressionInferencer<T> {
     private final Pass pass;
-    private final OverloadedExpressionInferencer primary;
-    private final InferFunctionInvocation functionInvocation;
-    private ImmutableList<OverloadedExpressionInferencer> argInferencers;
+    private final OverloadedExpressionInferencer<T> primary;
+    private final InferFunctionInvocation<T> functionInvocation;
+    private ImmutableList<OverloadedExpressionInferencer<T>> argInferencers;
 
-    public OverloadedInvocationInferencer(Pass pass, OverloadedExpressionInferencer primary,
-                                          InferFunctionInvocation functionInvocation) {
+    public OverloadedInvocationInferencer(Pass pass, OverloadedExpressionInferencer<T> primary,
+                                          InferFunctionInvocation<T> functionInvocation) {
         this.pass = pass;
         this.primary = primary;
         this.functionInvocation = functionInvocation;
     }
 
-    public void setArgs(ImmutableList<OverloadedExpressionInferencer> argInferencers) {
+    public void setArgs(ImmutableList<OverloadedExpressionInferencer<T>> argInferencers) {
         Preconditions.checkState(this.argInferencers == null);
         this.argInferencers = argInferencers;
     }
 
     @Override
-    public Iterable<ExpressionInferencer> unoverload() {
+    public Iterable<ExpressionInferencer<T>> unoverload() {
         Preconditions.checkState(argInferencers != null);
 
-        return new Iterable<ExpressionInferencer>() {
+        return new Iterable<ExpressionInferencer<T>>() {
             @Override
-            public Iterator<ExpressionInferencer> iterator() {
-                return new AbstractIterator<ExpressionInferencer>() {
+            public Iterator<ExpressionInferencer<T>> iterator() {
+                return new AbstractIterator<ExpressionInferencer<T>>() {
                     private final int count = argInferencers.size() + 1;
-                    private final ImmutableList<Iterable<ExpressionInferencer>> iterables = getSubIterables();
-                    private final Deque<Iterator<ExpressionInferencer>> iterators = new ArrayDeque<>(count);
-                    private final Deque<ExpressionInferencer> inferencers = new ArrayDeque<>(count);
+                    private final ImmutableList<Iterable<ExpressionInferencer<T>>> iterables = getSubIterables();
+                    private final Deque<Iterator<ExpressionInferencer<T>>> iterators = new ArrayDeque<>(count);
+                    private final Deque<ExpressionInferencer<T>> inferencers = new ArrayDeque<>(count);
 
                     {
                         while (iterators.size() < count) {
-                            Iterator<ExpressionInferencer> iterator = iterables.get(iterators.size()).iterator();
+                            Iterator<ExpressionInferencer<T>> iterator = iterables.get(iterators.size()).iterator();
 
                             if (!iterator.hasNext())
                                 break; // TODO when does this ever happen? if it does not, we can use refill to fill initially
@@ -76,10 +75,10 @@ public class OverloadedInvocationInferencer implements OverloadedExpressionInfer
                     }
 
                     @Override
-                    protected ExpressionInferencer computeNext() {
+                    protected ExpressionInferencer<T> computeNext() {
                         try {
                             if (inferencers.size() == count) {
-                                return new Unoverloaded(pass, ImmutableList.copyOf(inferencers));
+                                return new Unoverloaded<T>(pass, ImmutableList.copyOf(inferencers));
                             } else {
                                 return endOfData();
                             }
@@ -119,22 +118,22 @@ public class OverloadedInvocationInferencer implements OverloadedExpressionInfer
         };
     }
 
-    private ImmutableList<Iterable<ExpressionInferencer>> getSubIterables() {
-        ImmutableList.Builder<Iterable<ExpressionInferencer>> builder = ImmutableList.builder();
+    private ImmutableList<Iterable<ExpressionInferencer<T>>> getSubIterables() {
+        ImmutableList.Builder<Iterable<ExpressionInferencer<T>>> builder = ImmutableList.builder();
 
         builder.add(unoverloadPrimary());
-        for (OverloadedExpressionInferencer argInferencer : argInferencers) {
+        for (OverloadedExpressionInferencer<T> argInferencer : argInferencers) {
             builder.add(argInferencer.unoverload());
         }
 
         return builder.build();
     }
 
-    private Iterable<ExpressionInferencer> unoverloadPrimary() {
+    private Iterable<ExpressionInferencer<T>> unoverloadPrimary() {
         return Iterables.concat(Iterables.transform(primary.unoverload(),
-                new Function<ExpressionInferencer, Iterable<ExpressionInferencer>>() {
+                new Function<ExpressionInferencer<T>, Iterable<ExpressionInferencer<T>>>() {
                     @Override
-                    public Iterable<ExpressionInferencer> apply(ExpressionInferencer primaryInferencer) {
+                    public Iterable<ExpressionInferencer<T>> apply(ExpressionInferencer<T> primaryInferencer) {
                         for (ProperTypeMixin<Pass, ?> pst : primaryInferencer.inferSpecific(pass)) {
                             // TODO there should be a visitor which extracts the type and yields an intersection of functions
                             //      for unions it should simply use the _order_ of the first element
@@ -151,15 +150,15 @@ public class OverloadedInvocationInferencer implements OverloadedExpressionInfer
                         return ImmutableList.of();
                     }
 
-                    private Iterable<ExpressionInferencer> templateTypePrimary(final ExpressionInferencer primaryInferencer,
-                                                                               final TemplateTypeImpl<Pass> pst) {
-                        ExpressionInferencer wrapped = new AbstractExpressionInferencer(primaryInferencer.getTypeArgCount()) {
+                    private Iterable<ExpressionInferencer<T>> templateTypePrimary(final ExpressionInferencer<T> primaryInferencer,
+                                                                                  final TemplateTypeImpl<Pass> pst) {
+                        ExpressionInferencer<T> wrapped = new AbstractExpressionInferencer<T>(primaryInferencer.getTypeArgCount()) {
                             @Override
-                            public Optional<Parametrization<Pass>> inferGeneric(
+                            public Optional<Parametrization<Pass, T>> inferGeneric(
                                     Pass pass, TypeParameterListImpl<Pass> params, int offset,
                                     AbstractConstraints<Pass> constraints, ProperTypeMixin<Pass, ?> context) {
-                                for (final Parametrization<Pass> p : primaryInferencer.inferGeneric(pass, params, offset, constraints, context)) {
-                                    Parametrization<Pass> wrapped = new Parametrization<Pass>() {
+                                for (final Parametrization<Pass, T> p : primaryInferencer.inferGeneric(pass, params, offset, constraints, context)) {
+                                    Parametrization<Pass, T> wrapped = new Parametrization<Pass, T>() {
                                         @Override
                                         public ProperTypeMixin<Pass, ?> getExplicitType() {
                                             return p.getExplicitType();
@@ -176,12 +175,13 @@ public class OverloadedInvocationInferencer implements OverloadedExpressionInfer
                                         }
 
                                         @Override
-                                        public void apply(Substitutions<Pass> substitutions) {
+                                        public T apply(Substitutions<Pass> substitutions, T aggregate) {
                                             functionInvocation.setSignature(
                                                     -1,
                                                     getExplicitType().substitute(substitutions),
-                                                    getImplicitType().substitute(substitutions));
-                                            p.apply(substitutions);
+                                                    getImplicitType().substitute(substitutions),
+                                                    aggregate);
+                                            return p.apply(substitutions, aggregate);
                                         }
                                     };
                                     return some(wrapped);
@@ -204,19 +204,19 @@ public class OverloadedInvocationInferencer implements OverloadedExpressionInfer
                         return ImmutableList.of(wrapped);
                     }
 
-                    private Iterable<ExpressionInferencer> intersectionTypePrimary(final ExpressionInferencer primaryInferencer,
-                                                                                   final AbstractIntersectionType<Pass, ?> pst) {
-                        ImmutableList.Builder<ExpressionInferencer> builder = ImmutableList.builder();
+                    private Iterable<ExpressionInferencer<T>> intersectionTypePrimary(final ExpressionInferencer<T> primaryInferencer,
+                                                                                      final AbstractIntersectionType<Pass, ?> pst) {
+                        ImmutableList.Builder<ExpressionInferencer<T>> builder = ImmutableList.builder();
 
                         for (int i = 0; i < pst.getElements().size(); ++i) {
                             final int index = i;
 
-                            ExpressionInferencer wrapped = new AbstractExpressionInferencer(primaryInferencer.getTypeArgCount()) {
+                            ExpressionInferencer<T> wrapped = new AbstractExpressionInferencer<T>(primaryInferencer.getTypeArgCount()) {
                                 @Override
-                                public Optional<Parametrization<Pass>> inferGeneric(Pass pass, TypeParameterListImpl<Pass> params, int offset,
-                                                                                    AbstractConstraints<Pass> constraints, ProperTypeMixin<Pass, ?> context) {
-                                    for (final Parametrization<Pass> p : primaryInferencer.inferGeneric(pass, params, offset, constraints, context)) {
-                                        Parametrization<Pass> wrapped = new Parametrization<Pass>() {
+                                public Optional<Parametrization<Pass, T>> inferGeneric(Pass pass, TypeParameterListImpl<Pass> params, int offset,
+                                                                                       AbstractConstraints<Pass> constraints, ProperTypeMixin<Pass, ?> context) {
+                                    for (final Parametrization<Pass, T> p : primaryInferencer.inferGeneric(pass, params, offset, constraints, context)) {
+                                        Parametrization<Pass, T> wrapped = new Parametrization<Pass, T>() {
                                             @Override
                                             public ProperTypeMixin<Pass, ?> getImplicitType() {
                                                 return ((AbstractIntersectionType<Pass, ?>) p.getImplicitType()).getElements().get(index);
@@ -233,13 +233,12 @@ public class OverloadedInvocationInferencer implements OverloadedExpressionInfer
                                             }
 
                                             @Override
-                                            public void apply(Substitutions<Pass> substitutions) {
-                                                functionInvocation.setSignature(
+                                            public T apply(Substitutions<Pass> substitutions, T aggregate) {
+                                                return p.apply(substitutions, functionInvocation.setSignature(
                                                         index,
                                                         getExplicitType().substitute(substitutions),
-                                                        getImplicitType().substitute(substitutions));
-
-                                                p.apply(substitutions);
+                                                        getImplicitType().substitute(substitutions),
+                                                        aggregate));
                                             }
                                         };
                                         return some(wrapped);
@@ -280,27 +279,27 @@ public class OverloadedInvocationInferencer implements OverloadedExpressionInfer
         return primary + "(" + args.stream().collect(joining(", ")) + ")";
     }
 
-    private static class Unoverloaded extends AbstractExpressionInferencer {
-        private static int determineTypeArgCount(ImmutableList<ExpressionInferencer> subInferencers) {
+    private static class Unoverloaded<T> extends AbstractExpressionInferencer<T> {
+        private static <T> int determineTypeArgCount(ImmutableList<ExpressionInferencer<T>> subInferencers) {
             int total = 0;
-            for (ExpressionInferencer si : subInferencers) {
+            for (ExpressionInferencer<T> si : subInferencers) {
                 total += si.getTypeArgCount();
             }
             return total;
         }
 
         private final Pass pass;
-        private final ImmutableList<ExpressionInferencer> subInferencers;
+        private final ImmutableList<ExpressionInferencer<T>> subInferencers;
 
-        public Unoverloaded(Pass pass, ImmutableList<ExpressionInferencer> subInferencers) {
+        public Unoverloaded(Pass pass, ImmutableList<ExpressionInferencer<T>> subInferencers) {
             super(determineTypeArgCount(subInferencers));
             this.pass = pass;
             this.subInferencers = subInferencers;
         }
 
         @Override
-        public Optional<Parametrization<Pass>> inferGeneric(Pass pass, TypeParameterListImpl<Pass> params, int offset, AbstractConstraints<Pass> constraints,
-                                                            ProperTypeMixin<Pass, ?> context) {
+        public Optional<Parametrization<Pass, T>> inferGeneric(Pass pass, TypeParameterListImpl<Pass> params, int offset, AbstractConstraints<Pass> constraints,
+                                                               ProperTypeMixin<Pass, ?> context) {
             int arity = subInferencers.size() - 1;
             AbstractTemplateTypeConstructor<Pass> function = pass.getTypeSystem().getFunction(arity);
             TypeMixin<Pass, ?>[] args = new TypeMixin[arity + 1];
@@ -309,10 +308,10 @@ public class OverloadedInvocationInferencer implements OverloadedExpressionInfer
             args[arity] = context;
             ProperTypeMixin<Pass, ?> currentContext = function.apply(AbstractTypeList.of(args));
 
-            List<Parametrization<Pass>> parametrizations = new ArrayList<>(subInferencers.size());
+            List<Parametrization<Pass, T>> parametrizations = new ArrayList<>(subInferencers.size());
 
-            for (ExpressionInferencer si : subInferencers) {
-                for (Parametrization<Pass> p : si.inferGeneric(pass, params, offset, constraints, currentContext)) {
+            for (ExpressionInferencer<T> si : subInferencers) {
+                for (Parametrization<Pass, T> p : si.inferGeneric(pass, params, offset, constraints, currentContext)) {
                     parametrizations.add(p);
 
                     if (parametrizations.size() == subInferencers.size()) {
@@ -328,8 +327,8 @@ public class OverloadedInvocationInferencer implements OverloadedExpressionInfer
             return none();
         }
 
-        private Optional<Parametrization<Pass>> constrainReturn(final List<Parametrization<Pass>> parametrizations,
-                                                                ProperTypeMixin<Pass, ?> context) {
+        private Optional<Parametrization<Pass, T>> constrainReturn(final List<Parametrization<Pass, T>> parametrizations,
+                                                                   ProperTypeMixin<Pass, ?> context) {
             final ProperTypeMixin<Pass, ?> returnType = extractReturnType(parametrizations);
             final AbstractConstraints<Pass> constraints = parametrizations.get(parametrizations.size() - 1).getConstraints()
                     .establishSubtype(returnType, context);
@@ -338,7 +337,7 @@ public class OverloadedInvocationInferencer implements OverloadedExpressionInfer
                 return none();
             }
 
-            Parametrization<Pass> parametrization = new Parametrization<Pass>() {
+            Parametrization<Pass, T> parametrization = new Parametrization<Pass, T>() {
                 @Override
                 public ProperTypeMixin<Pass, ?> getExplicitType() {
                     return returnType;
@@ -350,24 +349,24 @@ public class OverloadedInvocationInferencer implements OverloadedExpressionInfer
                 }
 
                 @Override
-                public void apply(Substitutions<Pass> substitutions) {
-                    for (Parametrization<Pass> p : parametrizations) {
-                        p.apply(substitutions);
-                    }
+                public T apply(Substitutions<Pass> substitutions, T aggregate) {
+                    for (Parametrization<Pass, T> p : parametrizations)
+                        aggregate = p.apply(substitutions, aggregate);
+                    return aggregate;
                 }
             };
             return some(parametrization);
         }
 
-        private AbstractTypeList<Pass, ProperTypeMixin<Pass, ?>> extractParamTypes(List<Parametrization<Pass>> parametrizations) {
+        private AbstractTypeList<Pass, ProperTypeMixin<Pass, ?>> extractParamTypes(List<Parametrization<Pass, T>> parametrizations) {
             return FunctionTypes.extractParamTypes(pass, getPrimaryType(parametrizations));
         }
 
-        private ProperTypeMixin<Pass, ?> extractReturnType(List<Parametrization<Pass>> parametrizations) {
+        private ProperTypeMixin<Pass, ?> extractReturnType(List<Parametrization<Pass, T>> parametrizations) {
             return FunctionTypes.extractReturnType(pass, getPrimaryType(parametrizations));
         }
 
-        private ProperTypeMixin<Pass, ?> getPrimaryType(List<Parametrization<Pass>> parametrizations) {
+        private ProperTypeMixin<Pass, ?> getPrimaryType(List<Parametrization<Pass, T>> parametrizations) {
             return parametrizations.get(0).getImplicitType();
         }
 

@@ -17,7 +17,7 @@ class EmptyNamespace extends AbstractNamespace {
     }
 
     @Override
-    protected TypeMixin<Pass, ?> asType() {
+    protected TypeMixin<Pass, ?> asType(LookUp lookUp) {
         return type;
     }
 }

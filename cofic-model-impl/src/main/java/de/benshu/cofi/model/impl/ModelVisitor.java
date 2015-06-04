@@ -31,10 +31,6 @@ public interface ModelVisitor<X extends ModelContext<X>, T> {
         return defaultAction(aggregate);
     }
 
-    default T visitAssignment(Assignment<X> assignment, T aggregate) {
-        return defaultAction(aggregate);
-    }
-
     default T visitClassDeclaration(ClassDeclaration<X> classDeclaration, T aggregate) {
         return defaultAction(aggregate);
     }

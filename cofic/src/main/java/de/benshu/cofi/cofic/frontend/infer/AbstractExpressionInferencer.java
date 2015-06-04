@@ -5,7 +5,7 @@ import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.commons.core.Optional;
 
-abstract class AbstractExpressionInferencer implements ExpressionInferencer {
+abstract class AbstractExpressionInferencer<T> implements ExpressionInferencer<T> {
     private final int typeArgCount;
     private Optional<ProperTypeMixin<Pass, ?>> specific;
 

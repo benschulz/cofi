@@ -20,13 +20,6 @@ public class TraversingModelVisitor<X extends ModelContext<X>, T> implements Mod
     }
 
     @Override
-    public T visitAssignment(Assignment<X> assignment, T aggregate) {
-        aggregate = visit(assignment.lhs, aggregate);
-        aggregate = visit(assignment.rhs, aggregate);
-        return aggregate;
-    }
-
-    @Override
     public T visitClassDeclaration(ClassDeclaration<X> classDeclaration, T aggregate) {
         aggregate = visitAll(classDeclaration.annotations, aggregate);
         aggregate = visitAll(classDeclaration.modifiers, aggregate);
@@ -211,6 +204,11 @@ public class TraversingModelVisitor<X extends ModelContext<X>, T> implements Mod
         for (Token id : relativeName.ids)
             aggregate = visitToken(id, aggregate);
         aggregate = visitAllNonNull(relativeName.typeArgs, aggregate);
+        return aggregate;
+    }
+
+    @Override
+    public T visitRootExpression(RootExpression<X> rootExpression, T aggregate) {
         return aggregate;
     }
 

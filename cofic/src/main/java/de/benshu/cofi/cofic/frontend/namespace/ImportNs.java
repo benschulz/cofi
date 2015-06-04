@@ -24,21 +24,21 @@ class ImportNs extends AbstractNamespace {
     }
 
     @Override
-    protected Optional<AbstractNamespace> tryResolveNamespaceLocally(String name, Source.Snippet src) {
+    protected Optional<AbstractNamespace> tryResolveNamespaceLocally(LookUp lookUp, String name, Source.Snippet src) {
         if (imprt.name.ids.get(imprt.name.ids.size() - 1).getLexeme().equals(name)) {
             final ImmutableList<String> importIds = imprt.name.ids.stream().map(Token::getLexeme).collect(list());
-            return getRoot().tryResolveNamespace(importIds, imprt.name.getSourceSnippet());
+            return getRoot().tryResolveNamespace(lookUp, importIds, imprt.name.getSourceSnippet());
         }
 
         return none();
     }
 
     @Override
-    protected Optional<AbstractResolution> tryResolveLocally(AbstractNamespace fromNamespace, String name) {
+    protected Optional<AbstractResolution> tryResolveLocally(LookUp lookUp, AbstractNamespace fromNamespace, String name) {
         if (imprt.name.ids.get(imprt.name.ids.size() - 1).getLexeme().equals(name)) {
             final ImmutableList<String> importIds = imprt.name.ids.stream().map(Token::getLexeme).collect(list());
-            return getRoot().tryResolveNamespace(importIds.subList(0, importIds.size() - 1), imprt.name.getSourceSnippet())
-                    .flatMap(n -> n.tryResolveLocally(fromNamespace, name));
+            return getRoot().tryResolveNamespace(lookUp, importIds.subList(0, importIds.size() - 1), imprt.name.getSourceSnippet())
+                    .flatMap(n -> n.tryResolveLocally(lookUp, fromNamespace, name));
         }
 
         return none();

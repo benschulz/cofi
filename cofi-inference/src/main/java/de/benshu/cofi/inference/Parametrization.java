@@ -8,13 +8,14 @@ import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 /**
  * Parametrization<Pass>of an expression (tree).
  */
-public interface Parametrization<X extends TypeSystemContext<X>> {
+public interface Parametrization<X extends TypeSystemContext<X>, T> {
     /**
      * Inserts the type arguments at the corresponding member accesses.
      *
      * @param substitutions
+     * @param aggregate
      */
-    void apply(Substitutions<X> substitutions);
+    T apply(Substitutions<X> substitutions, T aggregate);
 
     /**
      * @return the constraints the parametrization is meeting
