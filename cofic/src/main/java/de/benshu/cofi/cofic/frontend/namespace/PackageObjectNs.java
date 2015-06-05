@@ -68,7 +68,7 @@ public class PackageObjectNs extends AbstractNamespace {
 
     @Override
     protected de.benshu.commons.core.Optional<AbstractResolution> tryResolveLocally(AbstractNamespace fromNamespace, String name) {
-        return packageObjectDeclaration.getType(pass).applyTrivially().lookupMember(name)
+        return pass.lookUpTypeOf(packageObjectDeclaration).applyTrivially().lookupMember(name)
                 .map(m -> new DefaultResolution(m.getType(), getAccessor(), m));
     }
 }

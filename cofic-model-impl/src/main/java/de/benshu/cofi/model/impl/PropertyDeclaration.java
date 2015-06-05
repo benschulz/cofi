@@ -18,8 +18,6 @@ public class PropertyDeclaration<X extends ModelContext<X>> extends MemberDeclar
     public final TypeExpression<X> type;
     public final ExpressionNode<X> initialValue;
 
-    public TraitDeclaration<X> traitDeclaration;
-
     private PropertyDeclaration(ImmutableList<AnnotationImpl<X>> annotations,
                                 ImmutableList<ModifierImpl<X>> modifiers, Token id, ImmutableList<TypeExpression<X>> traits,
                                 TypeExpression<X> type, ExpressionNode<X> initialValue) {
@@ -49,14 +47,5 @@ public class PropertyDeclaration<X extends ModelContext<X>> extends MemberDeclar
     @Override
     public String getName() {
         return id.getLexeme();
-    }
-
-    @Override
-    boolean isMember() {
-        return true;
-    }
-
-    public void setTraitDeclaration(TraitDeclaration<X> td) {
-        traitDeclaration = td;
     }
 }

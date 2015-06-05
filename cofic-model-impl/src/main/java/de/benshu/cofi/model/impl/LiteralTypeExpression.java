@@ -1,6 +1,5 @@
 package de.benshu.cofi.model.impl;
 
-
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
 import de.benshu.cofi.parser.lexer.Token;
 

@@ -2,7 +2,6 @@ package de.benshu.cofi.model.impl;
 
 import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
-import de.benshu.cofi.types.impl.ProperTypeMixin;
 
 public class Closure<X extends ModelContext<X>> extends ExpressionNode<X> {
     public static final class Case<X extends ModelContext<X>> extends AbstractModelNode<X> {
@@ -36,7 +35,6 @@ public class Closure<X extends ModelContext<X>> extends ExpressionNode<X> {
     }
 
     public final ImmutableList<Case<X>> cases;
-    private ProperTypeMixin<X, ?> type;
 
     private Closure(ImmutableList<Case<X>> cases) {
         this.cases = cases;
@@ -50,10 +48,5 @@ public class Closure<X extends ModelContext<X>> extends ExpressionNode<X> {
     @Override
     public <N, L extends N, D extends L, S extends N, E extends N, T extends E> E accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
         return transformer.transformClosure(this);
-    }
-
-    public boolean isLongReturn() { // TODO does not belong here
-        throw null;
-//        return getParent() instanceof AbstractionStatement.Piece;
     }
 }

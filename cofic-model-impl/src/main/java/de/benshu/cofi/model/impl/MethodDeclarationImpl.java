@@ -62,11 +62,6 @@ public class MethodDeclarationImpl<X extends ModelContext<X>> extends MemberDecl
         return pieces.stream().map(p -> p.params).collect(list());
     }
 
-    @Override
-    boolean isMember() {
-        return true;
-    }
-
     public static class Piece<X extends ModelContext<X>> extends AbstractModelNode<X> implements TypeParameterized<X> {
         @AstNodeConstructorMethod
         public static <X extends ModelContext<X>> Piece<X> of(Token name, TypeParameters<X> typeParameters, ImmutableList<ParameterImpl<X>> params) {

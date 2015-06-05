@@ -69,11 +69,6 @@ public class TraitDeclaration<X extends ModelContext<X>> extends AbstractTypeDec
     }
 
     @Override
-    public boolean isTrait() {
-        return true;
-    }
-
-    @Override
     public ProperTypeConstructorMixin<X, ?, ?> bind(X context) {
         return unbound.bind(context);
     }

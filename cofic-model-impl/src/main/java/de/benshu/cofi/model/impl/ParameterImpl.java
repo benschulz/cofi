@@ -25,7 +25,6 @@ public class ParameterImpl<X extends ModelContext<X>> extends AbstractModelNode<
     public final ExpressionNode<X> defaultValue;
 
     private final ImmutableSet<AnnotationImpl<X>> allAnnotations;
-    private int index = -1;
 
     public ParameterImpl(ImmutableList<AnnotationImpl<X>> annotations,
                          ImmutableList<ModifierImpl<X>> modifiers, Token name, TypeExpression<X> type, Token varargs,
@@ -54,17 +53,8 @@ public class ParameterImpl<X extends ModelContext<X>> extends AbstractModelNode<
         return allAnnotations;
     }
 
-    public int getIndex() {
-        return index;
-    }
-
     @Override
     public String getName() {
         return name.getLexeme();
     }
-
-    public void setIndex(int index) {
-        this.index = index;
-    }
-
 }

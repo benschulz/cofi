@@ -3,7 +3,6 @@ package de.benshu.cofi.model.impl;
 import com.google.common.base.Preconditions;
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
 import de.benshu.cofi.parser.lexer.Token;
-import de.benshu.cofi.types.impl.ProperTypeMixin;
 
 public class LiteralExpression<X extends ModelContext<X>> extends ExpressionNode<X> {
     @AstNodeConstructorMethod
@@ -12,8 +11,6 @@ public class LiteralExpression<X extends ModelContext<X>> extends ExpressionNode
     }
 
     public final Token literal;
-
-    private ProperTypeMixin<X, ?> type;
 
     private LiteralExpression(Token literal) {
         Preconditions.checkArgument(literal != null && literal.isA(Token.Kind.LITERAL));

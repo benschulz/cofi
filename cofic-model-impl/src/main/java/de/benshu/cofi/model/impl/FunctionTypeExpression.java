@@ -1,10 +1,7 @@
 package de.benshu.cofi.model.impl;
 
-import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
-import static com.google.common.base.Preconditions.checkState;
-
 public class FunctionTypeExpression<X extends ModelContext<X>> extends TypeExpression<X> {
-    public static <X extends ModelContext<X>> FunctionTypeExpression<X> of(ModelNodeMixin<X> parent, TypeExpression<X> in, TypeExpression<X> out) {
+    public static <X extends ModelContext<X>> FunctionTypeExpression<X> of(TypeExpression<X> in, TypeExpression<X> out) {
         return new FunctionTypeExpression<>(in, out);
     }
 

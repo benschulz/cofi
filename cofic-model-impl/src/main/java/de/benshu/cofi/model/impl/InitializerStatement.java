@@ -24,8 +24,4 @@ public class InitializerStatement<X extends ModelContext<X>> extends TypeBody.El
         return transformer.transformInitializerStatement(this);
     }
 
-    @Override
-    boolean isMember() {
-        return false;
-    }
 }

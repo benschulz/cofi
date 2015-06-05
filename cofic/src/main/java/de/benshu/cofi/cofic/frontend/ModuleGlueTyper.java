@@ -18,6 +18,7 @@ import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
 import de.benshu.cofi.types.impl.declarations.SourceType;
 import de.benshu.cofi.types.impl.declarations.SourceTypeDescriptor;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
+import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.cofi.types.tags.IndividualTags;
 
 import java.util.Map;
@@ -71,9 +72,9 @@ public class ModuleGlueTyper {
                                 x -> TypeParameterListImpl.empty(),
                                 x -> ImmutableList.of(),
                                 x -> {
-                                    final Stream<Map.Entry<String, AbstractTemplateTypeConstructor<Pass>>> containedModules = modules.stream()
+                                    final Stream<Map.Entry<String, TemplateTypeConstructorMixin<Pass>>> containedModules = modules.stream()
                                             .filter(m -> m.getFullyQualifiedName().getParent().equals(fqn))
-                                            .map(m -> immutableEntry(m.getFullyQualifiedName().getLocalName(), pass.lookUpPackageObjectDeclarationOf(m.getFullyQualifiedName()).getType(x)));
+                                            .map(m -> immutableEntry(m.getFullyQualifiedName().getLocalName(), pass.lookUpTypeOf(pass.lookUpPackageObjectDeclarationOf(m.getFullyQualifiedName()))));
 
                                     final Stream<Map.Entry<String, AbstractTemplateTypeConstructor<Pass>>> containedGlueObjects = pass.getGlueTypes().entrySet().stream()
                                             .filter(e -> e.getKey().length() > 0)

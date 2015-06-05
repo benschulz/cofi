@@ -71,10 +71,6 @@ public class PackageObjectDeclaration<X extends ModelContext<X>> extends Abstrac
         return typeParameters;
     }
 
-    public AbstractTemplateTypeConstructor<X> getType(X context) {
-        return unbound.bind(context);
-    }
-
     @Override
     public ProperTypeConstructorMixin<X, ?, ?> bind(X context) {
         return unbound.bind(context);

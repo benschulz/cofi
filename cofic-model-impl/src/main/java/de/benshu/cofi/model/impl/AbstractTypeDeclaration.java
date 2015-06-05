@@ -59,15 +59,6 @@ public abstract class AbstractTypeDeclaration<X extends ModelContext<X>>
         return ImmutableList.of();
     }
 
-    public boolean isTrait() {
-        return false;
-    }
-
-    @Override
-    final boolean isMember() {
-        return true;
-    }
-
     @Override
     public Stream<AbstractTypeDeclaration<X>> getTypeDeclarations() {
         return body.elements.stream()

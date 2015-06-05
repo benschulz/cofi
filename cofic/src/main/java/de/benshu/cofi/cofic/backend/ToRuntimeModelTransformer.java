@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.frontend.namespace.AbstractResolution;
 import de.benshu.cofi.common.Fqn;
@@ -134,7 +133,7 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
                 .map(c -> ((Constructor<AbstractTypeDeclaration>) c))
                 .collect(set());
 
-        final TemplateTypeConstructor type = packageObjectDeclaration.getType(pass).unbind();
+        final TemplateTypeConstructor type = pass.lookUpTypeOf(packageObjectDeclaration).unbind();
         return as -> new Package(
                 as,
                 transformAnnotationsOf(packageObjectDeclaration),

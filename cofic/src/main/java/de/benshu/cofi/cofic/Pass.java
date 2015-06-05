@@ -184,6 +184,10 @@ public class Pass implements ModelContext<Pass> {
         return (TemplateTypeConstructorMixin<Pass>) lookUpTypeOf((AbstractTypeDeclaration<Pass>) classDeclaration);
     }
 
+    public TemplateTypeConstructorMixin<Pass> lookUpTypeOf(PackageObjectDeclaration<Pass> classDeclaration) {
+        return (TemplateTypeConstructorMixin<Pass>) lookUpTypeOf((AbstractTypeDeclaration<Pass>) classDeclaration);
+    }
+
     public TemplateTypeConstructorMixin<Pass> lookUpTypeOf(TraitDeclaration<Pass> classDeclaration) {
         return (TemplateTypeConstructorMixin<Pass>) lookUpTypeOf((AbstractTypeDeclaration<Pass>) classDeclaration);
     }
