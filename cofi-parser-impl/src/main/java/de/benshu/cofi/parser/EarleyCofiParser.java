@@ -116,7 +116,7 @@ public enum EarleyCofiParser {
 
                 @Override
                 public boolean test(Statement<SomeModelContext> transformed, SomeModelContext context) {
-                    throw null;
+                    return true;
                 }
             }
     ));
@@ -164,7 +164,6 @@ public enum EarleyCofiParser {
     private static final NonTerminal PARAMETERS_OPT = NonTerminal.createPassThrough("ParametersOpt");
     private static final NonTerminal PARAMETERS = NonTerminal.createPassThrough("Parameters");
     private static final NonTerminal PAREN_TYPE = NonTerminal.createPassThrough("ParenType");
-    private static final NonTerminal PRIMARY_EXPRESSION = NonTerminal.createPassThrough("PrimaryExpression");
     private static final NonTerminal PROPERTY_DECLARATION = NonTerminal.create("PropertyDeclaration", factory(PropertyDeclaration.class));
     private static final NonTerminal RELATIVE_NAME = NonTerminal.create("RelativeName", factory(RelativeNameImpl.class));
     private static final NonTerminal STATEMENT = NonTerminal.createPassThrough("Statement");
@@ -203,7 +202,7 @@ public enum EarleyCofiParser {
             production(LPAREN, ARGUMENT_LIST, RPAREN), 2);
 
     static final Rule ASSIGNMENT_____PRIMARY_EXPRESSION__COLON_EQ__EXPRESSION = Rule.create(ASSIGNMENT,
-            production(PRIMARY_EXPRESSION, COLON_EQ, EXPRESSION, SEMICOLON), 1, 3);
+            production(EXPRESSION, COLON_EQ, EXPRESSION, SEMICOLON), 1, 3);
 
     static final Rule CLASS_DECLARATION_____ANNOTATIONS__MODIFIERS__CLASS__IDENTIFIER__TYPE_PARAMETERS__PARAMETERS_OPT__EXTENDS_LIST__TYPE_BODY = Rule
             .create(
@@ -235,7 +234,12 @@ public enum EarleyCofiParser {
 
     static final Rule EMPTY_TYPE_PARAM_DECLS_____ = Rule.create(EMPTY_TYPE_PARAM_DECLS, production());
 
-    static final Rule EXPRESSION_____PRIMARY_EXPRESSION = Rule.createPassThrough(EXPRESSION, PRIMARY_EXPRESSION);
+    static final Rule EXPRESSION_____FUNCTION_INVOCATION_EXPRESSION = Rule.createPassThrough(EXPRESSION, FUNCTION_INVOCATION_EXPRESSION);
+    static final Rule EXPRESSION_____CLOSURE = Rule.createPassThrough(EXPRESSION, CLOSURE);
+    static final Rule EXPRESSION_____LITERAL_EXPRESSION = Rule.createPassThrough(EXPRESSION, LITERAL_EXPRESSION);
+    static final Rule EXPRESSION_____MEMBER_ACCESS_EXPRESSION = Rule.createPassThrough(EXPRESSION, MEMBER_ACCESS_EXPRESSION);
+    static final Rule EXPRESSION_____NAME_EXPRESSION = Rule.createPassThrough(EXPRESSION, NAME_EXPRESSION);
+    static final Rule EXPRESSION_____THIS_EXPRESSION = Rule.createPassThrough(EXPRESSION, THIS_EXPRESSION);
 
     static final Rule EXPRESSION_STATEMENT_____ANNOTATIONS__METHOD_INVOCATION_EXPRESSION__SEMICOLON = Rule.create(
             EXPRESSION_STATEMENT, production(ANNOTATIONS, FUNCTION_INVOCATION_EXPRESSION, SEMICOLON), 1, 2);
@@ -262,7 +266,7 @@ public enum EarleyCofiParser {
                     production(ANNOTATIONS, MODIFIERS, IDENTIFIER, COLON, TYPE_EXPRESSION, SEMICOLON), 1, 2, 3, 5, 0);
 
     static final Rule MEMBER_ACCESS_EXPRESSION_____PRIMARY_EXPRESSION__DOT__SINGLE_COMPONENT_NAME = Rule.create(
-            MEMBER_ACCESS_EXPRESSION, production(PRIMARY_EXPRESSION, DOT, SINGLE_COMPONENT_NAME), 1, 3);
+            MEMBER_ACCESS_EXPRESSION, production(EXPRESSION, DOT, SINGLE_COMPONENT_NAME), 1, 3);
 
     static final Rule MEMBER_ACCESS_EXPRESSION_____DOT__SINGLE_COMPONENT_NAME = Rule.create(
             MEMBER_ACCESS_EXPRESSION, production(DOT, SINGLE_COMPONENT_NAME), 2);
@@ -288,7 +292,7 @@ public enum EarleyCofiParser {
             production(DOT, IDENTIFIER), 2);
 
     static final Rule FUNCTION_INVOCATION_EXPRESSION_____PRIMARY_EXPRESSION__ARGUMENTS = Rule.create(
-            FUNCTION_INVOCATION_EXPRESSION, production(PRIMARY_EXPRESSION, ARGUMENTS), 1, 2);
+            FUNCTION_INVOCATION_EXPRESSION, production(EXPRESSION, ARGUMENTS), 1, 2);
 
     static final Rule METHOD_BODY_____ = Rule.create(METHOD_BODY, production(SEMICOLON), 0);
     static final Rule METHOD_BODY_____LBRACE__STATEMENTS___RBRACE = Rule.create(METHOD_BODY,
@@ -317,17 +321,6 @@ public enum EarleyCofiParser {
             production(IDENTIFIER, TYPE_ARGUMENTS), 1, 2);
 
     static final Rule PAREN_TYPE_____TUPLE_TYPE = Rule.createPassThrough(PAREN_TYPE, TUPLE_TYPE);
-
-    static final Rule PRIMARY_EXPRESSION_____FUNCTION_INVOCATION_EXPRESSION = Rule.createPassThrough(PRIMARY_EXPRESSION,
-            FUNCTION_INVOCATION_EXPRESSION);
-    static final Rule PRIMARY_EXPRESSION_____CLOSURE = Rule.createPassThrough(PRIMARY_EXPRESSION, CLOSURE);
-    static final Rule PRIMARY_EXPRESSION_____LITERAL_EXPRESSION = Rule.createPassThrough(PRIMARY_EXPRESSION,
-            LITERAL_EXPRESSION);
-    static final Rule PRIMARY_EXPRESSION_____MEMBER_ACCESS_EXPRESSION = Rule.createPassThrough(PRIMARY_EXPRESSION,
-            MEMBER_ACCESS_EXPRESSION);
-    static final Rule PRIMARY_EXPRESSION_____NAME_EXPRESSION = Rule
-            .createPassThrough(PRIMARY_EXPRESSION, NAME_EXPRESSION);
-    static final Rule PRIMARY_EXPRESSION_____THIS = Rule.createPassThrough(PRIMARY_EXPRESSION, THIS_EXPRESSION);
 
     static final Rule PROPERTY_DECLARATION_____ = Rule.create(
             PROPERTY_DECLARATION,
