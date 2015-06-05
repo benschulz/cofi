@@ -7,23 +7,23 @@ import .cofi.lang.collect.ImmutableList;
 public package {}
 
 public object HelloWorld extends Application {
-    public id<I, O | I <: O>(value : I) : O { return (value.get()); }
+    public id<I, O | I <: O>(value : I) : O { return (value); }
 
     public start(args : ImmutableList<String>) : () {
         xs : ArrayList<String> := this.id(ArrayList.create(100));
         
-        xs.get().append("abc");
+        xs.append("abc");
         
         i : Natural := 0;
-        Bool.while({ -> return (i.get().lessThan(10)); }, { ->
-            i := i.get().plus(1);
-            xs.get().append(i.get().asString());
+        Bool.while({ -> return (i.lessThan(10)); }, { ->
+            i := i.plus(1);
+            xs.append(i.asString());
         });
         
-        xs.get().append("xyz");
+        xs.append("xyz");
 
         Console.println("Testing… 1, 2, 3… Testing… 1, 2, 3…");
 
-        xs.get().forEach(Console.println);
+        xs.forEach(Console.println);
     }
 }

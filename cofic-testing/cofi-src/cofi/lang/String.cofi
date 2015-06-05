@@ -5,5 +5,5 @@ import .cofi.lang.collect.Array;
 import .cofi.lang.primitives.Char;
 
 public class String(chars : Array<Char>) {
-    private Field cs : Array<Char> := chars.get();
+    private Field cs : Array<Char> := chars;
 }

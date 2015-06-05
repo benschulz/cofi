@@ -7,6 +7,6 @@ public trait MutableList<E> extends List<E> {
     public append(e : E) : ();
     
     public appendAll(l : List<E>) : () {
-        l.get().forEach(append);
+        l.forEach(append);
     }
 }

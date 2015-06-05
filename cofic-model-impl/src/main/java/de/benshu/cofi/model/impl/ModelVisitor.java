@@ -167,11 +167,11 @@ public interface ModelVisitor<X extends ModelContext<X>, T> {
         return defaultAction(aggregate);
     }
 
-    default T visitUserDefinedExpressionNode(UserDefinedExpression<X> userDefinedExpression, T aggregate) {
+    default T visitUserDefinedExpression(UserDefinedExpression<X> userDefinedExpression, T aggregate) {
         return defaultAction(aggregate);
     }
 
-    default T visitUserDefinedStatementNode(UserDefinedStatement<X> userDefinedStatement, T aggregate) {
+    default T visitUserDefinedStatement(UserDefinedStatement<X> userDefinedStatement, T aggregate) {
         return defaultAction(aggregate);
     }
 }

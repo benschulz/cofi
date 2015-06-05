@@ -24,7 +24,6 @@ import de.benshu.cofi.model.impl.PropertyDeclaration;
 import de.benshu.cofi.model.impl.RootExpression;
 import de.benshu.cofi.model.impl.Statement;
 import de.benshu.cofi.model.impl.ThisExpression;
-import de.benshu.cofi.model.impl.TransformedUserDefinedNodes;
 import de.benshu.cofi.parser.lexer.Token;
 import de.benshu.cofi.runtime.internal.MemoizingSupplier;
 import de.benshu.cofi.types.impl.FunctionTypes;
@@ -46,7 +45,7 @@ import static java.util.stream.Collectors.joining;
 public class ImplementationTyper {
     public static ImplementationData type(Pass pass, ImmutableSet<CompilationUnit<Pass>> compilationUnits) {
         return compilationUnits
-                .parallelStream()
+                .stream()
                 .map(u -> new Visitor(pass).visit(u, ImplementationData.builder()))
                 .collect(ImplementationData::builder, ImplementationDataBuilder::addAll, ImplementationDataBuilder::addAll)
                 .addAll(new ImplementationDataBuilder(pass.getGenericModelData()))
@@ -208,9 +207,14 @@ public class ImplementationTyper {
 
         @Override
         public ImplementationDataBuilder visitPropertyDeclaration(PropertyDeclaration<Pass> propertyDeclaration, ImplementationDataBuilder aggregate) {
-            visit(propertyDeclaration.initialValue, aggregate);
+            ExpressionNode<Pass> initialValue = propertyDeclaration.initialValue;
 
-            return inferencer.infer(pass, getContextualConstraints(aggregate), pass.lookUpProperTypeOf(propertyDeclaration.type), aggregate);
+            // FIXME TODO inference needs to happen as part of selecting the (only) applicable transformation
+            ImplementationDataBuilder aggregate2 = new UserDefinedNodeTransformer<Pass>(pass, n -> resolve(n, aggregate).getType()).transform(initialValue).stream()
+                    .map(t -> visit(t.getTransformedNode(), aggregate.copy().defineTransformation(initialValue, t.getTransformedNode())))
+                    .collect(single());
+
+            return inferencer.infer(pass, getContextualConstraints(aggregate), pass.lookUpProperTypeOf(propertyDeclaration.type), aggregate2);
         }
 
         @Override
@@ -224,10 +228,7 @@ public class ImplementationTyper {
 
         @Override
         protected ImplementationDataBuilder visitStatement(Statement<Pass> statement, ImplementationDataBuilder aggregate) {
-            final TransformedUserDefinedNodes<Pass, Statement<Pass>> transformed = new UserDefinedNodeTransformer<Pass>()
-                    .transform(statement);
-
-            return transformed.stream()
+            return new UserDefinedNodeTransformer<Pass>(pass, n -> resolve(n, aggregate).getType()).transform(statement).stream()
                     .map(t -> visit(t.getTransformedNode(), aggregate.copy().defineTransformation(statement, t.getTransformedNode())))
                     .collect(single());
         }

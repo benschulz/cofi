@@ -1,8 +1,9 @@
 package de.benshu.cofi.types.impl;
 
 import com.google.common.collect.ImmutableMap;
-
 import de.benshu.cofi.types.ProperTypeSort;
+import de.benshu.cofi.types.bound.ErrorType;
+import de.benshu.cofi.types.bound.ProperTypeVisitor;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 import de.benshu.cofi.types.impl.constraints.Monosemous;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
@@ -11,8 +12,6 @@ import de.benshu.cofi.types.impl.tags.Tagger;
 import de.benshu.cofi.types.tags.HashTags;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.cofi.types.tags.Tags;
-import de.benshu.cofi.types.bound.ErrorType;
-import de.benshu.cofi.types.bound.ProperTypeVisitor;
 import de.benshu.commons.core.Optional;
 
 public class Error<X extends TypeSystemContext<X>> implements ProperTypeMixin<X, Error<X>>, ErrorType<X, Error<X>>, ConstructedTypeMixin<X, Error<X>, ErrorConstructor<X>> {
@@ -32,6 +31,11 @@ public class Error<X extends TypeSystemContext<X>> implements ProperTypeMixin<X,
 
     private Error(IndividualTags individualTags) {
         this.tags = HashTags.create(this, individualTags);
+    }
+
+    @Override
+    public boolean isSameAs(TypeMixin<X, ?> other) {
+        return other instanceof Error;
     }
 
     @Override

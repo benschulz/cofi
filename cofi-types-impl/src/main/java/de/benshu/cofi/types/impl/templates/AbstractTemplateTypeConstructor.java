@@ -7,6 +7,7 @@ import de.benshu.cofi.types.impl.AbstractTypeConstructor;
 import de.benshu.cofi.types.impl.AbstractUnboundTypeConstructor;
 import de.benshu.cofi.types.impl.Substitutions;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
+import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
@@ -25,6 +26,12 @@ public abstract class AbstractTemplateTypeConstructor<X extends TypeSystemContex
 
     protected AbstractTemplateTypeConstructor(X context) {
         super(context);
+    }
+
+    public boolean isSameAs(TypeMixin<X, ?> other) {
+        return this == other
+                || other instanceof AbstractTemplateTypeConstructor<?>
+                && ((AbstractTemplateTypeConstructor<?>) other).getOriginal() == getOriginal();
     }
 
     @Override

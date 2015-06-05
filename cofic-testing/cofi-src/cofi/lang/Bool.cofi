@@ -3,8 +3,8 @@ package .cofi.lang;
 
 public object Bool {
 	object TRUE extends Bool {
-		public and(other : Bool) : Bool { return (other.get()); }
-		public ifTrue(body : Function0<()>) : () { body.get()(); }
+		public and(other : Bool) : Bool { return (other); }
+		public ifTrue(body : Function0<()>) : () { body(); }
 		public ifFalse(body : Function0<()>) : () { }
 		public not() : Bool { return (FALSE); }
 		public or(other : Bool) : Bool { return (this); }
@@ -12,15 +12,15 @@ public object Bool {
 	object FALSE extends Bool {
 		public and(other : Bool) : Bool { return (this); }
 		public ifTrue(body : Function0<()>) : () { }
-		public ifFalse(body : Function0<()>) : () { body.get()(); }
+		public ifFalse(body : Function0<()>) : () { body(); }
 		public not() : Bool { return (TRUE); }
-		public or(other : Bool) : Bool { return (other.get()); }
+		public or(other : Bool) : Bool { return (other); }
 	}
 	
 	public while(condition : Function0<Bool>, body : Function0<()>) : () {
-		condition.get()().ifTrue({ ->
-			body.get()();
-			while(condition.get(), body.get());
+		condition().ifTrue({ ->
+			body();
+			while(condition, body);
 		});
 	}
 }

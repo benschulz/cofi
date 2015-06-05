@@ -1,6 +1,5 @@
 package de.benshu.cofi.cofic.frontend.implementations;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import de.benshu.cofi.model.impl.Closure;
 import de.benshu.cofi.model.impl.ExpressionNode;
@@ -10,21 +9,22 @@ import de.benshu.cofi.model.impl.LiteralExpression;
 import de.benshu.cofi.model.impl.LocalVariableDeclaration;
 import de.benshu.cofi.model.impl.MemberAccessExpression;
 import de.benshu.cofi.model.impl.ModelContext;
-import de.benshu.cofi.model.impl.ModelNodeMixin;
 import de.benshu.cofi.model.impl.ModelTransformer;
 import de.benshu.cofi.model.impl.NameExpression;
 import de.benshu.cofi.model.impl.Statement;
 import de.benshu.cofi.model.impl.ThisExpression;
 import de.benshu.cofi.model.impl.TransformedUserDefinedNode;
 import de.benshu.cofi.model.impl.TransformedUserDefinedNodes;
+import de.benshu.cofi.model.impl.UserDefinedExpression;
 import de.benshu.cofi.model.impl.UserDefinedStatement;
+import de.benshu.cofi.types.impl.TypeMixin;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static de.benshu.commons.core.streams.Collectors.list;
-import static de.benshu.commons.core.streams.Collectors.map;
 import static de.benshu.commons.core.streams.Collectors.set;
 
 public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements ModelTransformer<
@@ -35,6 +35,14 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
         TransformedUserDefinedNodes<X, Statement<X>>,
         TransformedUserDefinedNodes<X, ExpressionNode<X>>,
         TransformedUserDefinedNodes<X, ?>> {
+
+    private final X context;
+    private final Function<String, TypeMixin<X, ?>> resolve;
+
+    public UserDefinedNodeTransformer(X context, Function<String, TypeMixin<X, ?>> resolve) {
+        this.context = context;
+        this.resolve = resolve;
+    }
 
     @Override
     public TransformedUserDefinedNodes<X, ExpressionNode<X>> transformClosure(Closure<X> closure) {
@@ -124,12 +132,20 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
     }
 
     @Override
-    public TransformedUserDefinedNodes<X, Statement<X>> transformUserDefinedStatementNode(UserDefinedStatement<X> userDefinedStatement) {
-        return TransformedUserDefinedNodes.of(() -> userDefinedStatement.transform()
+    public TransformedUserDefinedNodes<X, ExpressionNode<X>> transformUserDefinedExpression(UserDefinedExpression<X> userDefinedExpression) {
+        return TransformedUserDefinedNodes.of(() -> userDefinedExpression.transform(context, resolve)
                 .flatMap(outer -> transform(outer.getTransformedNode()).stream()
                         .map(inner -> new TransformedUserDefinedNode<>(
                                 inner.getTransformedNode()
                         ))));
     }
 
+    @Override
+    public TransformedUserDefinedNodes<X, Statement<X>> transformUserDefinedStatement(UserDefinedStatement<X> userDefinedStatement) {
+        return TransformedUserDefinedNodes.of(() -> userDefinedStatement.transform(context, resolve)
+                .flatMap(outer -> transform(outer.getTransformedNode()).stream()
+                        .map(inner -> new TransformedUserDefinedNode<>(
+                                inner.getTransformedNode()
+                        ))));
+    }
 }

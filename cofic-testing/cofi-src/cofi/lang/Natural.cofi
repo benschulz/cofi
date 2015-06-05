@@ -16,10 +16,10 @@ public abstract class Natural {
 }
 
 class SmallNatural(magnitude : Int32) extends Natural {
-    private Field mag : Int32 := magnitude.get();
+    private Field mag : Int32 := magnitude;
 
     public asString() : String {
-        return (mag.get().asString());
+        return (mag.asString());
     }
 
     public equalTo(other : Natural) : Bool {}
@@ -27,15 +27,15 @@ class SmallNatural(magnitude : Int32) extends Natural {
     public greaterThan(other : Natural) : Bool {}
 
     public lessThan(other : Natural) : Bool {
-        o : SmallNatural := SmallNatural.cast(other.get());
+        o : SmallNatural := SmallNatural.cast(other);
 
-        return (mag.get().lessThan(o.get().mag.get()));
+        return (mag.lessThan(o.mag.get()));
     }
 
     public plus(addend : Natural) : Natural {
-        a : SmallNatural := SmallNatural.cast(addend.get());
-        sum : Int32 := mag.get().plus(a.get().mag.get());
+        a : SmallNatural := SmallNatural.cast(addend);
+        sum : Int32 := mag.plus(a.mag.get());
 
-        return (SmallNatural.create(sum.get()));
+        return (SmallNatural.create(sum));
     }
 }

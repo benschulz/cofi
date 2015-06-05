@@ -353,7 +353,10 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
                 .map(t -> (TypeReference<TemplateTypeConstructor>) x -> (TemplateTypeConstructor) pass.lookUpTypeOf(t).unbind())
                 .collect(set()), x -> property.getType().unbind(),
                 x -> pass.lookUpProperTypeOf(propertyDeclaration.type).unbind(),
-                transformNonNull(propertyDeclaration.initialValue).map(this::covariant)
+                Optional.from(propertyDeclaration.initialValue)
+                        .map(pass::lookUpTransformationOf)
+                        .map(this::transform)
+                        .map(this::covariant)
         );
     }
 
@@ -406,7 +409,7 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
     }
 
     @Override
-    public Constructor<? extends Statement> transformUserDefinedStatementNode(UserDefinedStatement<Pass> userDefinedStatement) {
+    public Constructor<? extends Statement> transformUserDefinedStatement(UserDefinedStatement<Pass> userDefinedStatement) {
         return transformedStatementTransformer.transform(pass.lookUpTransformationOf(userDefinedStatement));
     }
 

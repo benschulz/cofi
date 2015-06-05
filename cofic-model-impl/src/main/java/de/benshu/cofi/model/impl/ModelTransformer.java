@@ -195,11 +195,11 @@ public interface ModelTransformer<X extends ModelContext<X>, N, L extends N, D e
         throw new AssertionError(this.getClass().toString());
     }
 
-    default E transformUserDefinedExpressionNode(UserDefinedExpression<X> userDefinedExpression) {
+    default E transformUserDefinedExpression(UserDefinedExpression<X> userDefinedExpression) {
         throw new AssertionError(this.getClass().toString());
     }
 
-    default S transformUserDefinedStatementNode(UserDefinedStatement<X> userDefinedStatement) {
+    default S transformUserDefinedStatement(UserDefinedStatement<X> userDefinedStatement) {
         throw new AssertionError(this.getClass().toString());
     }
 }

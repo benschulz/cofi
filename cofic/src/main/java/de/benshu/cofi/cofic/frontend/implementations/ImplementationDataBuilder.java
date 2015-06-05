@@ -17,7 +17,8 @@ import de.benshu.commons.core.exception.UnexpectedBranchException;
 import java.util.Map;
 
 public class ImplementationDataBuilder extends GenericModelDataBuilder<ImplementationDataBuilder, ImplementationData> {
-    private final ImmutableMap.Builder<Statement<Pass>, Statement<Pass>> transformations = ImmutableMap.builder();
+    private final ImmutableMap.Builder<Statement<Pass>, Statement<Pass>> statementTransformations = ImmutableMap.builder();
+    private final ImmutableMap.Builder<ExpressionNode<Pass>, ExpressionNode<Pass>> expressionTransformations = ImmutableMap.builder();
     private final ImmutableMap.Builder<NameExpression<Pass>, AbstractResolution> nameResolutions = ImmutableMap.builder();
     private final ImmutableMap.Builder<NameImpl<Pass>, AbstractTypeList<Pass, ?>> nameTypeArguments = ImmutableMap.builder();
     private final Map<ExpressionNode<Pass>, ProperTypeMixin<Pass, ?>> expressionTypes = Maps.newHashMap();
@@ -32,7 +33,8 @@ public class ImplementationDataBuilder extends GenericModelDataBuilder<Implement
     }
 
     public ImplementationDataBuilder addAll(ImplementationDataBuilder other) {
-        transformations.putAll(other.transformations.build());
+        statementTransformations.putAll(other.statementTransformations.build());
+        expressionTransformations.putAll(other.expressionTransformations.build());
         nameResolutions.putAll(other.nameResolutions.build());
         nameTypeArguments.putAll(other.nameTypeArguments.build());
         expressionTypes.putAll(other.expressionTypes);
@@ -41,7 +43,13 @@ public class ImplementationDataBuilder extends GenericModelDataBuilder<Implement
     }
 
     public ImplementationDataBuilder defineTransformation(Statement<Pass> untransformed, Statement<Pass> transformed) {
-        this.transformations.put(untransformed, transformed);
+        this.statementTransformations.put(untransformed, transformed);
+
+        return this;
+    }
+
+    public ImplementationDataBuilder defineTransformation(ExpressionNode<Pass> untransformed, ExpressionNode<Pass> transformed) {
+        this.expressionTransformations.put(untransformed, transformed);
 
         return this;
     }
@@ -75,7 +83,8 @@ public class ImplementationDataBuilder extends GenericModelDataBuilder<Implement
     public ImplementationData build() {
         return new ImplementationData(
                 buildTypeExpressionTypes(),
-                transformations.build(),
+                statementTransformations.build(),
+                expressionTransformations.build(),
                 nameResolutions.build(),
                 nameTypeArguments.build(),
                 ImmutableMap.copyOf(expressionTypes)

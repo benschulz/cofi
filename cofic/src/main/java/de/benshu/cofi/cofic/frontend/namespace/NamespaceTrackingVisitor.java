@@ -70,16 +70,16 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
     public T visitCompilationUnit(CompilationUnit<Pass> compilationUnit, T aggregate) {
         namespaces.push(RootNs.create());
 
-        aggregate =  visit(compilationUnit.moduleDeclaration, aggregate);
+        aggregate = visit(compilationUnit.moduleDeclaration, aggregate);
         namespaces.push(ModuleNs.wrap(getNs(), compilationUnit.moduleDeclaration));
 
-        aggregate =  visit(compilationUnit.packageDeclaration, aggregate);
+        aggregate = visit(compilationUnit.packageDeclaration, aggregate);
         final Fqn packageFqn = compilationUnit.packageDeclaration.name.fqn;
         namespaces.push(PackageNs.wrap(getNs(), packageFqn, pass.lookUpPackageObjectDeclarationOf(packageFqn)));
 
         aggregate = visitAll(compilationUnit.imports, aggregate);
 
-        aggregate =  visitAll(compilationUnit.declarations, aggregate);
+        aggregate = visitAll(compilationUnit.declarations, aggregate);
 
         namespaces.pop();
         namespaces.pop();
@@ -280,7 +280,11 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
     }
 
     protected final AbstractResolution resolve(NameImpl<Pass> name, T aggregate) {
-        return getNs().resolve(lookUp(aggregate), Iterables.getOnlyElement(name.ids).getLexeme());
+        return resolve(Iterables.getOnlyElement(name.ids).getLexeme(), aggregate);
+    }
+
+    protected final AbstractResolution resolve(String name, T aggregate) {
+        return getNs().resolve(lookUp(aggregate), name);
     }
 
     protected AbstractConstraints<Pass> getContextualConstraints(T aggregate) {

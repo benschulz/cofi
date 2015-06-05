@@ -148,6 +148,11 @@ public class AdHoc {
         }
 
         @Override
+        public boolean isSameAs(TypeMixin<X, ?> other) {
+            return this == other;
+        }
+
+        @Override
         public Tags getTags() {
             return tags;
         }

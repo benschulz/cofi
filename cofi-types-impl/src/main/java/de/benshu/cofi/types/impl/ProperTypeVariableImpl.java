@@ -41,7 +41,7 @@ public class ProperTypeVariableImpl<X extends TypeSystemContext<X>>
     public AbstractConstraints<X> establishSubtypeGeneric(TypeMixin<X, ?> other, Monosemous<X> cs) {
         if (equals(other))
             return cs;
-        else if (cs.includesUpperBound(getContext(), this, other))
+        else if (cs.includesUpperBound(this, other))
             return cs;
         else if (cs.getTypeParams().contains(this))
             return cs.and(getContext(), this, Constraint.upper(other));
@@ -58,7 +58,7 @@ public class ProperTypeVariableImpl<X extends TypeSystemContext<X>>
     public AbstractConstraints<X> establishSupertypeGeneric(TypeMixin<X, ?> other, Monosemous<X> cs) {
         if (equals(other))
             return cs;
-        else if (cs.includesLowerBound(getContext(), this, other))
+        else if (cs.includesLowerBound(this, other))
             return cs;
         else if (cs.getTypeParams().contains(this))
             return cs.and(getContext(), this, Constraint.lower(other));
@@ -94,6 +94,11 @@ public class ProperTypeVariableImpl<X extends TypeSystemContext<X>>
     @Override
     public ImmutableMap<String, AbstractMember<X>> getMembers() {
         throw null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public java.util.Optional<TypeConstructorInvocation<X>> tryGetInvocationOf(TypeConstructorMixin<X, ?, ?> typeConstructor) {
+        return java.util.Optional.empty();
     }
 
     @Override

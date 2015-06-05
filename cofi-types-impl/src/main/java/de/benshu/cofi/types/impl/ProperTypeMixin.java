@@ -100,4 +100,6 @@ public interface ProperTypeMixin<X extends TypeSystemContext<X>, S extends Prope
 
     @Override
     de.benshu.cofi.types.ProperType unbind();
+
+    java.util.Optional<TypeConstructorInvocation<X>> tryGetInvocationOf(TypeConstructorMixin<X, ?, ?> typeConstructor);
 }

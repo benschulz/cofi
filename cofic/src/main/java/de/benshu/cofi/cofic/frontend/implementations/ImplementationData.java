@@ -18,20 +18,23 @@ public class ImplementationData extends GenericModelData {
         return new ImplementationDataBuilder(GenericModelData.empty());
     }
 
-    public final ImmutableMap<Statement<Pass>, Statement<Pass>> transformations;
+    public final ImmutableMap<Statement<Pass>, Statement<Pass>> statementTransformations;
+    public final ImmutableMap<ExpressionNode<Pass>, ExpressionNode<Pass>> expressionTransformations;
     public final ImmutableMap<NameExpression<Pass>, AbstractResolution> nameResolutions;
     public final ImmutableMap<NameImpl<Pass>, AbstractTypeList<Pass, ?>> nameTypeArguments;
     public final ImmutableMap<ExpressionNode<Pass>, ProperTypeMixin<Pass, ?>> expressionTypes;
 
     ImplementationData(
             ImmutableMap<TypeExpression<Pass>, TypeMixin<Pass, ?>> typeExpressionTypes,
-            ImmutableMap<Statement<Pass>, Statement<Pass>> transformations,
+            ImmutableMap<Statement<Pass>, Statement<Pass>> statementTransformations,
+            ImmutableMap<ExpressionNode<Pass>, ExpressionNode<Pass>> expressionTransformations,
             ImmutableMap<NameExpression<Pass>, AbstractResolution> nameResolutions,
             ImmutableMap<NameImpl<Pass>, AbstractTypeList<Pass, ?>> nameTypeArguments,
             ImmutableMap<ExpressionNode<Pass>, ProperTypeMixin<Pass, ?>> expressionTypes) {
         super(typeExpressionTypes);
 
-        this.transformations = transformations;
+        this.statementTransformations = statementTransformations;
+        this.expressionTransformations = expressionTransformations;
         this.nameResolutions = nameResolutions;
         this.nameTypeArguments = nameTypeArguments;
         this.expressionTypes = expressionTypes;

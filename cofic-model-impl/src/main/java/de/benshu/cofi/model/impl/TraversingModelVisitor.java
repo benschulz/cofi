@@ -276,4 +276,25 @@ public class TraversingModelVisitor<X extends ModelContext<X>, T> implements Mod
     public T visitToken(Token token, T aggregate) {
         return aggregate;
     }
+
+    @Override
+    public T visitUserDefinedExpression(UserDefinedExpression<X> userDefinedExpression, T aggregate) {
+        return visitUserDefinedNode(userDefinedExpression, aggregate);
+    }
+
+    @Override
+    public T visitUserDefinedStatement(UserDefinedStatement<X> userDefinedStatement, T aggregate) {
+        return visitUserDefinedNode(userDefinedStatement, aggregate);
+    }
+
+    private T visitUserDefinedNode(UserDefinedNode<X> userDefinedNode, T aggregate) {
+        for (Object symbol : userDefinedNode.getSymbols()) {
+            if (symbol instanceof Token)
+                aggregate = visitToken((Token) symbol, aggregate);
+            else
+                aggregate = visit((ModelNodeMixin<X>) symbol, aggregate);
+        }
+
+        return aggregate;
+    }
 }

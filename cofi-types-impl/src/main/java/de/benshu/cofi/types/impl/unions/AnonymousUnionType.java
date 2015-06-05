@@ -3,7 +3,6 @@ package de.benshu.cofi.types.impl.unions;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-
 import de.benshu.cofi.types.ProperType;
 import de.benshu.cofi.types.ProperTypeVisitor;
 import de.benshu.cofi.types.TypeList;
@@ -12,6 +11,9 @@ import de.benshu.cofi.types.bound.Type;
 import de.benshu.cofi.types.impl.AbstractUnboundProperType;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.Substitutions;
+import de.benshu.cofi.types.impl.TypeConstructorInvocation;
+import de.benshu.cofi.types.impl.TypeConstructorMixin;
+import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.members.AbstractMember;
@@ -19,6 +21,7 @@ import de.benshu.cofi.types.impl.tags.TagCombiners;
 import de.benshu.cofi.types.impl.tags.Tagger;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Optional;
+
 import static de.benshu.commons.core.streams.Collectors.set;
 
 public class AnonymousUnionType<X extends TypeSystemContext<X>>
@@ -34,6 +37,11 @@ public class AnonymousUnionType<X extends TypeSystemContext<X>>
         super(context, tagger);
 
         this.elements = elements;
+    }
+
+    @Override
+    public boolean isSameAs(TypeMixin<X, ?> other) {
+        return this == other;
     }
 
     @Override
@@ -59,6 +67,14 @@ public class AnonymousUnionType<X extends TypeSystemContext<X>>
     @Override
     public AnonymousUnionType<X> setTags(IndividualTags tags) {
         return new AnonymousUnionType<>(getContext(), elements, TagCombiners.setAll(this, tags));
+    }
+
+    @Override
+    public java.util.Optional<TypeConstructorInvocation<X>> tryGetInvocationOf(TypeConstructorMixin<X, ?, ?> typeConstructor) {
+        return getElements().stream()
+                .map(e -> e.tryGetInvocationOf(typeConstructor))
+                .reduce((a, b) -> a.flatMap(ai -> b.map(ai::combine)))
+                .orElse(java.util.Optional.empty());
     }
 
     @Override

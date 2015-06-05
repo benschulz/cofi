@@ -18,11 +18,11 @@ public abstract class Monosemous<X extends TypeSystemContext<X>> extends Abstrac
         throw new AssertionError();
     }
 
-    public boolean includesUpperBound(X context, TypeVariableImpl<X, ?> variable, TypeMixin<X, ?> bound) {
+    public boolean includesUpperBound(TypeVariableImpl<X, ?> variable, TypeMixin<X, ?> bound) {
         throw new AssertionError();
     }
 
-    public boolean includesLowerBound(X context, TypeVariableImpl<X, ?> variable, TypeMixin<X, ?> bound) {
+    public boolean includesLowerBound(TypeVariableImpl<X, ?> variable, TypeMixin<X, ?> bound) {
         throw new AssertionError();
     }
 

@@ -1,9 +1,17 @@
 package de.benshu.cofi.model.impl;
 
+import com.google.common.collect.ImmutableList;
+import de.benshu.cofi.types.impl.TypeMixin;
+
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public interface UserDefinedNode<X extends ModelContext<X>> extends ModelNodeMixin<X> {
-    Object getSymbol(int index);
+    ImmutableList<?> getSymbols();
 
-    Stream<? extends TransformedUserDefinedNode<X, ? extends ModelNodeMixin<X>>> transform();
+    default Object getSymbol(int index) {
+        return getSymbols().get(index);
+    }
+
+    Stream<? extends TransformedUserDefinedNode<X, ? extends ModelNodeMixin<X>>> transform(X context, Function<String, TypeMixin<X, ?>> resolve);
 }
