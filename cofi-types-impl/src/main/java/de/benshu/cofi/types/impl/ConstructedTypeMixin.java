@@ -55,7 +55,7 @@ public interface ConstructedTypeMixin<X extends TypeSystemContext<X>, S extends 
 
     @Override
     default String toDescriptor() {
-        String name = getConstructor().getTags().getOrFallbackToDefault(getContext().getTypeSystem().getNameTag()).debug();
+        String name = getConstructor().getTags().getOrFallbackToDefault(getContext().getTypeSystem().getNameTag()).toDescriptor();
         String arguments = getArguments().toDescriptor();
         return name + arguments;
     }

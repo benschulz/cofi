@@ -1,16 +1,15 @@
 package de.benshu.cofi.model.impl;
 
 import com.google.common.collect.ImmutableList;
-
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
 import de.benshu.cofi.parser.lexer.Token;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
-import de.benshu.cofi.types.impl.templates.UnboundTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.declarations.SourceType;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
+import de.benshu.cofi.types.impl.templates.UnboundTemplateTypeConstructor;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.jswizzle.copyable.CopyFactory;
 import de.benshu.jswizzle.copyable.Copyable;
@@ -58,9 +57,15 @@ public final class ObjectDeclaration<X extends ModelContext<X>> extends Abstract
                                     ).getOrReturn(sourceTypes);
                         },
                         x -> x.lookUpMemberDescriptorsOf(this),
-                        x -> IndividualTags.empty()
-                                .set(TypeTags.NAME, () -> x.lookUpFqnOf(this).toString())
-                                .set(AbstractTypeDeclaration.Tag.INSTANCE, this)
+                        x -> {
+                            FullyQualifiedTypeName name = x.isCompanion(this)
+                                    ? FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this), "\u262F")
+                                    : FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this));
+
+                            return IndividualTags.empty()
+                                    .set(TypeTags.NAME, name)
+                                    .set(Tag.INSTANCE, this);
+                        }
                 )
         );
     }

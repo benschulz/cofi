@@ -1,6 +1,9 @@
 package de.benshu.cofi.model.impl;
 
+import de.benshu.cofi.parser.AstNodeConstructorMethod;
+
 public class RootExpression<X extends ModelContext<X>> extends ExpressionNode<X> {
+    @AstNodeConstructorMethod
     public static <X extends ModelContext<X>> RootExpression<X> of() {
         return new RootExpression<>();
     }
@@ -17,6 +20,8 @@ public class RootExpression<X extends ModelContext<X>> extends ExpressionNode<X>
         return transformer.transformRootExpression(this);
     }
 
-
-
+    @Override
+    public String toString() {
+        return "<root>";
+    }
 }

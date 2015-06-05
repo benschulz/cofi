@@ -72,7 +72,7 @@ public class ImplementationDataBuilder extends GenericModelDataBuilder<Implement
         return this;
     }
 
-    public ProperTypeMixin<Pass, ?> lookUpProperTypeOf(ExpressionNode<Pass> expression) {
+    public ProperTypeMixin<Pass, ?> lookUpTypeOf(ExpressionNode<Pass> expression) {
         return expressionTypes.computeIfAbsent(expression, k -> { throw new UnexpectedBranchException(); });
     }
 

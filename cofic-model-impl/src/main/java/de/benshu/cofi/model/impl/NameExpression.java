@@ -1,8 +1,8 @@
 package de.benshu.cofi.model.impl;
 
 
+import com.google.common.collect.Iterables;
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
-import de.benshu.cofi.types.impl.ProperTypeMixin;
 
 public class NameExpression<X extends ModelContext<X>> extends ExpressionNode<X> {
     @AstNodeConstructorMethod
@@ -11,7 +11,6 @@ public class NameExpression<X extends ModelContext<X>> extends ExpressionNode<X>
     }
 
     public final NameImpl<X> name;
-    private ProperTypeMixin<X, ?> type;
 
     private NameExpression(NameImpl<X> name) {
         this.name = name;
@@ -27,4 +26,8 @@ public class NameExpression<X extends ModelContext<X>> extends ExpressionNode<X>
         return transformer.transformNameExpression(this);
     }
 
+    @Override
+    public String toString() {
+        return Iterables.getOnlyElement(name.ids).getLexeme();
+    }
 }

@@ -9,6 +9,7 @@ import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.CompilationUnit;
+import de.benshu.cofi.model.impl.FullyQualifiedTypeName;
 import de.benshu.cofi.model.impl.ModuleImpl;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
 import de.benshu.cofi.model.impl.TypeTags;
@@ -66,7 +67,7 @@ public class ModuleGlueTyper {
                 .distinct()
                 .collect(set());
 
-        final ImmutableMap<Fqn, AbstractTemplateTypeConstructor<Pass>> glueTypes = glueObjectFqns.stream()
+        final ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> glueTypes = glueObjectFqns.stream()
                 .map(fqn -> immutableEntry(fqn, AbstractTemplateTypeConstructor.<Pass>create(
                         TemplateTypeDeclaration.memoizing(
                                 x -> TypeParameterListImpl.empty(),
@@ -79,7 +80,7 @@ public class ModuleGlueTyper {
                                                     pass.lookUpTypeOf(pass.lookUpPackageObjectDeclarationOf(m.getFullyQualifiedName()))
                                             ));
 
-                                    final Stream<Map.Entry<String, AbstractTemplateTypeConstructor<Pass>>> containedGlueObjects = pass.getGlueTypes().entrySet().stream()
+                                    final Stream<Map.Entry<String, TemplateTypeConstructorMixin<Pass>>> containedGlueObjects = pass.getGlueTypes().entrySet().stream()
                                             .filter(e -> e.getKey().length() > 0)
                                             .filter(e -> e.getKey().getParent().equals(fqn))
                                             .map(e -> immutableEntry(e.getKey().getLocalName(), e.getValue()));
@@ -98,7 +99,7 @@ public class ModuleGlueTyper {
                                             })
                                             .collect(set()));
                                 },
-                                x -> IndividualTags.of(TypeTags.NAME, fqn::toCanonicalString))
+                                x -> IndividualTags.of(TypeTags.NAME, FullyQualifiedTypeName.create(() -> fqn)))
                 ).bind(pass)))
                 .collect(map());
 

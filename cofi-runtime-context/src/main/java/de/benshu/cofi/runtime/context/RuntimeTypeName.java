@@ -1,10 +1,10 @@
 package de.benshu.cofi.runtime.context;
 
+import de.benshu.cofi.types.impl.TypeName;
 import de.benshu.cofi.types.tags.IndividualTag;
 import de.benshu.cofi.types.tags.SimpleDefaultingIndividualTag;
-import de.benshu.commons.core.Debuggable;
 
-public class RuntimeTypeName implements Debuggable {
+public class RuntimeTypeName implements TypeName {
     public static final SimpleDefaultingIndividualTag<RuntimeTypeName> TAG = IndividualTag.named("Name").defaultingTo(RuntimeTypeName.of("<anonymous>"));
 
     public static RuntimeTypeName of(String name) {
@@ -15,6 +15,11 @@ public class RuntimeTypeName implements Debuggable {
 
     private RuntimeTypeName(String name) {
         this.name = name;
+    }
+
+    @Override
+    public String toDescriptor() {
+        return name;
     }
 
     @Override

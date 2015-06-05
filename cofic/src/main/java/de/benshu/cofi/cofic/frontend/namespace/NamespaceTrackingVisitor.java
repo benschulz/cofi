@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.frontend.GenericModelDataBuilder;
+import de.benshu.cofi.cofic.notes.Source;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.ClassDeclaration;
@@ -26,6 +27,7 @@ import de.benshu.cofi.model.impl.TraitDeclaration;
 import de.benshu.cofi.model.impl.TraversingModelVisitor;
 import de.benshu.cofi.model.impl.TupleTypeExpression;
 import de.benshu.cofi.model.impl.UnionDeclaration;
+import de.benshu.cofi.parser.lexer.Token;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
@@ -34,6 +36,7 @@ import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.function.IntFunction;
 
 import static de.benshu.cofi.types.impl.lists.AbstractTypeList.typeList;
 
@@ -276,7 +279,17 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
     }
 
     protected final TypeMixin<Pass, ?> resolveTypeName(NameImpl<Pass> name, T aggregate) {
-        return getNs().resolveType(lookUp(aggregate), name);
+        final LookUp lookUp = lookUp(aggregate);
+
+        final Source.Snippet src = name.ids.get(0).getTokenString(name.ids.get(name.ids.size() - 1));
+
+        return name instanceof FullyQualifiedName
+                ? getNs().resolveFullyQualifiedType(lookUp, ((FullyQualifiedName) name).fqn, src)
+                : getNs().resolveType(lookUp, ImmutableList.copyOf(name.ids.stream().map(Token::getLexeme).iterator()), src);
+    }
+
+    protected final TypeMixin<Pass, ?> resolveFullyQualifiedType(Fqn name, Source.Snippet src, T aggregate) {
+        return getNs().resolveFullyQualifiedType(lookUp(aggregate), name, src);
     }
 
     protected final AbstractResolution resolve(NameImpl<Pass> name, T aggregate) {

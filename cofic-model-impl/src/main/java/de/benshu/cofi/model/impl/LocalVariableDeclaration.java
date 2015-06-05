@@ -60,4 +60,10 @@ public class LocalVariableDeclaration<X extends ModelContext<X>> extends Stateme
         this.index = index;
     }
 
+    @Override
+    public String toString() {
+        return value == null
+                ? name + " : " + type + ";"
+                : name + " : " + type + " := " + value + ";";
+    }
 }

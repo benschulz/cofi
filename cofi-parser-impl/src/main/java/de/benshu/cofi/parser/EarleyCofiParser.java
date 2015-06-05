@@ -4,6 +4,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.impl.AnnotationImpl;
 import de.benshu.cofi.model.impl.ClassDeclaration;
 import de.benshu.cofi.model.impl.Closure;
@@ -28,9 +29,11 @@ import de.benshu.cofi.model.impl.PackageObjectDeclaration;
 import de.benshu.cofi.model.impl.ParameterImpl;
 import de.benshu.cofi.model.impl.PropertyDeclaration;
 import de.benshu.cofi.model.impl.RelativeNameImpl;
+import de.benshu.cofi.model.impl.RootExpression;
 import de.benshu.cofi.model.impl.Statement;
 import de.benshu.cofi.model.impl.ThisExpression;
 import de.benshu.cofi.model.impl.TraitDeclaration;
+import de.benshu.cofi.model.impl.TransformationContext;
 import de.benshu.cofi.model.impl.TypeBody;
 import de.benshu.cofi.model.impl.TypeExpression;
 import de.benshu.cofi.model.impl.TypeParamDecl;
@@ -51,7 +54,6 @@ import de.benshu.cofi.types.impl.TypeMixin;
 import java.io.Reader;
 import java.lang.reflect.Field;
 import java.util.Optional;
-import java.util.function.Function;
 
 import static de.benshu.cofi.parser.AstNode.factory;
 import static de.benshu.cofi.parser.AstNode.listFactory;
@@ -131,7 +133,7 @@ public enum EarleyCofiParser {
     private static final NonTerminal LITERAL_EXPRESSION = NonTerminal.create("LiteralExpression", factory(LiteralExpression.class));
     private static final NonTerminal LITERAL_TYPE = NonTerminal.create("LiteralType", factory(LiteralTypeExpression.class));
     private static final NonTerminal LOCAL_VARIABLE_DECLARATION = NonTerminal.create("LocalVariableDeclaration", factory(LocalVariableDeclaration.class));
-    private static final NonTerminal MEMBER_ACCESS_EXPRESSION = NonTerminal.create("MemberAccessExpression", factory(MemberAccessExpression.class));
+    private static final NonTerminal MEMBER_ACCESS_EXPRESSION = NonTerminal.create("MemberAccessExpression", EarleyCofiParser::userDefinedMemberAccessExpression);
     private static final NonTerminal METHOD_BODY = NonTerminal.createPassThrough("MethodBody");
     private static final NonTerminal METHOD_DECLARATION = NonTerminal.create("MethodDeclaration", factory(MethodDeclarationImpl.class));
     private static final NonTerminal METHOD_DECLARATION_PIECE = NonTerminal.create("MethodDeclarationPiece", factory(MethodDeclarationImpl.Piece.class));
@@ -152,6 +154,7 @@ public enum EarleyCofiParser {
     private static final NonTerminal PAREN_TYPE = NonTerminal.createPassThrough("ParenType");
     private static final NonTerminal PROPERTY_DECLARATION = NonTerminal.create("PropertyDeclaration", factory(PropertyDeclaration.class));
     private static final NonTerminal RELATIVE_NAME = NonTerminal.create("RelativeName", factory(RelativeNameImpl.class));
+    private static final NonTerminal ROOT_EXPRESSION = NonTerminal.create("RootExpression", factory(RootExpression.class));
     private static final NonTerminal SINGLE_COMPONENT_NAME = NonTerminal.create("SingleComponentName", factory(RelativeNameImpl.class));
     private static final NonTerminal STATEMENT = NonTerminal.createPassThrough("Statement");
     private static final NonTerminal STATEMENTS = NonTerminal.create("Statements", listFactory());
@@ -252,11 +255,10 @@ public enum EarleyCofiParser {
             .create(LOCAL_VARIABLE_DECLARATION,
                     production(ANNOTATIONS, MODIFIERS, IDENTIFIER, COLON, TYPE_EXPRESSION, SEMICOLON), 1, 2, 3, 5, 0);
 
-    static final Rule MEMBER_ACCESS_EXPRESSION_____PRIMARY_EXPRESSION__DOT__SINGLE_COMPONENT_NAME = Rule.create(
-            MEMBER_ACCESS_EXPRESSION, production(EXPRESSION, DOT, SINGLE_COMPONENT_NAME), 1, 3);
-
-    static final Rule MEMBER_ACCESS_EXPRESSION_____DOT__SINGLE_COMPONENT_NAME = Rule.create(
-            MEMBER_ACCESS_EXPRESSION, production(DOT, SINGLE_COMPONENT_NAME), 2);
+    static final Rule MEMBER_ACCESS_EXPRESSION_____EXPRESSION__DOT__SINGLE_COMPONENT_NAME = Rule.create(MEMBER_ACCESS_EXPRESSION,
+            production(EXPRESSION, DOT, SINGLE_COMPONENT_NAME), 1, 3);
+    static final Rule MEMBER_ACCESS_EXPRESSION_____ROOT_EXPRESSION__DOT__SINGLE_COMPONENT_NAME = Rule.create(MEMBER_ACCESS_EXPRESSION,
+            production(ROOT_EXPRESSION, DOT, SINGLE_COMPONENT_NAME), 1, 3);
 
     static final Rule METHOD_DECLARATION_____ANNOTATIONS__MODIFIERS__METHOD_DECLARATION_PIECES__COLON__TYPE_EXPRESSION__METHOD_BODY = Rule
             .create(METHOD_DECLARATION,
@@ -320,6 +322,8 @@ public enum EarleyCofiParser {
             production(ANNOTATIONS, MODIFIERS, IDENTIFIER, COLON, TYPE_EXPRESSION, SEMICOLON), 1, 2, 3, 0, 5);
 
     static final Rule RELATIVE_NAME_____IDENTIFIER__TYPE_ARGUMENTS = Rule.create(RELATIVE_NAME, production(IDENTIFIER, TYPE_ARGUMENTS), 1, 2);
+
+    static final Rule ROOT_EXPRESSION_____ = Rule.create(ROOT_EXPRESSION, production());
 
     static final Rule SINGLE_COMPONENT_NAME_____IDENTIFIER__TYPE_ARGUMENTS = Rule.create(SINGLE_COMPONENT_NAME, production(IDENTIFIER, TYPE_ARGUMENTS), 1, 2);
 
@@ -400,7 +404,7 @@ public enum EarleyCofiParser {
             if (f.getType() == Rule.class) {
                 try {
                     builder.add((Rule) f.get(null));
-                } catch (IllegalArgumentException | IllegalAccessException e) {
+                } catch (Exception e) {
                     throw Throwables.propagate(e);
                 }
             }
@@ -447,7 +451,7 @@ public enum EarleyCofiParser {
                 ImmutableList.copyOf(args),
                 new UserDefinedNodeTransformation<X, UserDefinedStatement<X>, Statement<X>>() {
                     @Override
-                    public Optional<Statement<X>> apply(X context, UserDefinedStatement<X> untransformed, Function<String, TypeMixin<X, ?>> resolve) {
+                    public Optional<Statement<X>> apply(TransformationContext<X> context, UserDefinedStatement<X> untransformed) {
                         final boolean simple = untransformed.getSymbols().size() == 2;
                         final int offset = simple ? 0 : 1;
 
@@ -470,8 +474,55 @@ public enum EarleyCofiParser {
                     }
 
                     @Override
-                    public boolean test(X context, Statement<X> transformed) {
+                    public boolean test(TransformationContext<X> context, Statement<X> transformed) {
                         return true;
+                    }
+                }
+        );
+    }
+
+    private static <X extends ModelContext<X>> Object userDefinedMemberAccessExpression(Object[] args) {
+        return new UserDefinedExpression<>(
+                ImmutableList.copyOf(args),
+                new UserDefinedNodeTransformation<X, UserDefinedExpression<X>, ExpressionNode<X>>() {
+                    @Override
+                    public Optional<ExpressionNode<X>> apply(TransformationContext<X> context, UserDefinedExpression<X> untransformed) {
+                        return Optional.of(MemberAccessExpression.of(
+                                (ExpressionNode<X>) untransformed.getSymbol(0),
+                                (RelativeNameImpl<X>) untransformed.getSymbol(1)
+                        ));
+                    }
+
+                    @Override
+                    public boolean test(TransformationContext<X> context, ExpressionNode<X> transformed) {
+                        ProperTypeMixin<X, ?> primaryType = context.lookUpTypeOf(((MemberAccessExpression<X>) transformed).primary);
+                        ProperTypeConstructorMixin<X, ?, ?> gettable = (ProperTypeConstructorMixin<X, ?, ?>) context.resolveType(Fqn.from("cofi", "lang", "Gettable"));
+
+                        return !primaryType.tryGetInvocationOf(gettable).isPresent();
+                    }
+                },
+                new UserDefinedNodeTransformation<X, UserDefinedExpression<X>, ExpressionNode<X>>() {
+                    @Override
+                    public Optional<ExpressionNode<X>> apply(TransformationContext<X> context, UserDefinedExpression<X> untransformed) {
+                        return Optional.of(FunctionInvocationExpression.of(
+                                MemberAccessExpression.of(
+                                        MemberAccessExpression.of(
+                                                (ExpressionNode<X>) untransformed.getSymbol(0),
+                                                (RelativeNameImpl<X>) untransformed.getSymbol(1)
+                                        ),
+                                        RelativeNameImpl.of(ArtificialToken.create(Token.Kind.IDENTIFIER, "get"))
+                                ),
+                                ImmutableList.of()
+                        ));
+                    }
+
+                    @Override
+                    public boolean test(TransformationContext<X> context, ExpressionNode<X> transformed) {
+                        MemberAccessExpression<X> primary = (MemberAccessExpression<X>) ((FunctionInvocationExpression<X>) transformed).primary;
+                        ProperTypeMixin<X, ?> primaryPrimaryType = context.lookUpTypeOf(primary.primary);
+                        ProperTypeConstructorMixin<X, ?, ?> gettable = (ProperTypeConstructorMixin<X, ?, ?>) context.resolveType(Fqn.from("cofi", "lang", "Gettable"));
+
+                        return primaryPrimaryType.tryGetInvocationOf(gettable).isPresent();
                     }
                 }
         );
@@ -482,9 +533,9 @@ public enum EarleyCofiParser {
                 ImmutableList.copyOf(args),
                 new UserDefinedNodeTransformation<X, UserDefinedExpression<X>, ExpressionNode<X>>() {
                     @Override
-                    public Optional<ExpressionNode<X>> apply(X context, UserDefinedExpression<X> untransformed, Function<String, TypeMixin<X, ?>> resolve) {
+                    public Optional<ExpressionNode<X>> apply(TransformationContext<X> context, UserDefinedExpression<X> untransformed) {
                         RelativeNameImpl<X> name = (RelativeNameImpl<X>) untransformed.getSymbol(0);
-                        TypeMixin<X, ?> type = resolve.apply(Iterables.getOnlyElement(name.ids).getLexeme());
+                        TypeMixin<X, ?> type = context.resolve(Iterables.getOnlyElement(name.ids).getLexeme());
 
                         type = type instanceof TypeConstructorMixin && ((TypeConstructorMixin<X, ?, ?>) type).getParameters().isEmpty()
                                 ? ((TypeConstructorMixin<X, ?, ?>) type).applyTrivially()
@@ -493,7 +544,7 @@ public enum EarleyCofiParser {
                         if (!type.getKind().isProperOrder())
                             return Optional.empty();
 
-                        ProperTypeConstructorMixin<X, ?, ?> gettable = context.getTypeSystem().lookUp("Gettable");
+                        ProperTypeConstructorMixin<X, ?, ?> gettable = (ProperTypeConstructorMixin<X, ?, ?>) context.resolveType(Fqn.from("cofi", "lang", "Gettable"));
                         ProperTypeMixin<X, ?> properType = (ProperTypeMixin<X, ?>) type;
 
                         Optional<TypeConstructorInvocation<X>> invocation = properType.tryGetInvocationOf(gettable);
@@ -508,15 +559,15 @@ public enum EarleyCofiParser {
                     }
 
                     @Override
-                    public boolean test(X context, ExpressionNode<X> transformed) {
+                    public boolean test(TransformationContext<X> context, ExpressionNode<X> transformed) {
                         return true;
                     }
                 },
                 new UserDefinedNodeTransformation<X, UserDefinedExpression<X>, ExpressionNode<X>>() {
                     @Override
-                    public Optional<ExpressionNode<X>> apply(X context, UserDefinedExpression<X> untransformed, Function<String, TypeMixin<X, ?>> resolve) {
+                    public Optional<ExpressionNode<X>> apply(TransformationContext<X> context, UserDefinedExpression<X> untransformed) {
                         RelativeNameImpl<X> name = (RelativeNameImpl<X>) untransformed.getSymbol(0);
-                        TypeMixin<X, ?> type = resolve.apply(Iterables.getOnlyElement(name.ids).getLexeme());
+                        TypeMixin<X, ?> type = context.resolve(Iterables.getOnlyElement(name.ids).getLexeme());
 
                         type = type instanceof TypeConstructorMixin && ((TypeConstructorMixin<X, ?, ?>) type).getParameters().isEmpty()
                                 ? ((TypeConstructorMixin<X, ?, ?>) type).applyTrivially()
@@ -525,7 +576,7 @@ public enum EarleyCofiParser {
                         if (!type.getKind().isProperOrder())
                             return Optional.of(NameExpression.of(name));
 
-                        ProperTypeConstructorMixin<X, ?, ?> gettable = context.getTypeSystem().lookUp("Gettable");
+                        ProperTypeConstructorMixin<X, ?, ?> gettable = (ProperTypeConstructorMixin<X, ?, ?>) context.resolveType(Fqn.from("cofi", "lang", "Gettable"));
                         ProperTypeMixin<X, ?> properType = (ProperTypeMixin<X, ?>) type;
 
                         Optional<TypeConstructorInvocation<X>> invocation = properType.tryGetInvocationOf(gettable);
@@ -534,7 +585,7 @@ public enum EarleyCofiParser {
                     }
 
                     @Override
-                    public boolean test(X context, ExpressionNode<X> transformed) {
+                    public boolean test(TransformationContext<X> context, ExpressionNode<X> transformed) {
                         return true;
                     }
                 }

@@ -2,9 +2,10 @@ package de.benshu.cofi.cofic.frontend.infer;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.inference.Parametrization;
 import de.benshu.cofi.types.impl.FunctionTypes;
@@ -19,16 +20,15 @@ import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.commons.core.Optional;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Deque;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collector;
+import java.util.stream.Stream;
 
 import static de.benshu.commons.core.Optional.none;
 import static de.benshu.commons.core.Optional.some;
+import static de.benshu.commons.core.streams.Collectors.list;
 import static java.util.stream.Collectors.joining;
 
 public class OverloadedInvocationInferencer<T> implements OverloadedExpressionInferencer<T> {
@@ -53,77 +53,17 @@ public class OverloadedInvocationInferencer<T> implements OverloadedExpressionIn
     public Iterable<ExpressionInferencer<T>> unoverload() {
         Preconditions.checkState(argInferencers != null);
 
-        return new Iterable<ExpressionInferencer<T>>() {
-            @Override
-            public Iterator<ExpressionInferencer<T>> iterator() {
-                return new AbstractIterator<ExpressionInferencer<T>>() {
-                    private final int count = argInferencers.size() + 1;
-                    private final ImmutableList<Iterable<ExpressionInferencer<T>>> iterables = getSubIterables();
-                    private final Deque<Iterator<ExpressionInferencer<T>>> iterators = new ArrayDeque<>(count);
-                    private final Deque<ExpressionInferencer<T>> inferencers = new ArrayDeque<>(count);
-
-                    {
-                        while (iterators.size() < count) {
-                            Iterator<ExpressionInferencer<T>> iterator = iterables.get(iterators.size()).iterator();
-
-                            if (!iterator.hasNext())
-                                break; // TODO when does this ever happen? if it does not, we can use refill to fill initially
-
-                            iterators.push(iterator);
-                            inferencers.addLast(iterator.next());
-                        }
-                    }
-
-                    @Override
-                    protected ExpressionInferencer<T> computeNext() {
-                        try {
-                            if (inferencers.size() == count) {
-                                return new Unoverloaded<T>(pass, ImmutableList.copyOf(inferencers));
-                            } else {
-                                return endOfData();
-                            }
-                        } finally {
-                            nextCombination();
-                        }
-                    }
-
-                    private void nextCombination() {
-                        if (popExhausted()) {
-                            inferencers.removeLast();
-                            refill();
-                        }
-                    }
-
-                    /**
-                     * @return true if another combination exists
-                     */
-                    private boolean popExhausted() {
-                        while (!iterators.isEmpty() && !iterators.peek().hasNext()) {
-                            iterators.pop();
-                            inferencers.removeLast();
-                        }
-
-                        return !iterators.isEmpty();
-                    }
-
-                    private void refill() {
-                        inferencers.addLast(iterators.peek().next());
-                        while (iterators.size() < count) {
-                            iterators.push(iterables.get(iterators.size()).iterator());
-                            inferencers.addLast(iterators.peek().next());
-                        }
-                    }
-                };
-            }
-        };
+        return () -> Sets.cartesianProduct(getSubIterables()).stream()
+                .map(c -> (ExpressionInferencer<T>) new Unoverloaded<T>(pass, ImmutableList.copyOf(c)))
+                .iterator();
     }
 
-    private ImmutableList<Iterable<ExpressionInferencer<T>>> getSubIterables() {
-        ImmutableList.Builder<Iterable<ExpressionInferencer<T>>> builder = ImmutableList.builder();
+    private ImmutableList<ImmutableSet<ExpressionInferencer<T>>> getSubIterables() {
+        ImmutableList.Builder<ImmutableSet<ExpressionInferencer<T>>> builder = ImmutableList.builder();
 
-        builder.add(unoverloadPrimary());
+        builder.add(ImmutableSet.copyOf(unoverloadPrimary()));
         for (OverloadedExpressionInferencer<T> argInferencer : argInferencers) {
-            builder.add(argInferencer.unoverload());
+            builder.add(ImmutableSet.copyOf(argInferencer.unoverload()));
         }
 
         return builder.build();

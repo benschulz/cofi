@@ -13,7 +13,7 @@ import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.TypeSystemImpl;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.commons.core.Optional;
 
 public class LookUp {
@@ -25,7 +25,7 @@ public class LookUp {
         this.aggregate = aggregate;
     }
 
-    public ImmutableMap<Fqn, AbstractTemplateTypeConstructor<Pass>> getGlueTypes() {
+    public ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> getGlueTypes() {
         return pass.getGlueTypes();
     }
 

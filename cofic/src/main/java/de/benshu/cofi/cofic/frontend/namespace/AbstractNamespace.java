@@ -6,15 +6,12 @@ import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.notes.CofiNote;
 import de.benshu.cofi.cofic.notes.ImmutableNote;
 import de.benshu.cofi.cofic.notes.PrintStreamNotes;
-import de.benshu.cofi.cofic.notes.Source;
 import de.benshu.cofi.cofic.notes.Source.Snippet;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.Namespace;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.ExpressionNode;
-import de.benshu.cofi.model.impl.FullyQualifiedName;
 import de.benshu.cofi.model.impl.MemberAccessExpression;
-import de.benshu.cofi.model.impl.NameImpl;
 import de.benshu.cofi.model.impl.RelativeNameImpl;
 import de.benshu.cofi.model.impl.RootExpression;
 import de.benshu.cofi.parser.lexer.ArtificialToken;
@@ -77,14 +74,12 @@ public abstract class AbstractNamespace implements Namespace<Pass> {
         return MemberAccessExpression.of(index > 0 ? getAccessor(fqn, index - 1) : RootExpression.of(), RelativeNameImpl.of(id));
     }
 
-    public TypeMixin<Pass, ?> resolveType(LookUp lookUp, NameImpl<Pass> name) {
-        final ImmutableList<String> ids = ImmutableList.copyOf(name.ids.stream().map(Token::getLexeme).iterator());
-        final Source.Snippet src = name.ids.get(0).getTokenString(name.ids.get(name.ids.size() - 1));
+    public TypeMixin<Pass, ?> resolveType(LookUp lookUp, ImmutableList<String> ids, Snippet src) {
+        return resolveNamespace(lookUp, ids, src);
+    }
 
-        return name instanceof FullyQualifiedName
-                ? getRoot().resolveNamespace(lookUp, ids, src)
-                : resolveNamespace(lookUp, ids, src);
-
+    public TypeMixin<Pass, ?> resolveFullyQualifiedType(LookUp lookUp, Fqn ids, Snippet src) {
+        return getRoot().resolveNamespace(lookUp, ImmutableList.copyOf(ids), src);
     }
 
     private TypeMixin<Pass, ?> resolveNamespace(LookUp lookUp, ImmutableList<String> ids, Snippet src) {

@@ -39,14 +39,10 @@ import static de.benshu.commons.core.Optional.some;
 
 public class OverloadedMemberAccessInferencer<T> implements OverloadedExpressionInferencer<T> {
     private static <T> int determineTypeArgCount(Pass pass, ExpressionInferencer<T> primary, InferMemberAccess<T> memberAccess,
-                                                 Optional<? extends AbstractMember<Pass>> member) {
-        for (AbstractMember<Pass> m : member) {
-            return memberAccess.getTypeArgs()
-                    .map(args -> primary.getTypeArgCount())
-                    .getOrSupply(() -> primary.getTypeArgCount() + m.getType().getParameters().size());
-        }
-
-        return -1;
+                                                 AbstractMember<Pass> member) {
+        return memberAccess.getTypeArgs()
+                .map(args -> primary.getTypeArgCount())
+                .getOrSupply(() -> primary.getTypeArgCount() + member.getType().getParameters().size());
     }
 
     private static <T> ProperTypeConstructorMixin<Pass, ?, ?> determineImplicitType(Pass pass, InferMemberAccess<T> memberAccess, AbstractMember<Pass> member) {
@@ -178,9 +174,9 @@ public class OverloadedMemberAccessInferencer<T> implements OverloadedExpression
         private final ExpressionInferencer<T> primary;
         private final ProperTypeMixin<Pass, ?> primaryContext;
         private final InferMemberAccess<T> memberAccess;
-        private final Optional<AbstractMember<Pass>> member;
+        private final AbstractMember<Pass> member;
 
-        private SimpleUnoverloaded(Pass pass, ExpressionInferencer<T> primary, ProperTypeMixin<Pass, ?> primaryContext, InferMemberAccess<T> memberAccess, Optional<AbstractMember<Pass>> member) {
+        private SimpleUnoverloaded(Pass pass, ExpressionInferencer<T> primary, ProperTypeMixin<Pass, ?> primaryContext, InferMemberAccess<T> memberAccess, AbstractMember<Pass> member) {
             super(determineTypeArgCount(pass, primary, memberAccess, member));
             this.primary = primary;
             this.primaryContext = primaryContext;
@@ -188,45 +184,44 @@ public class OverloadedMemberAccessInferencer<T> implements OverloadedExpression
             this.member = member;
         }
 
-        public SimpleUnoverloaded(Pass pass, ExpressionInferencer<T> primary, ProperTypeMixin<Pass, ?> primaryContext, InferMemberAccess<T> memberAccess) {
-            this(pass, primary, primaryContext, memberAccess, primaryContext.lookupMember(memberAccess.getName()));
-        }
-
         @Override
         public Optional<Parametrization<Pass, T>> inferGeneric(Pass pass, TypeParameterListImpl<Pass> params, int offset,
                                                                AbstractConstraints<Pass> constraints, ProperTypeMixin<Pass, ?> context) {
-            for (AbstractMember<Pass> _ : member)
-                for (Parametrization<Pass, T> p : primary.inferGeneric(pass, params, offset, constraints, primaryContext))
-                    for (AbstractMember<Pass> m : p.getImplicitType().lookupMember(_.getName()))
-                        return some(wrapParameterization(pass, p, m, offset));
+            for (Parametrization<Pass, T> p : primary.inferGeneric(pass, params, offset, constraints, pass.getTypeSystem().getTop()))
+                for (AbstractMember<Pass> m : p.getImplicitType().lookupMember(member.getName()))
+                    return tryWrapParameterization(pass, p, m, offset, context);
 
             return none();
         }
 
-        private Parametrization<Pass, T> wrapParameterization(Pass pass, final Parametrization<Pass, T> p, final AbstractMember<Pass> m, int offset) {
+        private Optional<Parametrization<Pass, T>> tryWrapParameterization(Pass pass, final Parametrization<Pass, T> p, final AbstractMember<Pass> m, int offset, ProperTypeMixin<Pass, ?> context) {
             int implicitTpCount = m.getTags().getOrFallbackToDefault(Implicits.TAG).getTypeParamCount();
 
             final int fromIndex = offset + primary.getTypeArgCount() + implicitTpCount;
             final int toIndex = offset + getTypeArgCount();
 
-            final AbstractConstraints<Pass> constraints = transferConstraints(pass, m, p.getConstraints(), fromIndex, toIndex);
+            ProperTypeConstructorMixin<Pass, ?, ?> implicitDeclaredType = determineImplicitType(pass, memberAccess, m);
 
-            return new Parametrization<Pass, T>() {
+            TypeParameterListImpl<Pass> params = p.getConstraints().getTypeParams();
+            Implicits implicits = m.getTags().getOrFallbackToDefault(Implicits.TAG);
+            ProperTypeMixin<Pass, ?> implicitType = dropImplicitParams(pass, implicitDeclaredType, implicits).apply(params.getVariables().subList(fromIndex, toIndex));
+
+            final AbstractConstraints<Pass> constraints = transferConstraints(pass, m, p.getConstraints(), fromIndex, toIndex)
+                    .establishSubtype(implicitType, context);
+
+            if (constraints.isAll())
+                return none();
+
+            return some(new Parametrization<Pass, T>() {
                 @Override
                 public ProperTypeMixin<Pass, ?> getImplicitType() {
-                    TypeParameterListImpl<Pass> params = p.getConstraints().getTypeParams();
-                    Implicits implicits = m.getTags().getOrFallbackToDefault(Implicits.TAG);
-                    return dropImplicitParams(pass, getExplicitTypeConstructor(), implicits).apply(params.getVariables().subList(fromIndex, toIndex));
+                    return implicitType;
                 }
 
                 @Override
                 public ProperTypeMixin<Pass, ?> getExplicitType() {
                     TypeParameterListImpl<Pass> params = p.getConstraints().getTypeParams();
-                    return getExplicitTypeConstructor().apply(params.getVariables().subList(fromIndex, toIndex));
-                }
-
-                private TypeConstructorMixin<Pass, ?, ? extends ProperTypeMixin<Pass, ?>> getExplicitTypeConstructor() {
-                    return determineImplicitType(pass, memberAccess, m);
+                    return implicitDeclaredType.apply(params.getVariables().subList(fromIndex, toIndex));
                 }
 
                 @Override
@@ -250,18 +245,14 @@ public class OverloadedMemberAccessInferencer<T> implements OverloadedExpression
 
                     return aggregate;
                 }
-            };
+            });
         }
 
         @Override
         Optional<ProperTypeMixin<Pass, ?>> doInferSpecific(Pass pass) {
-            for (AbstractMember<Pass> m : member) {
-                // TODO the specific type args of m must be inferred beforehand and
-                //      one instance created for each "specific" parameterization
-                return Optional.<ProperTypeMixin<Pass, ?>>some(m.getType().applyTrivially());
-            }
-
-            return none();
+            // TODO the specific type args of m must be inferred beforehand and
+            //      one instance created for each "specific" parameterization
+            return some(member.getType().applyTrivially());
         }
 
         @Override
@@ -281,11 +272,14 @@ public class OverloadedMemberAccessInferencer<T> implements OverloadedExpression
 
         @Override
         public Iterable<ExpressionInferencer<T>> apply(ExpressionInferencer<T> primary) {
-            for (ProperTypeMixin<Pass, ?> pst : primary.inferSpecific(pass)) {
-                AbstractMember<Pass> member = pst.lookupMember(memberAccess.getName()).get();
-                AbstractTypeList<Pass, ProperTypeMixin<Pass, ?>> owners = member.getTags().get(Owners.TAG).getOwners();
-                return owners.<ExpressionInferencer<T>>mapAny(o -> new SimpleUnoverloaded<T>(pass, primary, o, memberAccess));
-            }
+            String memberName = memberAccess.getName();
+
+            for (ProperTypeMixin<Pass, ?> pst : primary.inferSpecific(pass))
+                for (AbstractMember<Pass> member : pst.lookupMember(memberName)) {
+                    return member.getTags().get(Owners.TAG).getOwners()
+                            .mapAny(o -> new SimpleUnoverloaded<T>(pass, primary, o, memberAccess, o.lookupMember(memberName).get()));
+                }
+
             return ImmutableList.of();
         }
     }

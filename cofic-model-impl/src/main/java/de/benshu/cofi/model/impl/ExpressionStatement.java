@@ -32,4 +32,9 @@ public class ExpressionStatement<X extends ModelContext<X>> extends Statement<X>
     public ImmutableSet<AnnotationImpl<X>> getAnnotationsAndModifiers() {
         return ImmutableSet.copyOf(annotations);
     }
+
+    @Override
+    public String toString() {
+        return expression.toString();
+    }
 }

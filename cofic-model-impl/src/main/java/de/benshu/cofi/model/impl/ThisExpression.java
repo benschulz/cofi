@@ -24,4 +24,9 @@ public class ThisExpression<X extends ModelContext<X>> extends ExpressionNode<X>
     public <N, L extends N, D extends L, S extends N, E extends N, T extends N> E accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
         return transformer.transformThisExpr(this);
     }
+
+    @Override
+    public String toString() {
+        return "this";
+    }
 }

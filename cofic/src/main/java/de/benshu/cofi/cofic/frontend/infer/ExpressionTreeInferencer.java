@@ -13,6 +13,7 @@ import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Optional;
 
 public class ExpressionTreeInferencer<T> {
     private final Pass pass;
@@ -59,14 +60,14 @@ public class ExpressionTreeInferencer<T> {
         expressions.push(new OverloadedClosureInferencer<T>(closure));
     }
 
-    public T infer(Pass pass, AbstractConstraints<Pass> contextConstraints, ProperTypeMixin<Pass, ?> context, T aggregate) {
+    public Optional<T> infer(Pass pass, AbstractConstraints<Pass> contextConstraints, ProperTypeMixin<Pass, ?> context, T aggregate) {
         Preconditions.checkState(expressions.size() == 1);
 
         OverloadedExpressionInferencer<T> exprInferencer = expressions.pop();
         return infer(pass, contextConstraints, context, exprInferencer, aggregate);
     }
 
-    private T infer(Pass pass, AbstractConstraints<Pass> contextConstraints, ProperTypeMixin<Pass, ?> context, OverloadedExpressionInferencer<T> exprInferencer, T aggregate) {
+    private Optional<T> infer(Pass pass, AbstractConstraints<Pass> contextConstraints, ProperTypeMixin<Pass, ?> context, OverloadedExpressionInferencer<T> exprInferencer, T aggregate) {
         for (ExpressionInferencer<T> inferencer : exprInferencer.unoverload()) {
             TypeParameterListImpl<Pass> parameters = TypeParameterListImpl.createTrivial(inferencer.getTypeArgCount(), pass);
             AbstractConstraints<Pass> initialConstraints = AbstractConstraints.trivial(pass, contextConstraints, parameters);
@@ -75,13 +76,12 @@ public class ExpressionTreeInferencer<T> {
                 Iterable<AbstractTypeList<Pass, ?>> typeArgOptions = new Inferencer<>(pass.getTypeSystem(), parametrization.getConstraints()).infer(pass);
 
                 for (AbstractTypeList<Pass, ?> typeArgs : typeArgOptions) {
-                    return parametrization.apply(Substitutions.ofThrough(parameters, typeArgs), aggregate);
+                    return Optional.of(parametrization.apply(Substitutions.ofThrough(parameters, typeArgs), aggregate));
                 }
             }
         }
 
-        System.err.println("TYPE INFERENCE FAILED: " + exprInferencer);
-        return aggregate;
+        return Optional.empty();
     }
 
     @Override

@@ -1,23 +1,28 @@
 package de.benshu.cofi.types.impl.test;
 
+import de.benshu.cofi.types.impl.TypeName;
 import de.benshu.cofi.types.tags.DefaultingTag;
 import de.benshu.cofi.types.tags.HashIndividualTags;
 import de.benshu.cofi.types.tags.IndividualTag;
 import de.benshu.cofi.types.tags.IndividualTags;
-import de.benshu.commons.core.Debuggable;
 
-public enum StringNameTag implements IndividualTag<Debuggable>, DefaultingTag<Debuggable> {
+public enum StringNameTag implements IndividualTag<TypeName>, DefaultingTag<TypeName> {
     INSTANCE;
 
-    private static class DebuggableString implements Debuggable {
+    private static class StringTypeName implements TypeName {
         private final String string;
 
-        private DebuggableString(String string) {
+        private StringTypeName(String string) {
             this.string = string;
         }
 
         @Override
         public String debug() {
+            return string;
+        }
+
+        @Override
+        public String toDescriptor() {
             return string;
         }
     }
@@ -28,11 +33,11 @@ public enum StringNameTag implements IndividualTag<Debuggable>, DefaultingTag<De
     }
 
     @Override
-    public Debuggable getDefault() {
-        return new DebuggableString("<anonymous>");
+    public TypeName getDefault() {
+        return new StringTypeName("<anonymous>");
     }
 
     public static IndividualTags labeled(String name) {
-        return HashIndividualTags.of(INSTANCE, new DebuggableString(name));
+        return HashIndividualTags.of(INSTANCE, new StringTypeName(name));
     }
 }

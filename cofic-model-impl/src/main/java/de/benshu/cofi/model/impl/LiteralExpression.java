@@ -31,4 +31,8 @@ public class LiteralExpression<X extends ModelContext<X>> extends ExpressionNode
         return transformer.transformLiteralExpression(this);
     }
 
+    @Override
+    public String toString() {
+        return literal.getLexeme();
+    }
 }

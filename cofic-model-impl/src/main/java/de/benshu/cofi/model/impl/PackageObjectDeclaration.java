@@ -40,8 +40,8 @@ public class PackageObjectDeclaration<X extends ModelContext<X>> extends Abstrac
                         x -> getExtending().stream().map(e -> SourceType.of(x.lookUpTypeOf(e), e.getSourceSnippet())).collect(Collectors.list()),
                         x -> x.lookUpMemberDescriptorsOf(this),
                         x -> IndividualTags.empty()
-                                .set(TypeTags.NAME, () -> x.lookUpFqnOf(PackageObjectDeclaration.this).toString())
-                                .set(AbstractTypeDeclaration.Tag.INSTANCE, PackageObjectDeclaration.this)
+                                .set(TypeTags.NAME, FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this)))
+                                .set(AbstractTypeDeclaration.Tag.INSTANCE, this)
                 )
         );
     }

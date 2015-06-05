@@ -12,24 +12,23 @@ import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.cofi.types.tags.DefaultingTag;
-import de.benshu.commons.core.Debuggable;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 public class TypeSystemImpl<X extends TypeSystemContext<X>> implements TypeSystem<X> {
-    public static <X extends TypeSystemContext<X>> TypeSystemImpl<X> create(Function<String, ? extends TypeMixin<X, ?>> computer, DefaultingTag<? extends Debuggable> nameTag,
+    public static <X extends TypeSystemContext<X>> TypeSystemImpl<X> create(Function<String, ? extends TypeMixin<X, ?>> computer, DefaultingTag<? extends TypeName> nameTag,
                                                                             Supplier<TemplateTypeConstructorMixin<X>> topConstructorSupplier) {
         return new TypeSystemImpl<>(computer, nameTag, topConstructorSupplier);
     }
 
     private final LoadingCache<String, ? extends TypeMixin<X, ?>> lookup;
-    private final DefaultingTag<? extends Debuggable> nameTag;
+    private final DefaultingTag<? extends TypeName> nameTag;
     private final Bottom<X> bottom;
     private final Supplier<TemplateTypeConstructorMixin<X>> topConstructor;
     private final AtomicReference<TemplateTypeImpl<X>> top = new AtomicReference<>();
 
-    private TypeSystemImpl(Function<String, ? extends TypeMixin<X, ?>> computer, DefaultingTag<? extends Debuggable> nameTag, Supplier<TemplateTypeConstructorMixin<X>> topConstructorSupplier) {
+    private TypeSystemImpl(Function<String, ? extends TypeMixin<X, ?>> computer, DefaultingTag<? extends TypeName> nameTag, Supplier<TemplateTypeConstructorMixin<X>> topConstructorSupplier) {
         this.lookup = CacheBuilder.newBuilder().build(CacheLoader.from(computer));
         this.nameTag = nameTag;
         this.bottom = Bottom.create();
@@ -69,7 +68,7 @@ public class TypeSystemImpl<X extends TypeSystemContext<X>> implements TypeSyste
         return lookUpUnchecked("Type");
     }
 
-    public DefaultingTag<? extends Debuggable> getNameTag() {
+    public DefaultingTag<? extends TypeName> getNameTag() {
         return nameTag;
     }
 

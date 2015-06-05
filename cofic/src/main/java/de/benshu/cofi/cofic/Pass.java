@@ -38,7 +38,6 @@ import de.benshu.cofi.types.impl.TypeSystemImpl;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
 import de.benshu.commons.core.Optional;
@@ -53,7 +52,7 @@ public class Pass implements ModelContext<Pass> {
 
     // ModuleGlueTyper
     private final Map<Fqn, PackageObjectDeclaration<Pass>> packageObjectDeclarations = Maps.newConcurrentMap();
-    private ImmutableMap<Fqn, AbstractTemplateTypeConstructor<Pass>> glueTypes;
+    private ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> glueTypes;
     private ImmutableSetMultimap<PackageObjectDeclaration<Pass>, AbstractTypeDeclaration<Pass>> topLevelDeclarations;
 
     private CompanionData companionData;
@@ -114,11 +113,11 @@ public class Pass implements ModelContext<Pass> {
                 .findFirst().get();
     }
 
-    public void defineGlueTypes(ImmutableMap<Fqn, AbstractTemplateTypeConstructor<Pass>> glueTypes) {
+    public void defineGlueTypes(ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> glueTypes) {
         this.glueTypes = glueTypes;
     }
 
-    public ImmutableMap<Fqn, AbstractTemplateTypeConstructor<Pass>> getGlueTypes() {
+    public ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> getGlueTypes() {
         return glueTypes;
     }
 

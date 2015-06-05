@@ -1,11 +1,10 @@
 package de.benshu.cofi.model.impl;
 
 import com.google.common.collect.ImmutableList;
-import de.benshu.cofi.types.impl.TypeMixin;
 
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Stream;
+
+import static com.google.common.collect.Maps.immutableEntry;
 
 public class UserDefinedStatement<X extends ModelContext<X>>
         extends Statement<X>
@@ -39,11 +38,12 @@ public class UserDefinedStatement<X extends ModelContext<X>>
     }
 
     @Override
-    public Stream<TransformedUserDefinedNode<X, Statement<X>>> transform(X context, Function<String, TypeMixin<X, ?>> resolve) {
+    public Stream<TransformedUserDefinedNode<X, Statement<X>>> transform(TransformationContext<X> context) {
         return transformations.stream()
-                .map(t -> t.apply(context, this, resolve))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .map(TransformedUserDefinedNode::new);
+                .map(t -> immutableEntry(t, t.apply(context, this)))
+                .filter(e -> e.getValue().isPresent())
+                .map(e -> new TransformedUserDefinedNode<>(
+                        e.getValue().get(),
+                        (x, t) -> e.getKey().test(x, t)));
     }
 }

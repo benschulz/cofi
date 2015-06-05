@@ -22,7 +22,7 @@ abstract class AbstractModelNode<X extends ModelContext<X>> implements ModelNode
     }
 
     @Override
-    public final String toString() {
+    public String toString() {
         TokenString sourceSnippet = getSourceSnippet();
         return sourceSnippet.getLexeme() + " @ " + sourceSnippet.getFirst().getBeginLine() + ":" + sourceSnippet.getFirst().getBeginColumn();
     }

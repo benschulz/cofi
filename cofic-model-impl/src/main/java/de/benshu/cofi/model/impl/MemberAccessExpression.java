@@ -1,9 +1,11 @@
 package de.benshu.cofi.model.impl;
 
 import com.google.common.base.Preconditions;
-
+import com.google.common.collect.Iterables;
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
 import de.benshu.cofi.types.impl.members.AbstractMember;
+
+import static java.util.stream.Collectors.joining;
 
 public class MemberAccessExpression<X extends ModelContext<X>> extends ExpressionNode<X> implements MemberAccess<X> {
     @AstNodeConstructorMethod
@@ -46,5 +48,11 @@ public class MemberAccessExpression<X extends ModelContext<X>> extends Expressio
     @Override
     public ExpressionMixin<X> getPrimary() {
         return primary;
+    }
+
+    @Override
+    public String toString() {
+        String typeArgs = name.typeArgs == null ? "" : "<" + name.typeArgs.stream().map(Object::toString).collect(joining(", ")) + ">";
+        return primary + "." + Iterables.getOnlyElement(name.ids) + typeArgs;
     }
 }

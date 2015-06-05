@@ -13,5 +13,5 @@ public interface UserDefinedNode<X extends ModelContext<X>> extends ModelNodeMix
         return getSymbols().get(index);
     }
 
-    Stream<? extends TransformedUserDefinedNode<X, ? extends ModelNodeMixin<X>>> transform(X context, Function<String, TypeMixin<X, ?>> resolve);
+    Stream<? extends TransformedUserDefinedNode<X, ? extends ModelNodeMixin<X>>> transform(TransformationContext<X> context);
 }

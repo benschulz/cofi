@@ -3,6 +3,8 @@ package de.benshu.cofi.model.impl;
 import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
 
+import static java.util.stream.Collectors.joining;
+
 public class FunctionInvocationExpression<X extends ModelContext<X>> extends ExpressionNode<X> implements FunctionInvocation<X> {
     @AstNodeConstructorMethod
     public static <X extends ModelContext<X>> FunctionInvocationExpression<X> of(ExpressionNode<X> primary, ImmutableList<ExpressionNode<X>> args) {
@@ -30,5 +32,10 @@ public class FunctionInvocationExpression<X extends ModelContext<X>> extends Exp
     @Override
     public ImmutableList<ExpressionNode<X>> getArgs() {
         return args;
+    }
+
+    @Override
+    public String toString() {
+        return primary + "(" + args.stream().map(Object::toString).collect(joining(", ")) + ")";
     }
 }

@@ -1,6 +1,6 @@
 package de.benshu.cofi.cofic.frontend.implementations;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.frontend.infer.ExpressionTreeInferencer;
@@ -24,6 +24,9 @@ import de.benshu.cofi.model.impl.PropertyDeclaration;
 import de.benshu.cofi.model.impl.RootExpression;
 import de.benshu.cofi.model.impl.Statement;
 import de.benshu.cofi.model.impl.ThisExpression;
+import de.benshu.cofi.model.impl.TransformationContext;
+import de.benshu.cofi.model.impl.TransformedUserDefinedNode;
+import de.benshu.cofi.parser.lexer.ArtificialToken;
 import de.benshu.cofi.parser.lexer.Token;
 import de.benshu.cofi.runtime.internal.MemoizingSupplier;
 import de.benshu.cofi.types.impl.FunctionTypes;
@@ -38,14 +41,16 @@ import de.benshu.commons.core.Optional;
 
 import java.util.function.Supplier;
 
+import static com.google.common.base.Preconditions.checkState;
 import static de.benshu.cofi.types.impl.lists.AbstractTypeList.typeList;
+import static de.benshu.commons.core.streams.Collectors.list;
 import static de.benshu.commons.core.streams.Collectors.single;
 import static java.util.stream.Collectors.joining;
 
 public class ImplementationTyper {
     public static ImplementationData type(Pass pass, ImmutableSet<CompilationUnit<Pass>> compilationUnits) {
         return compilationUnits
-                .stream()
+                .parallelStream()
                 .map(u -> new Visitor(pass).visit(u, ImplementationData.builder()))
                 .collect(ImplementationData::builder, ImplementationDataBuilder::addAll, ImplementationDataBuilder::addAll)
                 .addAll(new ImplementationDataBuilder(pass.getGenericModelData()))
@@ -88,7 +93,8 @@ public class ImplementationTyper {
             visitAll(expressionStatement.annotations, aggregate);
             aggregate = visit(expressionStatement.expression, aggregate);
 
-            return inferencer.infer(pass, getContextualConstraints(aggregate), pass.getTypeSystem().getTop(), aggregate);
+            return inferencer.infer(pass, getContextualConstraints(aggregate), pass.getTypeSystem().getTop(), aggregate)
+                    .orElse(null);
         }
 
         @Override
@@ -154,9 +160,12 @@ public class ImplementationTyper {
             visit(localVariableDeclaration.type, aggregate);
 
             final ExpressionNode<Pass> value = localVariableDeclaration.value;
+
             if (value != null) {
                 visit(value, aggregate);
-                aggregate = inferencer.infer(pass, getContextualConstraints(aggregate), aggregate.lookUpProperTypeOf(localVariableDeclaration.type), aggregate);
+
+                return inferencer.infer(pass, getContextualConstraints(aggregate), aggregate.lookUpProperTypeOf(localVariableDeclaration.type), aggregate)
+                        .orElse(null);
             }
 
             return aggregate;
@@ -209,12 +218,16 @@ public class ImplementationTyper {
         public ImplementationDataBuilder visitPropertyDeclaration(PropertyDeclaration<Pass> propertyDeclaration, ImplementationDataBuilder aggregate) {
             ExpressionNode<Pass> initialValue = propertyDeclaration.initialValue;
 
-            // FIXME TODO inference needs to happen as part of selecting the (only) applicable transformation
-            ImplementationDataBuilder aggregate2 = new UserDefinedNodeTransformer<Pass>(pass, n -> resolve(n, aggregate).getType()).transform(initialValue).stream()
-                    .map(t -> visit(t.getTransformedNode(), aggregate.copy().defineTransformation(initialValue, t.getTransformedNode())))
-                    .collect(single());
+            return new UserDefinedNodeTransformer<Pass>(transformationContext(aggregate)).transform(initialValue).stream()
+                    .map(t -> {
+                        ImplementationDataBuilder tmp = visit(t.getTransformedNode(), aggregate.copy().defineTransformation(initialValue, t.getTransformedNode()));
+                        java.util.Optional<ImplementationDataBuilder> result = inferencer.infer(pass, getContextualConstraints(aggregate), pass.lookUpProperTypeOf(propertyDeclaration.type), tmp);
 
-            return inferencer.infer(pass, getContextualConstraints(aggregate), pass.lookUpProperTypeOf(propertyDeclaration.type), aggregate2);
+                        return java.util.Optional.ofNullable(result.isPresent() && t.test(transformationContext(result.get())) ? result.get() : null);
+                    })
+                    .filter(java.util.Optional::isPresent)
+                    .map(java.util.Optional::get)
+                    .collect(single());
         }
 
         @Override
@@ -228,9 +241,19 @@ public class ImplementationTyper {
 
         @Override
         protected ImplementationDataBuilder visitStatement(Statement<Pass> statement, ImplementationDataBuilder aggregate) {
-            return new UserDefinedNodeTransformer<Pass>(pass, n -> resolve(n, aggregate).getType()).transform(statement).stream()
-                    .map(t -> visit(t.getTransformedNode(), aggregate.copy().defineTransformation(statement, t.getTransformedNode())))
-                    .collect(single());
+            ImmutableList<TransformedUserDefinedNode<Pass, Statement<Pass>>> transformed = new UserDefinedNodeTransformer<Pass>(transformationContext(aggregate)).transform(statement).stream().collect(list());
+
+            ImmutableList<ImplementationDataBuilder> validTransformations = transformed.stream()
+                    .map(t -> {
+                        ImplementationDataBuilder result = visit(t.getTransformedNode(), aggregate.copy().defineTransformation(statement, t.getTransformedNode()));
+
+                        return java.util.Optional.ofNullable(result != null && t.test(transformationContext(result)) ? result : null);
+                    })
+                    .filter(java.util.Optional::isPresent)
+                    .map(java.util.Optional::get)
+                    .collect(list());
+
+            return validTransformations.stream().collect(single());
         }
 
         @Override
@@ -241,6 +264,26 @@ public class ImplementationTyper {
             inferencer.pushValue(type);
 
             return aggregate;
+        }
+
+        private TransformationContext<Pass> transformationContext(ImplementationDataBuilder aggregate) {
+            return new TransformationContext<Pass>() {
+                @Override
+                public TypeMixin<Pass, ?> resolveType(Fqn fqn) {
+                    ArtificialToken hack = ArtificialToken.create(Token.Kind.IDENTIFIER, "hack");
+                    return ImplementationTyper.Visitor.this.resolveFullyQualifiedType(fqn, hack.getTokenString(hack), aggregate);
+                }
+
+                @Override
+                public TypeMixin<Pass, ?> resolve(String name) {
+                    return ImplementationTyper.Visitor.this.resolve(name, aggregate).getType();
+                }
+
+                @Override
+                public ProperTypeMixin<Pass, ?> lookUpTypeOf(ExpressionNode<Pass> expression) {
+                    return aggregate.lookUpTypeOf(expression);
+                }
+            };
         }
 
         private static class ClosureInference implements InferClosure<ImplementationDataBuilder> {
@@ -320,7 +363,7 @@ public class ImplementationTyper {
 
             @Override
             public String getName() {
-                Preconditions.checkState(nameExpression.name.ids.size() == 1);
+                checkState(nameExpression.name.ids.size() == 1);
                 return nameExpression.name.ids.get(0).getLexeme();
             }
         }

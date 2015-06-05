@@ -13,15 +13,15 @@ import de.benshu.cofi.model.impl.ModelTransformer;
 import de.benshu.cofi.model.impl.NameExpression;
 import de.benshu.cofi.model.impl.Statement;
 import de.benshu.cofi.model.impl.ThisExpression;
+import de.benshu.cofi.model.impl.TransformationContext;
 import de.benshu.cofi.model.impl.TransformedUserDefinedNode;
 import de.benshu.cofi.model.impl.TransformedUserDefinedNodes;
 import de.benshu.cofi.model.impl.UserDefinedExpression;
 import de.benshu.cofi.model.impl.UserDefinedStatement;
-import de.benshu.cofi.types.impl.TypeMixin;
 
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 
 import static de.benshu.commons.core.streams.Collectors.list;
@@ -36,17 +36,15 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
         TransformedUserDefinedNodes<X, ExpressionNode<X>>,
         TransformedUserDefinedNodes<X, ?>> {
 
-    private final X context;
-    private final Function<String, TypeMixin<X, ?>> resolve;
+    private final TransformationContext<X> transformationContext;
 
-    public UserDefinedNodeTransformer(X context, Function<String, TypeMixin<X, ?>> resolve) {
-        this.context = context;
-        this.resolve = resolve;
+    public UserDefinedNodeTransformer(TransformationContext<X> transformationContext) {
+        this.transformationContext = transformationContext;
     }
 
     @Override
     public TransformedUserDefinedNodes<X, ExpressionNode<X>> transformClosure(Closure<X> closure) {
-        return TransformedUserDefinedNodes.of(() -> Stream.of(new TransformedUserDefinedNode<>(closure)));
+        return TransformedUserDefinedNodes.of(() -> Stream.of(new TransformedUserDefinedNode<>(closure, (x, t) -> true)));
     }
 
     @Override
@@ -59,8 +57,8 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
                     );
 
                     return new TransformedUserDefinedNode<>(
-                            transformed
-                    );
+                            transformed,
+                            t.boundTest());
                 }));
     }
 
@@ -81,14 +79,16 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
                         c.subList(1, c.size()).stream().map(TransformedUserDefinedNode::getTransformedNode).collect(list())
                 );
 
-                return new TransformedUserDefinedNode<>(transformed);
+                return new TransformedUserDefinedNode<>(transformed, c.stream()
+                        .map(t -> t.<ExpressionNode<X>> boundTest())
+                        .reduce((x, t) -> true, BiPredicate::and));
             });
         });
     }
 
     @Override
     public TransformedUserDefinedNodes<X, ExpressionNode<X>> transformLiteralExpression(LiteralExpression<X> literalExpression) {
-        return TransformedUserDefinedNodes.of(() -> Stream.of(new TransformedUserDefinedNode<>(literalExpression)));
+        return TransformedUserDefinedNodes.of(() -> Stream.of(new TransformedUserDefinedNode<>(literalExpression, (x, t) -> true)));
     }
 
     @Override
@@ -104,8 +104,8 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
                     );
 
                     return new TransformedUserDefinedNode<>(
-                            transformed
-                    );
+                            transformed,
+                            t.boundTest());
                 }));
     }
 
@@ -116,36 +116,36 @@ public class UserDefinedNodeTransformer<X extends ModelContext<X>> implements Mo
                     MemberAccessExpression<X> transformed = MemberAccessExpression.of(t.getTransformedNode(), memberAccessExpression.name);
 
                     return new TransformedUserDefinedNode<>(
-                            transformed
-                    );
+                            transformed,
+                            t.boundTest());
                 }));
     }
 
     @Override
     public TransformedUserDefinedNodes<X, ExpressionNode<X>> transformNameExpression(NameExpression<X> nameExpression) {
-        return TransformedUserDefinedNodes.of(() -> Stream.of(new TransformedUserDefinedNode<>(nameExpression)));
+        return TransformedUserDefinedNodes.of(() -> Stream.of(new TransformedUserDefinedNode<>(nameExpression, (x, t) -> true)));
     }
 
     @Override
     public TransformedUserDefinedNodes<X, ExpressionNode<X>> transformThisExpr(ThisExpression<X> thisExpression) {
-        return TransformedUserDefinedNodes.of(() -> Stream.of(new TransformedUserDefinedNode<>(thisExpression)));
+        return TransformedUserDefinedNodes.of(() -> Stream.of(new TransformedUserDefinedNode<>(thisExpression, (x, t) -> true)));
     }
 
     @Override
     public TransformedUserDefinedNodes<X, ExpressionNode<X>> transformUserDefinedExpression(UserDefinedExpression<X> userDefinedExpression) {
-        return TransformedUserDefinedNodes.of(() -> userDefinedExpression.transform(context, resolve)
+        return TransformedUserDefinedNodes.of(() -> userDefinedExpression.transform(transformationContext)
                 .flatMap(outer -> transform(outer.getTransformedNode()).stream()
                         .map(inner -> new TransformedUserDefinedNode<>(
-                                inner.getTransformedNode()
-                        ))));
+                                inner.getTransformedNode(),
+                                outer.unboundTest().and(inner.unboundTest())))));
     }
 
     @Override
     public TransformedUserDefinedNodes<X, Statement<X>> transformUserDefinedStatement(UserDefinedStatement<X> userDefinedStatement) {
-        return TransformedUserDefinedNodes.of(() -> userDefinedStatement.transform(context, resolve)
+        return TransformedUserDefinedNodes.of(() -> userDefinedStatement.transform(transformationContext)
                 .flatMap(outer -> transform(outer.getTransformedNode()).stream()
                         .map(inner -> new TransformedUserDefinedNode<>(
-                                inner.getTransformedNode()
-                        ))));
+                                inner.getTransformedNode(),
+                                outer.unboundTest().and(inner.unboundTest())))));
     }
 }
