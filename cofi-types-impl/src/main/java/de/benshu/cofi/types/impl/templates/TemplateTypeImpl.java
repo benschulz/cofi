@@ -1,19 +1,18 @@
 package de.benshu.cofi.types.impl.templates;
 
 import com.google.common.collect.ImmutableMap;
-
 import de.benshu.cofi.types.ProperTypeSort;
 import de.benshu.cofi.types.TemplateTypeConstructor;
 import de.benshu.cofi.types.TypeList;
 import de.benshu.cofi.types.bound.ProperTypeVisitor;
 import de.benshu.cofi.types.bound.TemplateType;
 import de.benshu.cofi.types.impl.AbstractConstructedType;
-import de.benshu.cofi.types.impl.intersections.AbstractIntersectionType;
 import de.benshu.cofi.types.impl.AbstractUnboundConstructedType;
-import de.benshu.cofi.types.impl.unions.AbstractUnionType;
 import de.benshu.cofi.types.impl.Bottom;
 import de.benshu.cofi.types.impl.Substitutable;
 import de.benshu.cofi.types.impl.Substitutions;
+import de.benshu.cofi.types.impl.TypeConstructorInvocation;
+import de.benshu.cofi.types.impl.TypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterImpl;
 import de.benshu.cofi.types.impl.TypeSystemContext;
@@ -23,16 +22,19 @@ import de.benshu.cofi.types.impl.constraints.Monosemous;
 import de.benshu.cofi.types.impl.declarations.InterpretedMemberDescriptor;
 import de.benshu.cofi.types.impl.declarations.InterpretedMemberDescriptors;
 import de.benshu.cofi.types.impl.interpreters.MemberDescriptorsInterpreter;
+import de.benshu.cofi.types.impl.intersections.AbstractIntersectionType;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.members.AbstractMember;
 import de.benshu.cofi.types.impl.tags.TagCombiners;
 import de.benshu.cofi.types.impl.tags.Tagger;
+import de.benshu.cofi.types.impl.unions.AbstractUnionType;
 import de.benshu.cofi.types.tags.HashTags;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.cofi.types.tags.Tags;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public abstract class TemplateTypeImpl<X extends TypeSystemContext<X>>
@@ -182,6 +184,17 @@ public abstract class TemplateTypeImpl<X extends TypeSystemContext<X>>
     @Override
     public de.benshu.cofi.types.TemplateType unbind() {
         return new Unbound<>(this);
+    }
+
+    @Override
+    public Optional<TypeConstructorInvocation<X>> tryGetInvocationOf(TypeConstructorMixin<X, ?, ?> typeConstructor) {
+        return super.tryGetInvocationOf(typeConstructor)
+                .map(Optional::of)
+                .orElseGet(() -> getSupertypes().stream()
+                        .map(t -> t.tryGetInvocationOf(typeConstructor))
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .reduce(TypeConstructorInvocation::combine));
     }
 
     static class Original<X extends TypeSystemContext<X>> extends TemplateTypeImpl<X> {

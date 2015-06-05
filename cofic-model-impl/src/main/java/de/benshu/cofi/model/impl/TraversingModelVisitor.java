@@ -20,13 +20,6 @@ public class TraversingModelVisitor<X extends ModelContext<X>, T> implements Mod
     }
 
     @Override
-    public T visitAssignment(Assignment<X> assignment, T aggregate) {
-        aggregate = visit(assignment.lhs, aggregate);
-        aggregate = visit(assignment.rhs, aggregate);
-        return aggregate;
-    }
-
-    @Override
     public T visitClassDeclaration(ClassDeclaration<X> classDeclaration, T aggregate) {
         aggregate = visitAll(classDeclaration.annotations, aggregate);
         aggregate = visitAll(classDeclaration.modifiers, aggregate);
@@ -215,8 +208,13 @@ public class TraversingModelVisitor<X extends ModelContext<X>, T> implements Mod
     }
 
     @Override
-    public T visitThisExpr(ThisExpr<X> thisExpr, T aggregate) {
-        aggregate = visitToken(thisExpr.token, aggregate);
+    public T visitRootExpression(RootExpression<X> rootExpression, T aggregate) {
+        return aggregate;
+    }
+
+    @Override
+    public T visitThisExpr(ThisExpression<X> thisExpression, T aggregate) {
+        aggregate = visitToken(thisExpression.token, aggregate);
         return aggregate;
     }
 
@@ -276,6 +274,27 @@ public class TraversingModelVisitor<X extends ModelContext<X>, T> implements Mod
     }
 
     public T visitToken(Token token, T aggregate) {
+        return aggregate;
+    }
+
+    @Override
+    public T visitUserDefinedExpression(UserDefinedExpression<X> userDefinedExpression, T aggregate) {
+        return visitUserDefinedNode(userDefinedExpression, aggregate);
+    }
+
+    @Override
+    public T visitUserDefinedStatement(UserDefinedStatement<X> userDefinedStatement, T aggregate) {
+        return visitUserDefinedNode(userDefinedStatement, aggregate);
+    }
+
+    private T visitUserDefinedNode(UserDefinedNode<X> userDefinedNode, T aggregate) {
+        for (Object symbol : userDefinedNode.getSymbols()) {
+            if (symbol instanceof Token)
+                aggregate = visitToken((Token) symbol, aggregate);
+            else
+                aggregate = visit((ModelNodeMixin<X>) symbol, aggregate);
+        }
+
         return aggregate;
     }
 }

@@ -3,34 +3,34 @@ package .cofi.lang.collect;
 
 public class ArrayList<E>(capacity : Natural) extends MutableList<E> {
     private Field len : Natural := 0;
-    private Field felements : Array<E> := Array<E>.create(capacity.get());
+    private Field felements : Array<E> := Array<E>.create(capacity);
     
     public append(e : E) : () {
-        growCapacityToAtLeast(len.get().plus(1));
+        growCapacityToAtLeast(len.plus(1));
 
-        felements.get().setAtTo(len.get())(e.get());
-        len := len.get().plus(1);
+        felements.setAtTo(len)(e);
+        len := len.plus(1);
     }
     
     public growCapacityToAtLeast(minCapacity : Natural) : () {
-        felements.get().length().lessThan(minCapacity.get()).ifTrue({ ->
-            old : Array<E> := felements.get();
-            new : Array<E> := Array<E>.create(minCapacity.get());
+        felements.length().lessThan(minCapacity).ifTrue({ ->
+            old : Array<E> := felements;
+            new : Array<E> := Array<E>.create(minCapacity);
             
             i : Natural := 0;
-            Bool.while({ -> return (i.get().lessThan(len.get())); }, { ->
-                o : E := old.get().get(i.get());
-                new.get().setAtTo(i.get())(o.get());
-                i := i.get().plus(1);
+            Bool.while({ -> return (i.lessThan(len)); }, { ->
+                o : E := old.get(i);
+                new.setAtTo(i)(o);
+                i := i.plus(1);
             });
             
-            felements.set(new.get());
+            felements := new;
         });
     }
 
-    public get(index : Natural) : E { return (felements.get().get(index.get())); }
+    public get(index : Natural) : E { return (felements.get(index)); }
     
-    public setAt(index : Natural) To (e : E) : E { return (felements.get().setAtTo(index.get())(e.get())); }
+    public setAt(index : Natural) To (e : E) : E { return (felements.setAtTo(index)(e)); }
     
-    public length() : Natural { return (len.get()); }
+    public length() : Natural { return (len); }
 }

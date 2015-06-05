@@ -1,6 +1,6 @@
 package de.benshu.cofi.model.impl;
 
-import de.benshu.cofi.model.TypeName;
+import de.benshu.cofi.types.impl.TypeName;
 
 public class LocalTypeName implements TypeName {
     public static LocalTypeName create(String name) {
@@ -20,6 +20,11 @@ public class LocalTypeName implements TypeName {
 
     @Override
     public String debug() {
+        return name;
+    }
+
+    @Override
+    public String toDescriptor() {
         return name;
     }
 }

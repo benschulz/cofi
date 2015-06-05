@@ -5,8 +5,6 @@ public interface StatementVisitor<R> {
         return statement.accept(this);
     }
 
-    R visitAssignment(Assignment assignment);
-
     R visitExpressionStatement(ExpressionStatement expressionStatement);
 
     R visitLocalVariableDeclaration(LocalVariableDeclaration localVariableDeclaration);

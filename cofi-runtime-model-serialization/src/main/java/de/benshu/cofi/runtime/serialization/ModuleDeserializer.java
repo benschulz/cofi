@@ -24,7 +24,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.runtime.Annotation;
-import de.benshu.cofi.runtime.Assignment;
 import de.benshu.cofi.runtime.Closure;
 import de.benshu.cofi.runtime.Companion;
 import de.benshu.cofi.runtime.ExpressionStatement;
@@ -63,8 +62,6 @@ import de.benshu.cofi.types.ProperTypeConstructor;
 import de.benshu.cofi.types.TemplateType;
 import de.benshu.cofi.types.TemplateTypeConstructor;
 import de.benshu.cofi.types.TypeList;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
@@ -79,6 +76,8 @@ import de.benshu.cofi.types.impl.declarations.SourceType;
 import de.benshu.cofi.types.impl.declarations.SourceTypeDescriptor;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
 import de.benshu.cofi.types.impl.declarations.UnionTypeDeclaration;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Optional;
 
@@ -110,7 +109,7 @@ import static java.util.Arrays.asList;
 
 public class ModuleDeserializer {
     private static final ImmutableSet<Class<? extends ModelNode>> MODEL_NODE_TYPES = ImmutableSet.of(
-            Annotation.class, Assignment.class, de.benshu.cofi.runtime.Class.class, Closure.class, Closure.Case.class,
+            Annotation.class, de.benshu.cofi.runtime.Class.class, Closure.class, Closure.Case.class,
             Companion.MultitonCompanion.class, ExpressionStatement.class, FunctionInvocation.class, LiteralValue.class,
             LocalVariableDeclaration.class, MemberAccess.class, MethodDeclaration.class, MethodDeclaration.Piece.class,
             Module.class, NameExpression.class, ObjectSingleton.class, Package.class, Parameter.class,

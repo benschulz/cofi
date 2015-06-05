@@ -9,6 +9,7 @@ import de.benshu.cofi.cofic.frontend.namespace.AbstractResolution;
 import de.benshu.cofi.model.impl.ExpressionNode;
 import de.benshu.cofi.model.impl.NameExpression;
 import de.benshu.cofi.model.impl.NameImpl;
+import de.benshu.cofi.model.impl.Statement;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.commons.core.exception.UnexpectedBranchException;
@@ -16,9 +17,11 @@ import de.benshu.commons.core.exception.UnexpectedBranchException;
 import java.util.Map;
 
 public class ImplementationDataBuilder extends GenericModelDataBuilder<ImplementationDataBuilder, ImplementationData> {
-    private final Map<ExpressionNode<Pass>, ProperTypeMixin<Pass, ?>> expressionTypes = Maps.newHashMap();
-    private final ImmutableMap.Builder<NameImpl<Pass>, AbstractTypeList<Pass, ?>> nameTypeArguments = ImmutableMap.builder();
+    private final ImmutableMap.Builder<Statement<Pass>, Statement<Pass>> statementTransformations = ImmutableMap.builder();
+    private final ImmutableMap.Builder<ExpressionNode<Pass>, ExpressionNode<Pass>> expressionTransformations = ImmutableMap.builder();
     private final ImmutableMap.Builder<NameExpression<Pass>, AbstractResolution> nameResolutions = ImmutableMap.builder();
+    private final ImmutableMap.Builder<NameImpl<Pass>, AbstractTypeList<Pass, ?>> nameTypeArguments = ImmutableMap.builder();
+    private final Map<ExpressionNode<Pass>, ProperTypeMixin<Pass, ?>> expressionTypes = Maps.newHashMap();
 
     ImplementationDataBuilder(GenericModelData genericModelData) {
         super(genericModelData);
@@ -30,11 +33,25 @@ public class ImplementationDataBuilder extends GenericModelDataBuilder<Implement
     }
 
     public ImplementationDataBuilder addAll(ImplementationDataBuilder other) {
+        statementTransformations.putAll(other.statementTransformations.build());
+        expressionTransformations.putAll(other.expressionTransformations.build());
         nameResolutions.putAll(other.nameResolutions.build());
         nameTypeArguments.putAll(other.nameTypeArguments.build());
         expressionTypes.putAll(other.expressionTypes);
 
         return super.addAll(other);
+    }
+
+    public ImplementationDataBuilder defineTransformation(Statement<Pass> untransformed, Statement<Pass> transformed) {
+        this.statementTransformations.put(untransformed, transformed);
+
+        return this;
+    }
+
+    public ImplementationDataBuilder defineTransformation(ExpressionNode<Pass> untransformed, ExpressionNode<Pass> transformed) {
+        this.expressionTransformations.put(untransformed, transformed);
+
+        return this;
     }
 
     public ImplementationDataBuilder defineResolutionOf(NameExpression<Pass> nameExpression, AbstractResolution resolution) {
@@ -55,14 +72,19 @@ public class ImplementationDataBuilder extends GenericModelDataBuilder<Implement
         return this;
     }
 
-    public ProperTypeMixin<Pass, ?> lookUpProperTypeOf(ExpressionNode<Pass> expression) {
+    public ProperTypeMixin<Pass, ?> lookUpTypeOf(ExpressionNode<Pass> expression) {
         return expressionTypes.computeIfAbsent(expression, k -> { throw new UnexpectedBranchException(); });
     }
 
+    public ImplementationDataBuilder copy() {
+        return new ImplementationDataBuilder(new GenericModelData(ImmutableMap.of())).addAll(this);
+    }
 
     public ImplementationData build() {
         return new ImplementationData(
                 buildTypeExpressionTypes(),
+                statementTransformations.build(),
+                expressionTransformations.build(),
                 nameResolutions.build(),
                 nameTypeArguments.build(),
                 ImmutableMap.copyOf(expressionTypes)

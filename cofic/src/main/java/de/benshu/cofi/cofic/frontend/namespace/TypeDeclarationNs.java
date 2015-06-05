@@ -6,7 +6,7 @@ import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.ExpressionNode;
 import de.benshu.cofi.model.impl.ObjectDeclaration;
-import de.benshu.cofi.model.impl.ThisExpr;
+import de.benshu.cofi.model.impl.ThisExpression;
 import de.benshu.cofi.parser.lexer.ArtificialToken;
 import de.benshu.cofi.parser.lexer.Token;
 import de.benshu.cofi.types.impl.TypeMixin;
@@ -37,13 +37,13 @@ class TypeDeclarationNs extends AbstractNamespace {
     }
 
     @Override
-    protected TypeMixin<Pass, ?> asType() {
-        return pass.lookUpTypeOf(typeDeclaration);
+    protected TypeMixin<Pass, ?> asType(LookUp lookUp) {
+        return lookUp.lookUpTypeOf(typeDeclaration);
     }
 
     @Override
-    ExpressionNode<Pass> getAccessor() {
-        return getAccessor(pass.lookUpFqnOf(typeDeclaration));
+    ExpressionNode<Pass> getAccessor(LookUp lookUp) {
+        return getAccessor(lookUp.lookUpFqnOf(typeDeclaration));
     }
 
     @Override
@@ -52,8 +52,8 @@ class TypeDeclarationNs extends AbstractNamespace {
     }
 
     @Override
-    public AbstractConstraints<Pass> getContextualConstraints() {
-        return pass.lookUpTypeParametersOf(typeDeclaration).getConstraints();
+    public AbstractConstraints<Pass> getContextualConstraints(LookUp lookUp) {
+        return lookUp.lookUpTypeParametersOf(typeDeclaration).getConstraints();
     }
 
     @Override
@@ -62,7 +62,7 @@ class TypeDeclarationNs extends AbstractNamespace {
     }
 
     @Override
-    protected de.benshu.commons.core.Optional<AbstractNamespace> tryResolveNamespaceLocally(String name, Source.Snippet src) {
+    protected de.benshu.commons.core.Optional<AbstractNamespace> tryResolveNamespaceLocally(LookUp lookUp, String name, Source.Snippet src) {
         final Optional<ObjectDeclaration<Pass>> memberTypeDeclaration = typeDeclaration.body.elements.stream()
                 .filter(e -> e instanceof ObjectDeclaration<?>)
                 .map(e -> (ObjectDeclaration<Pass>) e)
@@ -73,14 +73,14 @@ class TypeDeclarationNs extends AbstractNamespace {
     }
 
     @Override
-    protected de.benshu.commons.core.Optional<AbstractResolution> tryResolveLocally(AbstractNamespace fromNamespace, String name) {
-        return pass.lookUpTypeOf(typeDeclaration).applyTrivially().lookupMember(name)
+    protected de.benshu.commons.core.Optional<AbstractResolution> tryResolveLocally(LookUp lookUp, AbstractNamespace fromNamespace, String name) {
+        return lookUp.lookUpTypeOf(typeDeclaration).applyTrivially().lookupMember(name)
                 .map(m -> {
                     boolean thisAccessible = Objects.equals(fromNamespace.getContainingTypeDeclaration(), typeDeclaration);
 
                     final ExpressionNode<Pass> implicitPrimary = thisAccessible
-                            ? ThisExpr.of(ArtificialToken.create(Token.Kind.THIS, "this"))
-                            : getAccessor();
+                            ? ThisExpression.of(ArtificialToken.create(Token.Kind.THIS, "this"))
+                            : getAccessor(lookUp);
 
                     return new DefaultResolution(m.getType(), implicitPrimary, m);
                 });

@@ -9,15 +9,17 @@ import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.CompilationUnit;
+import de.benshu.cofi.model.impl.FullyQualifiedTypeName;
 import de.benshu.cofi.model.impl.ModuleImpl;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
 import de.benshu.cofi.model.impl.TypeTags;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
 import de.benshu.cofi.types.impl.declarations.SourceType;
 import de.benshu.cofi.types.impl.declarations.SourceTypeDescriptor;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.cofi.types.tags.IndividualTags;
 
@@ -66,7 +68,7 @@ public class ModuleGlueTyper {
                 .distinct()
                 .collect(set());
 
-        final ImmutableMap<Fqn, AbstractTemplateTypeConstructor<Pass>> glueTypes = glueObjectFqns.stream()
+        final ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> glueTypes = glueObjectFqns.stream()
                 .map(fqn -> immutableEntry(fqn, AbstractTemplateTypeConstructor.<Pass>create(
                         TemplateTypeDeclaration.memoizing(
                                 x -> TypeParameterListImpl.empty(),
@@ -74,9 +76,12 @@ public class ModuleGlueTyper {
                                 x -> {
                                     final Stream<Map.Entry<String, TemplateTypeConstructorMixin<Pass>>> containedModules = modules.stream()
                                             .filter(m -> m.getFullyQualifiedName().getParent().equals(fqn))
-                                            .map(m -> immutableEntry(m.getFullyQualifiedName().getLocalName(), pass.lookUpTypeOf(pass.lookUpPackageObjectDeclarationOf(m.getFullyQualifiedName()))));
+                                            .map(m -> immutableEntry(
+                                                    m.getFullyQualifiedName().getLocalName(),
+                                                    pass.lookUpTypeOf(pass.lookUpPackageObjectDeclarationOf(m.getFullyQualifiedName()))
+                                            ));
 
-                                    final Stream<Map.Entry<String, AbstractTemplateTypeConstructor<Pass>>> containedGlueObjects = pass.getGlueTypes().entrySet().stream()
+                                    final Stream<Map.Entry<String, TemplateTypeConstructorMixin<Pass>>> containedGlueObjects = pass.getGlueTypes().entrySet().stream()
                                             .filter(e -> e.getKey().length() > 0)
                                             .filter(e -> e.getKey().getParent().equals(fqn))
                                             .map(e -> immutableEntry(e.getKey().getLocalName(), e.getValue()));
@@ -95,7 +100,7 @@ public class ModuleGlueTyper {
                                             })
                                             .collect(set()));
                                 },
-                                x -> IndividualTags.of(TypeTags.NAME, fqn::toCanonicalString))
+                                x -> IndividualTags.of(TypeTags.NAME, FullyQualifiedTypeName.create(() -> fqn)))
                 ).bind(pass)))
                 .collect(map());
 

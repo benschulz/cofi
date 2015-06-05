@@ -24,7 +24,7 @@ public class CompilationUnit<X extends ModelContext<X>> extends AbstractModelNod
         }
 
         @Override
-        public <N, L extends N, D extends L, S extends N, E extends N, T extends E> N accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
+        public <N, L extends N, D extends L, S extends N, E extends N, T extends N> N accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
             return transformer.transformCompilationUnitModuleDeclaration(this);
         }
     }
@@ -47,7 +47,7 @@ public class CompilationUnit<X extends ModelContext<X>> extends AbstractModelNod
         }
 
         @Override
-        public <N, L extends N, D extends L, S extends N, E extends N, T extends E> N accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
+        public <N, L extends N, D extends L, S extends N, E extends N, T extends N> N accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
             return transformer.transformCompilationUnitPackageDeclaration(this);
         }
     }
@@ -75,7 +75,7 @@ public class CompilationUnit<X extends ModelContext<X>> extends AbstractModelNod
     }
 
     @Override
-    public <N, L extends N, D extends L, S extends N, E extends N, T extends E> N accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
+    public <N, L extends N, D extends L, S extends N, E extends N, T extends N> N accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
         return transformer.transformCompilationUnit(this);
     }
 

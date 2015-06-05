@@ -13,18 +13,19 @@ import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Optional;
 
-public class ExpressionTreeInferencer {
+public class ExpressionTreeInferencer<T> {
     private final Pass pass;
-    private final/* Stack */ Deque<OverloadedExpressionInferencer> expressions = new ArrayDeque<>();
+    private final/* Stack */ Deque<OverloadedExpressionInferencer<T>> expressions = new ArrayDeque<>();
     private final/* Stack */ Deque<OverloadedInvocationInferencer> invocations = new ArrayDeque<>();
 
     public ExpressionTreeInferencer(Pass pass) {
         this.pass = pass;
     }
 
-    public void beginInvocation(InferFunctionInvocation functionInvocation) {
-        OverloadedExpressionInferencer primary = expressions.pop();
+    public void beginInvocation(InferFunctionInvocation<T> functionInvocation) {
+        OverloadedExpressionInferencer<T> primary = expressions.pop();
         OverloadedInvocationInferencer inferencer = new OverloadedInvocationInferencer(pass, primary, functionInvocation);
         expressions.push(inferencer);
         invocations.push(inferencer);
@@ -37,7 +38,7 @@ public class ExpressionTreeInferencer {
     public void endInvocation() {
         OverloadedInvocationInferencer inferencer = invocations.pop();
 
-        ImmutableList.Builder<OverloadedExpressionInferencer> args = ImmutableList.builder();
+        ImmutableList.Builder<OverloadedExpressionInferencer<T>> args = ImmutableList.builder();
         while (expressions.peek() != inferencer) {
             args.add(expressions.pop());
         }
@@ -45,44 +46,42 @@ public class ExpressionTreeInferencer {
         inferencer.setArgs(args.build().reverse());
     }
 
-    public void accessMember(InferMemberAccess memberAccess) {
-        OverloadedExpressionInferencer primary = expressions.pop();
-        OverloadedMemberAccessInferencer inferencer = new OverloadedMemberAccessInferencer(pass, primary, memberAccess);
+    public void accessMember(InferMemberAccess<T> memberAccess) {
+        OverloadedExpressionInferencer<T> primary = expressions.pop();
+        OverloadedMemberAccessInferencer<T> inferencer = new OverloadedMemberAccessInferencer<T>(pass, primary, memberAccess);
         expressions.push(inferencer);
     }
 
     public void pushValue(ProperTypeMixin<Pass, ?> type) {
-        expressions.push(new OverloadedSimpleValueInferencer(type));
+        expressions.push(new OverloadedSimpleValueInferencer<T>(type));
     }
 
-    public void pushClosure(InferClosure closure) {
-        expressions.push(new OverloadedClosureInferencer(closure));
+    public void pushClosure(InferClosure<T> closure) {
+        expressions.push(new OverloadedClosureInferencer<T>(closure));
     }
 
-    public boolean infer(Pass pass, AbstractConstraints<Pass> contextConstraints, ProperTypeMixin<Pass, ?> context) {
+    public Optional<T> infer(Pass pass, AbstractConstraints<Pass> contextConstraints, ProperTypeMixin<Pass, ?> context, T aggregate) {
         Preconditions.checkState(expressions.size() == 1);
 
-        OverloadedExpressionInferencer exprInferencer = expressions.pop();
-        return infer(pass, contextConstraints, context, exprInferencer);
+        OverloadedExpressionInferencer<T> exprInferencer = expressions.pop();
+        return infer(pass, contextConstraints, context, exprInferencer, aggregate);
     }
 
-    private boolean infer(Pass pass, AbstractConstraints<Pass> contextConstraints, ProperTypeMixin<Pass, ?> context, OverloadedExpressionInferencer exprInferencer) {
-        for (ExpressionInferencer inferencer : exprInferencer.unoverload()) {
+    private Optional<T> infer(Pass pass, AbstractConstraints<Pass> contextConstraints, ProperTypeMixin<Pass, ?> context, OverloadedExpressionInferencer<T> exprInferencer, T aggregate) {
+        for (ExpressionInferencer<T> inferencer : exprInferencer.unoverload()) {
             TypeParameterListImpl<Pass> parameters = TypeParameterListImpl.createTrivial(inferencer.getTypeArgCount(), pass);
             AbstractConstraints<Pass> initialConstraints = AbstractConstraints.trivial(pass, contextConstraints, parameters);
 
-            for (Parametrization<Pass> parametrization : inferencer.inferGeneric(pass, parameters, 0, initialConstraints, context)) {
+            for (Parametrization<Pass, T> parametrization : inferencer.inferGeneric(pass, parameters, 0, initialConstraints, context)) {
                 Iterable<AbstractTypeList<Pass, ?>> typeArgOptions = new Inferencer<>(pass.getTypeSystem(), parametrization.getConstraints()).infer(pass);
 
                 for (AbstractTypeList<Pass, ?> typeArgs : typeArgOptions) {
-                    parametrization.apply(Substitutions.ofThrough(parameters, typeArgs));
-                    return true;
+                    return Optional.of(parametrization.apply(Substitutions.ofThrough(parameters, typeArgs), aggregate));
                 }
             }
         }
 
-        System.err.println("TYPE INFERENCE FAILED: " + exprInferencer);
-        return false;
+        return Optional.empty();
     }
 
     @Override

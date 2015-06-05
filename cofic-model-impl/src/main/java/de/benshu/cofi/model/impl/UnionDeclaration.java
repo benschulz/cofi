@@ -39,8 +39,8 @@ public class UnionDeclaration<X extends ModelContext<X>> extends AbstractTypeDec
                         x -> x.lookUpTypeParametersOf(this),
                         x -> getExtending().stream().map(e -> SourceType.of(x.lookUpTypeOf(e), e.getSourceSnippet())).collect(Collectors.list()),
                         x -> IndividualTags.empty()
-                                .set(TypeTags.NAME, () -> x.lookUpFqnOf(UnionDeclaration.this).toString())
-                                .set(AbstractTypeDeclaration.Tag.INSTANCE, UnionDeclaration.this)
+                                .set(TypeTags.NAME, FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this)))
+                                .set(AbstractTypeDeclaration.Tag.INSTANCE, this)
                 )
         );
     }
@@ -56,7 +56,7 @@ public class UnionDeclaration<X extends ModelContext<X>> extends AbstractTypeDec
     }
 
     @Override
-    public <N, L extends N, D extends L, S extends N, E extends N, T extends E> D accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
+    public <N, L extends N, D extends L, S extends N, E extends N, T extends N> D accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
         return transformer.transformUnionDeclaration(this);
     }
 

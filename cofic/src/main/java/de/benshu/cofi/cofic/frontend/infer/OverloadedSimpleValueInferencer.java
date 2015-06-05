@@ -12,7 +12,7 @@ import de.benshu.commons.core.Optional;
 import static de.benshu.commons.core.Optional.none;
 import static de.benshu.commons.core.Optional.some;
 
-public class OverloadedSimpleValueInferencer implements OverloadedExpressionInferencer {
+public class OverloadedSimpleValueInferencer<T> implements OverloadedExpressionInferencer<T> {
     private final ProperTypeMixin<Pass, ?> type;
 
     public OverloadedSimpleValueInferencer(ProperTypeMixin<Pass, ?> type) {
@@ -20,8 +20,8 @@ public class OverloadedSimpleValueInferencer implements OverloadedExpressionInfe
     }
 
     @Override
-    public Iterable<ExpressionInferencer> unoverload() {
-        return ImmutableList.<ExpressionInferencer>of(new Unoverloaded(type));
+    public Iterable<ExpressionInferencer<T>> unoverload() {
+        return ImmutableList.<ExpressionInferencer<T>>of(new Unoverloaded<>(type));
     }
 
     @Override
@@ -29,7 +29,7 @@ public class OverloadedSimpleValueInferencer implements OverloadedExpressionInfe
         return type.toString();
     }
 
-    private static class Unoverloaded extends AbstractExpressionInferencer {
+    private static class Unoverloaded<T> extends AbstractExpressionInferencer<T> {
         private final ProperTypeMixin<Pass, ?> type;
 
         public Unoverloaded(ProperTypeMixin<Pass, ?> type) {
@@ -38,20 +38,21 @@ public class OverloadedSimpleValueInferencer implements OverloadedExpressionInfe
         }
 
         @Override
-        public Optional<Parametrization<Pass>> inferGeneric(Pass pass, final TypeParameterListImpl<Pass> params, int offset,
+        public Optional<Parametrization<Pass, T>> inferGeneric(Pass pass, final TypeParameterListImpl<Pass> params, int offset,
                                                             AbstractConstraints<Pass> constraints, ProperTypeMixin<Pass, ?> context) {
             final AbstractConstraints<Pass> cs = constraints.establishSubtype(type, context);
 
             if (cs.isAll()) {
                 return none();
             } else {
-                Parametrization<Pass> parametrization = new Parametrization<Pass>() {
+                Parametrization<Pass, T> parametrization = new Parametrization<Pass, T>() {
                     @Override
                     public AbstractConstraints<Pass> getConstraints() {
                         return cs;
                     }
 
-                    public void apply(Substitutions<Pass> substitutions) {
+                    public T apply(Substitutions<Pass> substitutions, T aggregate) {
+                        return aggregate;
                     }
 
                     @Override

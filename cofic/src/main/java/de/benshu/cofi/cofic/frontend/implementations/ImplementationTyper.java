@@ -1,9 +1,7 @@
 package de.benshu.cofi.cofic.frontend.implementations;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.frontend.infer.ExpressionTreeInferencer;
 import de.benshu.cofi.cofic.frontend.infer.InferClosure;
@@ -13,12 +11,10 @@ import de.benshu.cofi.cofic.frontend.namespace.AbstractResolution;
 import de.benshu.cofi.cofic.frontend.namespace.NamespaceTrackingVisitor;
 import de.benshu.cofi.cofic.frontend.namespace.ParametersNs;
 import de.benshu.cofi.common.Fqn;
-import de.benshu.cofi.model.impl.Assignment;
 import de.benshu.cofi.model.impl.Closure;
 import de.benshu.cofi.model.impl.CompilationUnit;
 import de.benshu.cofi.model.impl.ExpressionNode;
 import de.benshu.cofi.model.impl.ExpressionStatement;
-import de.benshu.cofi.model.impl.FunctionInvocation;
 import de.benshu.cofi.model.impl.FunctionInvocationExpression;
 import de.benshu.cofi.model.impl.LiteralExpression;
 import de.benshu.cofi.model.impl.LocalVariableDeclaration;
@@ -26,22 +22,29 @@ import de.benshu.cofi.model.impl.MemberAccessExpression;
 import de.benshu.cofi.model.impl.NameExpression;
 import de.benshu.cofi.model.impl.PropertyDeclaration;
 import de.benshu.cofi.model.impl.RootExpression;
-import de.benshu.cofi.model.impl.ThisExpr;
+import de.benshu.cofi.model.impl.Statement;
+import de.benshu.cofi.model.impl.ThisExpression;
+import de.benshu.cofi.model.impl.TransformationContext;
+import de.benshu.cofi.model.impl.TransformedUserDefinedNode;
+import de.benshu.cofi.parser.lexer.ArtificialToken;
 import de.benshu.cofi.parser.lexer.Token;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
+import de.benshu.cofi.runtime.internal.MemoizingSupplier;
 import de.benshu.cofi.types.impl.FunctionTypes;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.members.AbstractMember;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.commons.core.Optional;
 
-import java.util.function.Consumer;
+import java.util.function.Supplier;
 
+import static com.google.common.base.Preconditions.checkState;
 import static de.benshu.cofi.types.impl.lists.AbstractTypeList.typeList;
-import static de.benshu.commons.core.Optional.none;
+import static de.benshu.commons.core.streams.Collectors.list;
+import static de.benshu.commons.core.streams.Collectors.single;
 import static java.util.stream.Collectors.joining;
 
 public class ImplementationTyper {
@@ -56,55 +59,31 @@ public class ImplementationTyper {
 
     private static final class Visitor extends NamespaceTrackingVisitor<ImplementationDataBuilder> {
         private final Pass pass;
-        private ExpressionTreeInferencer inferencer;
+        private ExpressionTreeInferencer<ImplementationDataBuilder> inferencer;
 
         public Visitor(Pass pass) {
             super(pass);
 
             this.pass = pass;
-            this.inferencer = new ExpressionTreeInferencer(pass);
+            this.inferencer = new ExpressionTreeInferencer<>(pass);
         }
 
         @Override
         public ImplementationDataBuilder visitClosure(Closure<Pass> closure, ImplementationDataBuilder aggregate) {
-            ExpressionTreeInferencer backup = inferencer;
-            inferencer = new ExpressionTreeInferencer(pass);
+            ExpressionTreeInferencer<ImplementationDataBuilder> backup = inferencer;
+            inferencer = new ExpressionTreeInferencer<>(pass);
             for (Closure.Case<Pass> caze : closure.cases) {
                 pushNs(ParametersNs.wrap(getNs(), caze.params));
                 visitAll(caze.params, aggregate);
-                visitStatements(caze.body, aggregate);
+                aggregate = visitStatements(caze.body, aggregate);
                 popNs();
             }
             inferencer = backup;
 
-            inferencer.pushClosure(new InferClosure() {
-                @Override
-                public void setSignature(ProperTypeMixin<Pass, ?> signature) {
-                    aggregate.defineTypeOf(closure, signature);
-                }
-
-                @Override
-                public AbstractTypeList<Pass, ProperTypeMixin<Pass, ?>> getParameterTypes() {
-                    return closure.cases.get(0).params.stream()
-                            .map(p -> aggregate.lookUpProperTypeOf(p.type))
-                            .collect(typeList());
-                }
-            });
-
-            return aggregate;
-        }
-
-        @Override
-        public ImplementationDataBuilder visitAssignment(Assignment<Pass> assignment, ImplementationDataBuilder aggregate) {
-            visit(assignment.lhs, aggregate);
-            // TODO type of rhs must be subtype of type of lhs
-            //      ultimately this will be done by syntax transformation
-            //      from   lhs := rhs
-            //      to     lhs.set(rhs)
-            inferencer.infer(pass, getContextualConstraints(), pass.getTypeSystem().getTop());
-            visit(assignment.rhs, aggregate);
-            // TODO (see above) assignment should be an expression yielding Unit
-            inferencer.infer(pass, getContextualConstraints(), pass.getTypeSystem().getTop());
+            ImplementationDataBuilder finalAggregate = aggregate;
+            inferencer.pushClosure(new ClosureInference(closure, MemoizingSupplier.of(() -> closure.cases.get(0).params.stream()
+                    .map(p -> finalAggregate.lookUpProperTypeOf(p.type))
+                    .collect(typeList()))));
 
             return aggregate;
         }
@@ -112,22 +91,39 @@ public class ImplementationTyper {
         @Override
         public ImplementationDataBuilder visitExpressionStatement(ExpressionStatement<Pass> expressionStatement, ImplementationDataBuilder aggregate) {
             visitAll(expressionStatement.annotations, aggregate);
-            expressionStatement.expression.accept(this, aggregate);
+            aggregate = visit(expressionStatement.expression, aggregate);
 
-            inferencer.infer(pass, getContextualConstraints(), pass.getTypeSystem().getTop());
-
-            return aggregate;
+            return inferencer.infer(pass, getContextualConstraints(aggregate), pass.getTypeSystem().getTop(), aggregate)
+                    .orElse(null);
         }
 
         @Override
         public ImplementationDataBuilder visitFunctionInvocationExpression(FunctionInvocationExpression<Pass> functionInvocationExpression, ImplementationDataBuilder aggregate) {
             visit(functionInvocationExpression.primary, aggregate);
 
-            inferencer.beginInvocation(new FunctionInvocationInference(functionInvocationExpression, s -> {
-                final ProperTypeMixin<Pass, ?> returnType = FunctionTypes.extractReturnType(pass, s.getExplicitSignatureType());
-                aggregate.defineTypeOf(functionInvocationExpression, returnType);
-            }));
-            visitAll(functionInvocationExpression.args, aggregate);
+            inferencer.beginInvocation(new InferFunctionInvocation<ImplementationDataBuilder>() {
+                @Override
+                public ImplementationDataBuilder setSignature(int index, ProperTypeMixin<Pass, ?> explicit, ProperTypeMixin<Pass, ?> implicit, ImplementationDataBuilder aggregate) {
+                    final ProperTypeMixin<Pass, ?> returnType = FunctionTypes.extractReturnType(pass, explicit);
+                    return aggregate.defineTypeOf(functionInvocationExpression, returnType);
+                }
+
+                @Override
+                public int getArgCount() {
+                    return functionInvocationExpression.getArgs().size();
+                }
+
+                @Override
+                public String toString() {
+                    try {
+                        return functionInvocationExpression.getSourceSnippet().getLexeme();
+                    } catch (Exception e) {
+                        return functionInvocationExpression.toString();
+                    }
+                }
+            });
+
+            aggregate = visitAll(functionInvocationExpression.args, aggregate);
             inferencer.endInvocation();
 
             return aggregate;
@@ -164,9 +160,12 @@ public class ImplementationTyper {
             visit(localVariableDeclaration.type, aggregate);
 
             final ExpressionNode<Pass> value = localVariableDeclaration.value;
+
             if (value != null) {
                 visit(value, aggregate);
-                inferencer.infer(pass, getContextualConstraints(), aggregate.lookUpProperTypeOf(localVariableDeclaration.type));
+
+                return inferencer.infer(pass, getContextualConstraints(aggregate), aggregate.lookUpProperTypeOf(localVariableDeclaration.type), aggregate)
+                        .orElse(null);
             }
 
             return aggregate;
@@ -179,29 +178,10 @@ public class ImplementationTyper {
 
             final Optional<AbstractTypeList<Pass, ?>> explicitTypeArguments = Optional.from(memberAccessExpression.name.typeArgs)
                     .map(args -> args.stream()
-                            .map(e -> pass.lookUpTypeOf(e))
+                            .map(aggregate::lookUpTypeOf)
                             .collect(AbstractTypeList.typeList()));
 
-            inferencer.accessMember(new InferMemberAccess() {
-                @Override
-                public Optional<AbstractTypeList<Pass, ?>> getTypeArgs() {
-                    return explicitTypeArguments;
-                }
-
-                @Override
-                public void setTypeArgs(AbstractMember<Pass> member, AbstractTypeList<Pass, ?> typeArgs) {
-                    typeArgs = explicitTypeArguments.getOrReturn(typeArgs);
-
-                    aggregate
-                            .defineTypeOf(memberAccessExpression, member.getType().apply(typeArgs))
-                            .defineTypeArgumentsTo(memberAccessExpression.name, typeArgs);
-                }
-
-                @Override
-                public String getName() {
-                    return memberAccessExpression.name.ids.stream().map(Token::getLexeme).collect(joining());
-                }
-            });
+            inferencer.accessMember(new MemberAccessInference(explicitTypeArguments, memberAccessExpression));
 
             return aggregate;
         }
@@ -210,7 +190,7 @@ public class ImplementationTyper {
         public ImplementationDataBuilder visitNameExpression(NameExpression<Pass> nameExpression, ImplementationDataBuilder aggregate) {
             visit(nameExpression.name, aggregate);
 
-            final AbstractResolution resolution = getNs().resolve(Iterables.getOnlyElement(nameExpression.name.ids).getLexeme());
+            final AbstractResolution resolution = resolve(nameExpression.name, aggregate);
             final TypeMixin<Pass, ?> resolvedType = resolution.getType();
 
             if (resolution.isMember()) {
@@ -218,31 +198,12 @@ public class ImplementationTyper {
 
                 visit(resolution.getImplicitPrimary(), aggregate);
 
-                inferencer.accessMember(new InferMemberAccess() {
-                    @Override
-                    public void setTypeArgs(AbstractMember<Pass> member, AbstractTypeList<Pass, ?> typeArgs) {
-                        typeArgs = getTypeArgs().getOrReturn(typeArgs);
-                        final ProperTypeMixin<Pass, ?> properType = (ProperTypeMixin<Pass, ?>) typeConstructor.apply(typeArgs);
+                final Optional<AbstractTypeList<Pass, ?>> explicitTypeArguments = Optional.from(nameExpression.name.typeArgs)
+                        .map(args -> args.stream()
+                                .map(aggregate::lookUpTypeOf)
+                                .collect(AbstractTypeList.typeList()));
 
-                        aggregate
-                                .defineTypeArgumentsTo(nameExpression.name, typeArgs)
-                                .defineTypeOf(nameExpression, properType);
-                    }
-
-                    @Override
-                    public Optional<AbstractTypeList<Pass, ?>> getTypeArgs() {
-                        return Optional.from(nameExpression.name.typeArgs)
-                                .map(args -> args.stream()
-                                        .map(e -> aggregate.lookUpProperTypeOf(e))
-                                        .collect(AbstractTypeList.typeList()));
-                    }
-
-                    @Override
-                    public String getName() {
-                        Preconditions.checkState(nameExpression.name.ids.size() == 1);
-                        return nameExpression.name.ids.get(0).getLexeme();
-                    }
-                });
+                inferencer.accessMember(new NameExpressionInference(typeConstructor, nameExpression, explicitTypeArguments));
             } else {
                 final ProperTypeMixin<Pass, ?> properType = (ProperTypeMixin<Pass, ?>) resolvedType;
 
@@ -255,10 +216,18 @@ public class ImplementationTyper {
 
         @Override
         public ImplementationDataBuilder visitPropertyDeclaration(PropertyDeclaration<Pass> propertyDeclaration, ImplementationDataBuilder aggregate) {
-            visit(propertyDeclaration.initialValue, aggregate);
-            inferencer.infer(pass, getContextualConstraints(), pass.lookUpProperTypeOf(propertyDeclaration.type));
+            ExpressionNode<Pass> initialValue = propertyDeclaration.initialValue;
 
-            return aggregate;
+            return new UserDefinedNodeTransformer<Pass>(transformationContext(aggregate)).transform(initialValue).stream()
+                    .map(t -> {
+                        ImplementationDataBuilder tmp = visit(t.getTransformedNode(), aggregate.copy().defineTransformation(initialValue, t.getTransformedNode()));
+                        java.util.Optional<ImplementationDataBuilder> result = inferencer.infer(pass, getContextualConstraints(aggregate), pass.lookUpProperTypeOf(propertyDeclaration.type), tmp);
+
+                        return java.util.Optional.ofNullable(result.isPresent() && t.test(transformationContext(result.get())) ? result.get() : null);
+                    })
+                    .filter(java.util.Optional::isPresent)
+                    .map(java.util.Optional::get)
+                    .collect(single());
         }
 
         @Override
@@ -271,62 +240,131 @@ public class ImplementationTyper {
         }
 
         @Override
-        public ImplementationDataBuilder visitThisExpr(ThisExpr<Pass> thisExpr, ImplementationDataBuilder aggregate) {
+        protected ImplementationDataBuilder visitStatement(Statement<Pass> statement, ImplementationDataBuilder aggregate) {
+            ImmutableList<TransformedUserDefinedNode<Pass, Statement<Pass>>> transformed = new UserDefinedNodeTransformer<Pass>(transformationContext(aggregate)).transform(statement).stream().collect(list());
+
+            ImmutableList<ImplementationDataBuilder> validTransformations = transformed.stream()
+                    .map(t -> {
+                        ImplementationDataBuilder result = visit(t.getTransformedNode(), aggregate.copy().defineTransformation(statement, t.getTransformedNode()));
+
+                        return java.util.Optional.ofNullable(result != null && t.test(transformationContext(result)) ? result : null);
+                    })
+                    .filter(java.util.Optional::isPresent)
+                    .map(java.util.Optional::get)
+                    .collect(list());
+
+            return validTransformations.stream().collect(single());
+        }
+
+        @Override
+        public ImplementationDataBuilder visitThisExpr(ThisExpression<Pass> thisExpression, ImplementationDataBuilder aggregate) {
             ProperTypeMixin<Pass, ?> type = pass.lookUpTypeOf(getContainingTypeDeclaration()).applyTrivially();
 
-            aggregate.defineTypeOf(thisExpr, type);
+            aggregate.defineTypeOf(thisExpression, type);
             inferencer.pushValue(type);
 
             return aggregate;
         }
 
-        private class FunctionInvocationInference implements InferFunctionInvocation {
-            private final FunctionInvocation<Pass> functionInvocation;
-            private final Consumer<FunctionInvocation.Signature<Pass>> handler;
-
-            public FunctionInvocationInference(FunctionInvocation<Pass> functionInvocation, Consumer<FunctionInvocation.Signature<Pass>> handler) {
-                this.functionInvocation = functionInvocation;
-                this.handler = handler;
-            }
-
-            public FunctionInvocationInference(FunctionInvocation<Pass> functionInvocation) {
-                this(functionInvocation, s -> {});
-            }
-
-            @Override
-            public void setSignature(int index, ProperTypeMixin<Pass, ?> explicit, ProperTypeMixin<Pass, ?> implicit) {
-                final FunctionInvocation.Signature<Pass> signature = new FunctionInvocation.Signature<Pass>() {
-                    @Override
-                    public int getSignatureIndex() {
-                        return index;
-                    }
-
-                    @Override
-                    public ProperTypeMixin<Pass, ?> getExplicitSignatureType() {
-                        return explicit;
-                    }
-
-                    @Override
-                    public ProperTypeMixin<Pass, ?> getImplicitSignatureType() {
-                        return implicit;
-                    }
-                };
-
-                handler.accept(signature);
-            }
-
-            @Override
-            public int getArgCount() {
-                return functionInvocation.getArgs().size();
-            }
-
-            @Override
-            public String toString() {
-                try {
-                    return functionInvocation.getSourceSnippet().getLexeme();
-                } catch (Exception e) {
-                    return functionInvocation.toString();
+        private TransformationContext<Pass> transformationContext(ImplementationDataBuilder aggregate) {
+            return new TransformationContext<Pass>() {
+                @Override
+                public TypeMixin<Pass, ?> resolveType(Fqn fqn) {
+                    ArtificialToken hack = ArtificialToken.create(Token.Kind.IDENTIFIER, "hack");
+                    return ImplementationTyper.Visitor.this.resolveFullyQualifiedType(fqn, hack.getTokenString(hack), aggregate);
                 }
+
+                @Override
+                public TypeMixin<Pass, ?> resolve(String name) {
+                    return ImplementationTyper.Visitor.this.resolve(name, aggregate).getType();
+                }
+
+                @Override
+                public ProperTypeMixin<Pass, ?> lookUpTypeOf(ExpressionNode<Pass> expression) {
+                    return aggregate.lookUpTypeOf(expression);
+                }
+            };
+        }
+
+        private static class ClosureInference implements InferClosure<ImplementationDataBuilder> {
+            private final Closure<Pass> closure;
+            private final Supplier<AbstractTypeList<Pass, ProperTypeMixin<Pass, ?>>> parameterTypes;
+
+            public ClosureInference(Closure<Pass> closure, Supplier<AbstractTypeList<Pass, ProperTypeMixin<Pass, ?>>> parameterTypes) {
+                this.closure = closure;
+                this.parameterTypes = parameterTypes;
+            }
+
+            @Override
+            public ImplementationDataBuilder setSignature(ProperTypeMixin<Pass, ?> signature, ImplementationDataBuilder aggregate) {
+                return aggregate.defineTypeOf(closure, signature);
+            }
+
+            @Override
+            public AbstractTypeList<Pass, ProperTypeMixin<Pass, ?>> getParameterTypes() {
+                return parameterTypes.get();
+            }
+        }
+
+        private static class MemberAccessInference implements InferMemberAccess<ImplementationDataBuilder> {
+            private final Optional<AbstractTypeList<Pass, ?>> explicitTypeArguments;
+            private final MemberAccessExpression<Pass> memberAccessExpression;
+
+            public MemberAccessInference(Optional<AbstractTypeList<Pass, ?>> explicitTypeArguments, MemberAccessExpression<Pass> memberAccessExpression) {
+                this.explicitTypeArguments = explicitTypeArguments;
+                this.memberAccessExpression = memberAccessExpression;
+            }
+
+            @Override
+            public Optional<AbstractTypeList<Pass, ?>> getTypeArgs() {
+                return explicitTypeArguments;
+            }
+
+            @Override
+            public ImplementationDataBuilder setTypeArgs(AbstractMember<Pass> member, AbstractTypeList<Pass, ?> typeArgs, ImplementationDataBuilder aggregate) {
+                typeArgs = explicitTypeArguments.getOrReturn(typeArgs);
+
+                return aggregate
+                        .defineTypeOf(memberAccessExpression, member.getType().apply(typeArgs))
+                        .defineTypeArgumentsTo(memberAccessExpression.name, typeArgs);
+            }
+
+            @Override
+            public String getName() {
+                return memberAccessExpression.name.ids.stream().map(Token::getLexeme).collect(joining());
+            }
+        }
+
+        private static class NameExpressionInference implements InferMemberAccess<ImplementationDataBuilder> {
+            private final TypeConstructorMixin<Pass, ?, ?> typeConstructor;
+            private final NameExpression<Pass> nameExpression;
+            private final Optional<AbstractTypeList<Pass, ?>> explicitTypeArguments;
+
+            public NameExpressionInference(TypeConstructorMixin<Pass, ?, ?> typeConstructor, NameExpression<Pass> nameExpression, Optional<AbstractTypeList<Pass, ?>> explicitTypeArguments) {
+                this.typeConstructor = typeConstructor;
+                this.nameExpression = nameExpression;
+                this.explicitTypeArguments = explicitTypeArguments;
+            }
+
+            @Override
+            public ImplementationDataBuilder setTypeArgs(AbstractMember<Pass> member, AbstractTypeList<Pass, ?> typeArgs, ImplementationDataBuilder aggregate) {
+                typeArgs = getTypeArgs().getOrReturn(typeArgs);
+                final ProperTypeMixin<Pass, ?> properType = (ProperTypeMixin<Pass, ?>) typeConstructor.apply(typeArgs);
+
+                return aggregate
+                        .defineTypeOf(nameExpression, properType)
+                        .defineTypeArgumentsTo(nameExpression.name, typeArgs);
+            }
+
+            @Override
+            public Optional<AbstractTypeList<Pass, ?>> getTypeArgs() {
+                return explicitTypeArguments;
+            }
+
+            @Override
+            public String getName() {
+                checkState(nameExpression.name.ids.size() == 1);
+                return nameExpression.name.ids.get(0).getLexeme();
             }
         }
     }

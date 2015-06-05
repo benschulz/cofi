@@ -1,7 +1,6 @@
 package de.benshu.cofi.cofic.frontend.namespace;
 
 import de.benshu.cofi.cofic.Pass;
-import de.benshu.cofi.cofic.frontend.GenericModelDataBuilder;
 import de.benshu.cofi.cofic.notes.Source;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
@@ -17,8 +16,8 @@ public class GlueTypeNs extends AbstractNamespace {
 
     private final Fqn fqn;
 
-    public GlueTypeNs(Pass pass, GenericModelDataBuilder<?, ?> aggregate) {
-        super(pass, aggregate);
+    public GlueTypeNs() {
+        super();
 
         this.fqn = Fqn.from();
     }
@@ -30,18 +29,18 @@ public class GlueTypeNs extends AbstractNamespace {
     }
 
     @Override
-    protected TypeMixin<Pass, ?> asType() {
-        return pass.getGlueTypes().get(fqn);
+    protected TypeMixin<Pass, ?> asType(LookUp lookUp) {
+        return lookUp.getGlueTypes().get(fqn);
     }
 
     @Override
-    protected Optional<AbstractNamespace> tryResolveNamespaceLocally(String name, Source.Snippet src) {
+    protected Optional<AbstractNamespace> tryResolveNamespaceLocally(LookUp lookUp, String name, Source.Snippet src) {
         final Fqn childFqn = fqn.getChild(name);
 
-        for (PackageObjectDeclaration<Pass> packageObjectDeclaration : pass.tryLookUpPackageObjectDeclarationOf(childFqn))
+        for (PackageObjectDeclaration<Pass> packageObjectDeclaration : lookUp.tryLookUpPackageObjectDeclarationOf(childFqn))
             return some(PackageObjectNs.create(this, childFqn, packageObjectDeclaration));
 
-        return Optional.from(pass.getGlueTypes().get(childFqn))
+        return Optional.from(lookUp.getGlueTypes().get(childFqn))
                 .map(g -> GlueTypeNs.create(this, childFqn));
     }
 }

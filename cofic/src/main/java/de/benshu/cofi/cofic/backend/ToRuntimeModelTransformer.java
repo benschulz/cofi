@@ -20,13 +20,13 @@ import de.benshu.cofi.model.impl.ModelTransformer;
 import de.benshu.cofi.model.impl.ObjectDeclaration;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
 import de.benshu.cofi.model.impl.ParameterImpl;
-import de.benshu.cofi.model.impl.ThisExpr;
+import de.benshu.cofi.model.impl.ThisExpression;
 import de.benshu.cofi.model.impl.TraitDeclaration;
 import de.benshu.cofi.model.impl.UnionDeclaration;
+import de.benshu.cofi.model.impl.UserDefinedStatement;
 import de.benshu.cofi.runtime.AbstractObject;
 import de.benshu.cofi.runtime.AbstractTypeDeclaration;
 import de.benshu.cofi.runtime.Annotation;
-import de.benshu.cofi.runtime.Assignment;
 import de.benshu.cofi.runtime.Class;
 import de.benshu.cofi.runtime.Closure;
 import de.benshu.cofi.runtime.Companion;
@@ -47,7 +47,6 @@ import de.benshu.cofi.runtime.PropertyDeclaration;
 import de.benshu.cofi.runtime.RootExpression;
 import de.benshu.cofi.runtime.SingletonCompanion;
 import de.benshu.cofi.runtime.Statement;
-import de.benshu.cofi.runtime.ThisExpression;
 import de.benshu.cofi.runtime.Trait;
 import de.benshu.cofi.runtime.TypeBody;
 import de.benshu.cofi.runtime.TypeExpression;
@@ -88,6 +87,8 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
     }
 
     private final Pass pass;
+
+    private final TransformedStatementTransformer transformedStatementTransformer = new TransformedStatementTransformer();
 
     private ToRuntimeModelTransformer(Pass pass) {
         this.pass = pass;
@@ -159,15 +160,6 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
     }
 
     @Override
-    public Constructor<Statement> transformAssignment(de.benshu.cofi.model.impl.Assignment<Pass> assignment) {
-        return as -> new Assignment(
-                as,
-                covariant(transform(assignment.lhs)),
-                covariant(transform(assignment.rhs))
-        );
-    }
-
-    @Override
     public Constructor<Annotation.PropertyAssignment> transformAnnotationPropertyAssignment(AnnotationImpl.PropertyAssignment<Pass> propertyAssignment) {
         throw null;
     }
@@ -205,11 +197,9 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
 
     @Override
     public Constructor<Statement> transformExpressionStatement(de.benshu.cofi.model.impl.ExpressionStatement<Pass> expressionStatement) {
-        return as -> new ExpressionStatement(
-                as,
-                expressionStatement.annotations.stream().map(this::transformAnnotation).map(this::covariant).collect(set()),
-                covariant(transform(expressionStatement.expression))
-        );
+        de.benshu.cofi.model.impl.ExpressionStatement<Pass> transformed = (de.benshu.cofi.model.impl.ExpressionStatement<Pass>) pass.lookUpTransformationOf(expressionStatement);
+
+        return transformedStatementTransformer.transformExpressionStatement(transformed);
     }
 
     @Override
@@ -232,13 +222,9 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
 
     @Override
     public Constructor<Statement> transformLocalVariableDeclaration(de.benshu.cofi.model.impl.LocalVariableDeclaration<Pass> localVariableDeclaration) {
-        return as -> new LocalVariableDeclaration(
-                as,
-                transformAnnotationsOf(localVariableDeclaration),
-                localVariableDeclaration.getName(),
-                x -> pass.lookUpProperTypeOf(localVariableDeclaration.type).unbind(),
-                transformNonNull(localVariableDeclaration.value).map(this::covariant)
-        );
+        de.benshu.cofi.model.impl.LocalVariableDeclaration<Pass> transformed = (de.benshu.cofi.model.impl.LocalVariableDeclaration<Pass>) pass.lookUpTransformationOf(localVariableDeclaration);
+
+        return transformedStatementTransformer.transformLocalVariableDeclaration(transformed);
     }
 
     @Override
@@ -367,7 +353,10 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
                 .map(t -> (TypeReference<TemplateTypeConstructor>) x -> (TemplateTypeConstructor) pass.lookUpTypeOf(t).unbind())
                 .collect(set()), x -> property.getType().unbind(),
                 x -> pass.lookUpProperTypeOf(propertyDeclaration.type).unbind(),
-                transformNonNull(propertyDeclaration.initialValue).map(this::covariant)
+                Optional.from(propertyDeclaration.initialValue)
+                        .map(pass::lookUpTransformationOf)
+                        .map(this::transform)
+                        .map(this::covariant)
         );
     }
 
@@ -377,8 +366,8 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
     }
 
     @Override
-    public Constructor<Expression> transformThisExpr(ThisExpr<Pass> thisExpr) {
-        return as -> new ThisExpression(as, x -> pass.lookUpTypeOf(thisExpr).unbind());
+    public Constructor<Expression> transformThisExpr(ThisExpression<Pass> thisExpression) {
+        return as -> new de.benshu.cofi.runtime.ThisExpression(as, x -> pass.lookUpTypeOf(thisExpression).unbind());
     }
 
     @Override
@@ -419,6 +408,11 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
         );
     }
 
+    @Override
+    public Constructor<? extends Statement> transformUserDefinedStatement(UserDefinedStatement<Pass> userDefinedStatement) {
+        return transformedStatementTransformer.transform(pass.lookUpTransformationOf(userDefinedStatement));
+    }
+
     private ImmutableSet<Constructor<Annotation>> transformAnnotationsOf(AnnotatedNodeMixin<Pass> annotatedNode) {
         return annotatedNode.getAnnotationsAndModifiers().stream()
                 .map(this::transformAnnotation)
@@ -427,5 +421,39 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
 
     private <T> Constructor<T> covariant(Constructor<? extends T> constructor) {
         return constructor::construct;
+    }
+
+    private class TransformedStatementTransformer implements ModelTransformer<
+            Pass,
+            Constructor<? extends ModelNode>,
+            Constructor<? extends TypeBody.Containable>,
+            Constructor<? extends AbstractTypeDeclaration>,
+            Constructor<? extends Statement>,
+            Constructor<? extends Expression>,
+            Constructor<? extends TypeExpression>> {
+
+        @Override
+        public Constructor<Statement> transformExpressionStatement(de.benshu.cofi.model.impl.ExpressionStatement<Pass> expressionStatement) {
+            ToRuntimeModelTransformer outer = ToRuntimeModelTransformer.this;
+
+            return as -> new ExpressionStatement(
+                    as,
+                    outer.transformAnnotationsOf(expressionStatement),
+                    covariant(outer.transform(expressionStatement.expression))
+            );
+        }
+
+        @Override
+        public Constructor<Statement> transformLocalVariableDeclaration(de.benshu.cofi.model.impl.LocalVariableDeclaration<Pass> localVariableDeclaration) {
+            ToRuntimeModelTransformer outer = ToRuntimeModelTransformer.this;
+
+            return as -> new LocalVariableDeclaration(
+                    as,
+                    outer.transformAnnotationsOf(localVariableDeclaration),
+                    localVariableDeclaration.getName(),
+                    x -> pass.lookUpProperTypeOf(localVariableDeclaration.type).unbind(),
+                    outer.transformNonNull(localVariableDeclaration.value).map(outer::covariant)
+            );
+        }
     }
 }

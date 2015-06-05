@@ -22,6 +22,8 @@ public interface TypeMixin<X extends TypeSystemContext<X>, S extends TypeMixin<X
         return (S) this;
     }
 
+    boolean isSameAs(TypeMixin<X, ?> other);
+
     TypeMixin<X, ?> substitute(Substitutions<X> substitutions);
 
     default AbstractConstraints<X> establishSubtype(Error<X> other, Monosemous<X> cs) {

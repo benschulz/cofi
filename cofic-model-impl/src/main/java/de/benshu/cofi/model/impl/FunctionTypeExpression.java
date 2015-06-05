@@ -19,7 +19,7 @@ public class FunctionTypeExpression<X extends ModelContext<X>> extends TypeExpre
     }
 
     @Override
-    public <N, L extends N, D extends L, S extends N, E extends N, T extends E> T accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
+    public <N, L extends N, D extends L, S extends N, E extends N, T extends N> T accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
         return transformer.transformFunctionType(this);
     }
 }

@@ -10,6 +10,7 @@ import de.benshu.cofi.types.impl.NamedProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.Substitutions;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
+import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.declarations.UnionTypeDeclaration;
@@ -30,6 +31,12 @@ public abstract class AbstractUnionTypeConstructor<X extends TypeSystemContext<X
 
     AbstractUnionTypeConstructor(X context) {
         super(context);
+    }
+
+    public boolean isSameAs(TypeMixin<X, ?> other) {
+        return this == other
+                || other instanceof AbstractUnionTypeConstructor<?>
+                && ((AbstractUnionTypeConstructor<?>) other).getOriginal() == getOriginal();
     }
 
     public abstract AbstractTypeList<X, TypeConstructorMixin<X, ?, ProperTypeMixin<X, ?>>> getElements();

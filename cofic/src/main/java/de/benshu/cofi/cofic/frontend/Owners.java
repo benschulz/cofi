@@ -30,7 +30,6 @@ public class Owners {
     }
 
     public AbstractTypeList<Pass, ProperTypeMixin<Pass, ?>> getOwners() {
-        // TODO owners must always be proper types => fix types *everywhere*
         return owners;
     }
 

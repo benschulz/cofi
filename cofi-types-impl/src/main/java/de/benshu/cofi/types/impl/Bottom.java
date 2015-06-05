@@ -1,7 +1,6 @@
 package de.benshu.cofi.types.impl;
 
 import com.google.common.collect.ImmutableMap;
-
 import de.benshu.cofi.types.ProperTypeSort;
 import de.benshu.cofi.types.bound.ProperTypeVisitor;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
@@ -25,6 +24,11 @@ public class Bottom<X extends TypeSystemContext<X>> implements ProperTypeMixin<X
 
     public Bottom() {
         this.tags = HashTags.createEmpty(this);
+    }
+
+    @Override
+    public boolean isSameAs(TypeMixin<X, ?> other) {
+        return other instanceof Bottom;
     }
 
     @Override
@@ -80,6 +84,11 @@ public class Bottom<X extends TypeSystemContext<X>> implements ProperTypeMixin<X
     @Override
     public AbstractConstraints<X> establishSupertypeGeneric(TypeMixin<X, ?> other, Monosemous<X> cs) {
         return other.establishSubtype(this, cs);
+    }
+
+    @Override
+    public java.util.Optional<TypeConstructorInvocation<X>> tryGetInvocationOf(TypeConstructorMixin<X, ?, ?> typeConstructor) {
+        return java.util.Optional.empty();
     }
 
     @Override

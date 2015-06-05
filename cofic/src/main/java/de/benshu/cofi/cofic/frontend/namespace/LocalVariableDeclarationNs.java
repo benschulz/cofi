@@ -23,10 +23,10 @@ class LocalVariableDeclarationNs extends AbstractNamespace {
     }
 
     @Override
-    protected Optional<AbstractResolution> tryResolveLocally(AbstractNamespace fromNamespace, String name) {
+    protected Optional<AbstractResolution> tryResolveLocally(LookUp lookUp, AbstractNamespace fromNamespace, String name) {
         if (localVariableDeclaration.name.getLexeme().equals(name)) {
-            final ProperTypeMixin<Pass, ?> valueType = aggregate.lookUpProperTypeOf(localVariableDeclaration.type);
-            final ProperTypeMixin<Pass, ?> variableType = pass.getTypeSystem().lookUp("Field").apply(AbstractTypeList.of(valueType));
+            final ProperTypeMixin<Pass, ?> valueType = lookUp.lookUpProperTypeOf(localVariableDeclaration.type);
+            final ProperTypeMixin<Pass, ?> variableType = lookUp.getTypeSystem().lookUp("Field").apply(AbstractTypeList.of(valueType));
             return some(new DefaultResolution(variableType));
         }
 

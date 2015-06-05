@@ -12,6 +12,7 @@ import de.benshu.commons.core.streams.Collectors;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -108,6 +109,10 @@ public class Fqn implements Comparable<Fqn>, Iterable<String> {
 
     public String toCanonicalString() {
         return "." + Joiner.on(".").join(ids);
+    }
+
+    public Stream<String> components() {
+        return Stream.of(ids);
     }
 
     @Override

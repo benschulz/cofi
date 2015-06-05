@@ -12,6 +12,7 @@ import de.benshu.cofi.types.impl.AbstractUnboundProperTypeConstructor;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.Substitutions;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
+import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.declarations.IntersectionTypeDeclaration;
@@ -31,6 +32,12 @@ public abstract class AbstractIntersectionTypeConstructor<X extends TypeSystemCo
 
     AbstractIntersectionTypeConstructor(X context) {
         super(context);
+    }
+
+    public boolean isSameAs(TypeMixin<X, ?> other) {
+        return this == other
+                || other instanceof AbstractIntersectionTypeConstructor<?>
+                && ((AbstractIntersectionTypeConstructor<?>) other).getOriginal() == getOriginal();
     }
 
     public abstract AbstractTypeList<X, TypeConstructorMixin<X, ?, ProperTypeMixin<X, ?>>> getElements();

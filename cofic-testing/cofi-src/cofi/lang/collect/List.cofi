@@ -5,9 +5,9 @@ public trait List<E> {
     public forEach(body : Function1<E, ()>) : () {
         i : Natural := 0;
 
-        Bool.while({ -> return (i.get().lessThan(length())); }, { ->
-            body.get()(get(i.get()));
-            i := i.get().plus(1);
+        Bool.while({ -> return (i.lessThan(length())); }, { ->
+            body(get(i));
+            i := i.plus(1);
         });
     }
     

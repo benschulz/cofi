@@ -3,11 +3,11 @@ package de.benshu.cofi.model.impl;
 import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
 import de.benshu.cofi.parser.lexer.Token;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
-import de.benshu.cofi.types.impl.templates.UnboundTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.declarations.SourceType;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.UnboundTemplateTypeConstructor;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.streams.Collectors;
 import de.benshu.jswizzle.copyable.CopyFactory;
@@ -36,12 +36,12 @@ public class ClassDeclaration<X extends ModelContext<X>> extends AbstractTypeDec
 
         this.unbound = AbstractTemplateTypeConstructor.<X>create(
                 TemplateTypeDeclaration.memoizing(
-                        x -> x.lookUpTypeParametersOf(ClassDeclaration.this),
+                        x -> x.lookUpTypeParametersOf(this),
                         x -> getExtending().stream().map(e -> SourceType.of(x.lookUpTypeOf(e), e.getSourceSnippet())).collect(Collectors.list()),
-                        x -> x.lookUpMemberDescriptorsOf(ClassDeclaration.this),
+                        x -> x.lookUpMemberDescriptorsOf(this),
                         x -> IndividualTags.empty()
-                                .set(TypeTags.NAME, () -> x.lookUpFqnOf(ClassDeclaration.this).toString())
-                                .set(AbstractTypeDeclaration.Tag.INSTANCE, ClassDeclaration.this)
+                                .set(TypeTags.NAME, FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this)))
+                                .set(AbstractTypeDeclaration.Tag.INSTANCE, this)
                 )
         );
     }
@@ -57,7 +57,7 @@ public class ClassDeclaration<X extends ModelContext<X>> extends AbstractTypeDec
     }
 
     @Override
-    public <N, L extends N, D extends L, S extends N, E extends N, T extends E> D accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
+    public <N, L extends N, D extends L, S extends N, E extends N, T extends N> D accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
         return transformer.transformClassDeclaration(this);
     }
 

@@ -7,13 +7,13 @@ import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 import de.benshu.commons.core.Optional;
 
-public interface ExpressionInferencer {
+public interface ExpressionInferencer<T> {
     /**
      * @return the number of type args to be inferred for the expression
      */
     int getTypeArgCount();
 
-    Optional<Parametrization<Pass>> inferGeneric(Pass pass, TypeParameterListImpl<Pass> params, int offset, AbstractConstraints<Pass> constraints, ProperTypeMixin<Pass, ?> context);
+    Optional<Parametrization<Pass, T>> inferGeneric(Pass pass, TypeParameterListImpl<Pass> params, int offset, AbstractConstraints<Pass> constraints, ProperTypeMixin<Pass, ?> context);
 
     Optional<ProperTypeMixin<Pass, ?>> inferSpecific(Pass pass);
 }

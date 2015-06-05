@@ -1,6 +1,5 @@
 package de.benshu.cofi.types.impl.constraints;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableCollection;
@@ -11,16 +10,8 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
 import de.benshu.cofi.types.Variance;
-import de.benshu.cofi.types.impl.intersections.AbstractIntersectionTypeConstructor;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
-import de.benshu.cofi.types.impl.intersections.AnonymousIntersectionType;
-import de.benshu.cofi.types.impl.unions.AnonymousUnionType;
-import de.benshu.cofi.types.impl.Bottom;
-import de.benshu.cofi.types.impl.ConstructedTypeMixin;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.Substitutions;
-import de.benshu.cofi.types.impl.TypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.TypeSystemContext;
@@ -29,7 +20,9 @@ import de.benshu.cofi.types.impl.TypeVariableImpl;
 import de.benshu.cofi.types.impl.UnboundTypeParameterList;
 import de.benshu.cofi.types.impl.declarations.Interpreter;
 import de.benshu.cofi.types.impl.declarations.TypeParameterListDeclaration;
+import de.benshu.cofi.types.impl.intersections.AnonymousIntersectionType;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
+import de.benshu.cofi.types.impl.unions.AnonymousUnionType;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Pair;
 
@@ -380,54 +373,15 @@ public final class Conjunction<X extends TypeSystemContext<X>> extends Monosemou
     }
 
     @Override
-    public boolean includesLowerBound(X context, TypeVariableImpl<X, ?> variable, TypeMixin<X, ?> bound) {
+    public boolean includesLowerBound(TypeVariableImpl<X, ?> variable, TypeMixin<X, ?> bound) {
         return getConstraints(variable).stream()
-                .anyMatch(c -> c.getKind() == Constraint.Kind.LOWER && isSame(context, c.getBound(), bound));
+                .anyMatch(c -> c.getKind() == Constraint.Kind.LOWER && c.getBound().isSameAs(bound));
     }
 
     @Override
-    public boolean includesUpperBound(X context, TypeVariableImpl<X, ?> variable, TypeMixin<X, ?> bound) {
+    public boolean includesUpperBound(TypeVariableImpl<X, ?> variable, TypeMixin<X, ?> bound) {
         return getConstraints(variable).stream()
-                .anyMatch(c -> c.getKind() == Constraint.Kind.UPPER && isSame(context, c.getBound(), bound));
-    }
-
-    private boolean isSame(X context, TypeMixin<X, ?> a, TypeMixin<X, ?> b) {
-        if (a == b)
-            return true;
-        else if(a instanceof TypeVariableImpl && b instanceof TypeVariableImpl)
-            return a.equals(b);
-        else if (a instanceof ConstructedTypeMixin && b instanceof ConstructedTypeMixin)
-            return isSame(context, (ConstructedTypeMixin<X, ?, ?>) a, (ConstructedTypeMixin<X, ?, ?>) b);
-        else if (a instanceof TypeConstructorMixin && b instanceof TypeConstructorMixin)
-            return isSame((TypeConstructorMixin<X, ?, ?>) a, (TypeConstructorMixin<X, ?, ?>) b);
-        else
-            return a instanceof Bottom && b instanceof  Bottom || a instanceof Error && b instanceof  Error;
-    }
-
-    private boolean isSame(X context, ConstructedTypeMixin<X, ?, ?> a, ConstructedTypeMixin<X, ?, ?> b) {
-        if (!isSame(a.getConstructor(), b.getConstructor()))
-            return false;
-
-        AbstractTypeList<X, ?> aArgs = a.getArguments();
-        AbstractTypeList<X, ?> bArgs = b.getArguments();
-
-        for (int i = 0; i < aArgs.size(); ++i)
-            if (!isSame(context, aArgs.get(i), bArgs.get(i)))
-                return false;
-        return true;
-    }
-
-    private boolean isSame(TypeConstructorMixin<X, ?, ?> a, TypeConstructorMixin<X, ?, ?> b) {
-        if (a == b)
-            return true;
-        else if (a instanceof AbstractIntersectionTypeConstructor && b instanceof AbstractIntersectionTypeConstructor)
-            return ((AbstractIntersectionTypeConstructor<?>) a).getOriginal() == ((AbstractIntersectionTypeConstructor<?>) b).getOriginal();
-        else if (a instanceof AbstractTemplateTypeConstructor && b instanceof AbstractTemplateTypeConstructor)
-            return ((AbstractTemplateTypeConstructor<?>) a).getOriginal() == ((AbstractTemplateTypeConstructor<?>) b).getOriginal();
-        else if (a instanceof AbstractUnionTypeConstructor && b instanceof AbstractUnionTypeConstructor)
-            return ((AbstractUnionTypeConstructor<?>) a).getOriginal() == ((AbstractUnionTypeConstructor<?>) b).getOriginal();
-        else
-            return false;
+                .anyMatch(c -> c.getKind() == Constraint.Kind.UPPER && c.getBound().isSameAs(bound));
     }
 
     @Override
@@ -479,9 +433,9 @@ public final class Conjunction<X extends TypeSystemContext<X>> extends Monosemou
         // guaranteed by ImmutableSetMultimap
         final ImmutableCollection<ImmutableSet<TypeVariableImpl<X, ?>>> equivalenceClasses =
                 (ImmutableCollection<ImmutableSet<TypeVariableImpl<X, ?>>>) (Object) getEquivalents().entrySet().stream()
-                .map(e -> immutableEntry(e.getValue(), e.getKey()))
-                .collect(setMultimap())
-                .asMap().values();
+                        .map(e -> immutableEntry(e.getValue(), e.getKey()))
+                        .collect(setMultimap())
+                        .asMap().values();
         return ImmutableSet.copyOf(equivalenceClasses);
     }
 
@@ -514,7 +468,7 @@ public final class Conjunction<X extends TypeSystemContext<X>> extends Monosemou
 
     @Override
     public AbstractConstraints<X> substitute(X context, TypeParameterListImpl<X> parameters, Substitutions<X> substitutions) {
-        if(getTypeParams().isEmpty())
+        if (getTypeParams().isEmpty())
             return parent.getTypeParams().isEmpty() ? parent : TypeParameterListImpl.empty(context, parameters.getConstraints()).getConstraints();
 
         final AtomicReference<AbstractConstraints<X>> hack = new AtomicReference<>();
@@ -533,7 +487,7 @@ public final class Conjunction<X extends TypeSystemContext<X>> extends Monosemou
 
         final TypeParameterListImpl<X> newTypeParameters = unbound.bind(context);
 
-        Function<TypeVariableImpl<X,?>, TypeVariableImpl<X, ?>> mapVariable = v -> newTypeParameters.getVariables().get(v.getParameter().getIndex());
+        Function<TypeVariableImpl<X, ?>, TypeVariableImpl<X, ?>> mapVariable = v -> newTypeParameters.getVariables().get(v.getParameter().getIndex());
 
         hack.set(parameters.getConstraints().append(new Conjunction<>(
                                 none(),

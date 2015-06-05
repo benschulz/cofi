@@ -40,8 +40,8 @@ public class TraitDeclaration<X extends ModelContext<X>> extends AbstractTypeDec
                                 : getExtending().stream().map(e -> SourceType.of(x.lookUpTypeOf(e), e.getSourceSnippet())).collect(Collectors.list()),
                         x -> x.lookUpMemberDescriptorsOf(this),
                         x -> IndividualTags.empty()
-                                .set(TypeTags.NAME, () -> x.lookUpFqnOf(TraitDeclaration.this).toString())
-                                .set(AbstractTypeDeclaration.Tag.INSTANCE, TraitDeclaration.this)
+                                .set(TypeTags.NAME, FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this)))
+                                .set(AbstractTypeDeclaration.Tag.INSTANCE, this)
                 )
         );
 
@@ -59,7 +59,7 @@ public class TraitDeclaration<X extends ModelContext<X>> extends AbstractTypeDec
     }
 
     @Override
-    public <N, L extends N, D extends L, S extends N, E extends N, T extends E> D accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
+    public <N, L extends N, D extends L, S extends N, E extends N, T extends N> D accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
         return transformer.transformTraitDeclaration(this);
     }
 

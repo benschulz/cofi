@@ -5,6 +5,6 @@ public interface NamedProperTypeConstructorMixin<X extends TypeSystemContext<X>,
 
     @Override
     default String toDescriptor() {
-        return getTags().get(getContext().getTypeSystem().getNameTag()).debug();
+        return getTags().get(getContext().getTypeSystem().getNameTag()).toDescriptor();
     }
 }

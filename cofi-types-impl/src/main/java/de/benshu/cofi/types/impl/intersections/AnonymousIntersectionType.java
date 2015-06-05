@@ -11,6 +11,9 @@ import de.benshu.cofi.types.impl.AbstractUnboundProperType;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.Substitutable;
 import de.benshu.cofi.types.impl.Substitutions;
+import de.benshu.cofi.types.impl.TypeConstructorInvocation;
+import de.benshu.cofi.types.impl.TypeConstructorMixin;
+import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.tags.TagCombiners;
@@ -18,6 +21,8 @@ import de.benshu.cofi.types.impl.tags.Tagger;
 import de.benshu.cofi.types.tags.HashTags;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.cofi.types.tags.Tagged;
+
+import java.util.Optional;
 
 import static de.benshu.commons.core.streams.Collectors.set;
 
@@ -44,6 +49,11 @@ public class AnonymousIntersectionType<X extends TypeSystemContext<X>>
     }
 
     @Override
+    public boolean isSameAs(TypeMixin<X, ?> other) {
+        return this == other;
+    }
+
+    @Override
     public AnonymousIntersectionType<X> substitute(Substitutions<X> substitutions) {
         return new AnonymousIntersectionType<>(
                 getContext(), getElements().substituteUnchecked(substitutions),
@@ -58,6 +68,15 @@ public class AnonymousIntersectionType<X extends TypeSystemContext<X>>
     @Override
     public AnonymousIntersectionType<X> setTags(IndividualTags tags) {
         return new AnonymousIntersectionType<>(getContext(), elements, i -> HashTags.create(i, getTags().getIndividualTags().setAll(tags)));
+    }
+
+    @Override
+    public Optional<TypeConstructorInvocation<X>> tryGetInvocationOf(TypeConstructorMixin<X, ?, ?> typeConstructor) {
+        return getElements().stream()
+                .map(e -> e.tryGetInvocationOf(typeConstructor))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .reduce(TypeConstructorInvocation::combine);
     }
 
     @Override

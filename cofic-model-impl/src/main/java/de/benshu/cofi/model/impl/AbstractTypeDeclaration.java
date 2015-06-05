@@ -32,7 +32,7 @@ public abstract class AbstractTypeDeclaration<X extends ModelContext<X>>
     }
 
     @Override
-    public abstract <N, L extends N, D extends L, S extends N, E extends N, T extends E> D accept(ModelTransformer<X, N, L, D, S, E, T> transformer);
+    public abstract <N, L extends N, D extends L, S extends N, E extends N, T extends N> D accept(ModelTransformer<X, N, L, D, S, E, T> transformer);
 
     @Copyable.Include
     public abstract Token getId();

@@ -23,23 +23,23 @@ import de.benshu.cofi.model.impl.NameExpression;
 import de.benshu.cofi.model.impl.NameImpl;
 import de.benshu.cofi.model.impl.ObjectDeclaration;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
+import de.benshu.cofi.model.impl.Statement;
 import de.benshu.cofi.model.impl.TraitDeclaration;
 import de.benshu.cofi.model.impl.TypeExpression;
 import de.benshu.cofi.model.impl.TypeParameterized;
 import de.benshu.cofi.model.impl.TypeParameters;
 import de.benshu.cofi.model.impl.TypeTags;
 import de.benshu.cofi.model.impl.UnionDeclaration;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
-import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.TypeSystemImpl;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
+import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
+import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
 import de.benshu.commons.core.Optional;
 
 import java.util.Map;
@@ -52,7 +52,7 @@ public class Pass implements ModelContext<Pass> {
 
     // ModuleGlueTyper
     private final Map<Fqn, PackageObjectDeclaration<Pass>> packageObjectDeclarations = Maps.newConcurrentMap();
-    private ImmutableMap<Fqn, AbstractTemplateTypeConstructor<Pass>> glueTypes;
+    private ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> glueTypes;
     private ImmutableSetMultimap<PackageObjectDeclaration<Pass>, AbstractTypeDeclaration<Pass>> topLevelDeclarations;
 
     private CompanionData companionData;
@@ -113,11 +113,11 @@ public class Pass implements ModelContext<Pass> {
                 .findFirst().get();
     }
 
-    public void defineGlueTypes(ImmutableMap<Fqn, AbstractTemplateTypeConstructor<Pass>> glueTypes) {
+    public void defineGlueTypes(ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> glueTypes) {
         this.glueTypes = glueTypes;
     }
 
-    public ImmutableMap<Fqn, AbstractTemplateTypeConstructor<Pass>> getGlueTypes() {
+    public ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> getGlueTypes() {
         return glueTypes;
     }
 
@@ -248,5 +248,17 @@ public class Pass implements ModelContext<Pass> {
         final ProperTypeMixin<Pass, ?> type = implementationData.expressionTypes.get(expression);
         checkState(type != null);
         return type;
+    }
+
+    public Statement<Pass> lookUpTransformationOf(Statement<Pass> untransformed) {
+        final Statement<Pass> transformed = implementationData.statementTransformations.get(untransformed);
+        checkState(transformed != null);
+        return transformed;
+    }
+
+    public ExpressionNode<Pass> lookUpTransformationOf(ExpressionNode<Pass> untransformed) {
+        final ExpressionNode<Pass> transformed = implementationData.expressionTransformations.get(untransformed);
+        checkState(transformed != null);
+        return transformed;
     }
 }

@@ -35,6 +35,11 @@ public abstract class NullaryTypeConstructor<X extends TypeSystemContext<X>, S e
     }
 
     @Override
+    public boolean isSameAs(TypeMixin<X, ?> other) {
+        return this == other;
+    }
+
+    @Override
     public Tags getTags() {
         return tags;
     }

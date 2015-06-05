@@ -21,6 +21,18 @@ public abstract class TypeVariableImpl<X extends TypeSystemContext<X>, S extends
     }
 
     @Override
+    public boolean isSameAs(TypeMixin<X, ?> other) {
+        return this == other
+                || other instanceof TypeVariableImpl<?, ?>
+                && isSameAs((TypeVariableImpl<?, ?>) other);
+    }
+
+    private boolean isSameAs(TypeVariableImpl<?, ?> other) {
+        return getParameterList().getUnbound() == other.getParameterList().getUnbound()
+                && getParameter().getIndex() == other.getParameter().getIndex();
+    }
+
+    @Override
     public X getContext() {
         return getParameterList().getContext();
     }
@@ -87,10 +99,5 @@ public abstract class TypeVariableImpl<X extends TypeSystemContext<X>, S extends
     @Override
     public int hashCode() {
         return getParameter().getIndex();
-    }
-
-    private boolean isSameAs(TypeVariableImpl<?, ?> other) {
-        return getParameterList().getUnbound() == other.getParameterList().getUnbound()
-                && getParameter().getIndex() == other.getParameter().getIndex();
     }
 }

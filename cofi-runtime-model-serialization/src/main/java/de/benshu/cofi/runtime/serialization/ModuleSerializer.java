@@ -43,7 +43,7 @@ public class ModuleSerializer {
     }
 
     private JsonElement serializeType(Type type, java.lang.reflect.Type t, JsonSerializationContext context) {
-        return context.serialize( TypeMixin.rebind(type).toDescriptor());
+        return context.serialize(TypeMixin.rebind(type).toDescriptor());
     }
 
     private JsonElement serializeTypeList(TypeList<?> types, java.lang.reflect.Type t, JsonSerializationContext context) {

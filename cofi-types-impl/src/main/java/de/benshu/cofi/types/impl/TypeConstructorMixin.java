@@ -6,6 +6,7 @@ import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 
 public interface TypeConstructorMixin<X extends TypeSystemContext<X>, S extends TypeConstructorMixin<X, S, T>, T extends TypeMixin<X, ?>>
         extends TypeMixin<X, S>, TypeConstructor<X, S, T> {
+
     @Override
     TypeConstructorMixin<X, ?, ?> substitute(Substitutions<X> substitutions);
 

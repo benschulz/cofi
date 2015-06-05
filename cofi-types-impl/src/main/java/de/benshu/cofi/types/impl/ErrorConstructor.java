@@ -31,6 +31,11 @@ public class ErrorConstructor<X extends TypeSystemContext<X>>
     }
 
     @Override
+    public boolean isSameAs(TypeMixin<X, ?> other) {
+        return other instanceof ErrorConstructor;
+    }
+
+    @Override
     public Error<X> apply(AbstractTypeList<X, ?> arguments) {
         return new Error<>(TagCombiners.apply(getTags()));
     }

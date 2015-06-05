@@ -14,5 +14,5 @@ public abstract class TypeExpression<X extends ModelContext<X>> extends Abstract
     }
 
     @Override
-    public abstract <N, L extends N, D extends L, S extends N, E extends N, T extends E> T accept(ModelTransformer<X, N, L, D, S, E, T> transformer);
+    public abstract <N, L extends N, D extends L, S extends N, E extends N, T extends N> T accept(ModelTransformer<X, N, L, D, S, E, T> transformer);
 }

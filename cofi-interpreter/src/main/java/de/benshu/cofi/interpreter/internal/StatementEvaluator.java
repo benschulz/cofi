@@ -1,15 +1,10 @@
 package de.benshu.cofi.interpreter.internal;
 
-import com.google.common.collect.ImmutableList;
-import de.benshu.cofi.runtime.Assignment;
 import de.benshu.cofi.runtime.Expression;
 import de.benshu.cofi.runtime.ExpressionStatement;
 import de.benshu.cofi.runtime.LocalVariableDeclaration;
-import de.benshu.cofi.runtime.MemberDeclaration;
-import de.benshu.cofi.runtime.MethodDeclaration;
 import de.benshu.cofi.runtime.Statement;
 import de.benshu.cofi.runtime.StatementVisitor;
-import de.benshu.cofi.types.Member;
 
 public class StatementEvaluator {
     private final ModuleInterpretation moduleInterpretation;
@@ -33,20 +28,6 @@ public class StatementEvaluator {
 
         public void perform() {
             visit(statement);
-        }
-
-        @Override
-        public Void visitAssignment(Assignment assignment) {
-            final CofiObject lhs = evaluateExpression(assignment.getLhs());
-            final CofiObject rhs = evaluateExpression(assignment.getRhs());
-
-            final Member set = lhs.getType().lookupMember("set").get();
-            final MemberDeclaration setDeclaration = set.getTags().get(MemberDeclaration.TAG);
-
-            FunctionEvaluator.forMethod(moduleInterpretation, lhs, (MethodDeclaration) setDeclaration)
-                    .evaluate(ImmutableList.of(rhs));
-
-            return null;
         }
 
         @Override
