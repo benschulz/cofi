@@ -22,9 +22,7 @@ The compiler is in its alpha stage. It compiles the current "language runtime" a
 
 The following things are next on the (long) to-do list. They are ordered by significance for some definition of significance.
 
-1. **Syntax for variable get-access.** Currently any variable get of a variable `v` is explicitly written `v.get()`. This *turtles all the way down* approach is nice, but it hurts my eyes. There are two tasks here.
-   1. Replace the handwritten parser with an ANTLR parser. It's sure to be more robust and give better error messages. Faster too, presumably.
-   2. Try to allow user defined syntax transformation. This is where it get's tricky, also, fun.
+1. **Modules.** Implement basic module support so as to allow `helloworld.cofi` to be separated into its own module.
 
 2. **Higher kinded types.** The type system API and implementation are largely higher-kind ready. The biggest issue will likely be local type inference.
 
