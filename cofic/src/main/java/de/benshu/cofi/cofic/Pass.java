@@ -1,5 +1,6 @@
 package de.benshu.cofi.cofic;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -28,7 +29,6 @@ import de.benshu.cofi.model.impl.TraitDeclaration;
 import de.benshu.cofi.model.impl.TypeExpression;
 import de.benshu.cofi.model.impl.TypeParameterized;
 import de.benshu.cofi.model.impl.TypeParameters;
-import de.benshu.cofi.model.impl.TypeTags;
 import de.benshu.cofi.model.impl.UnionDeclaration;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
@@ -38,17 +38,21 @@ import de.benshu.cofi.types.impl.TypeSystemImpl;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
+import de.benshu.cofi.types.impl.members.AbstractMember;
 import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
 import de.benshu.commons.core.Optional;
 
 import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkState;
 
 public class Pass implements ModelContext<Pass> {
     private final TypeSystemImpl<Pass> typeSystem;
+    private final Function<ImmutableList<String>, Optional<TypeMixin<Pass, ?>>> tryLookUpLangType;
+    private final Function<String, Optional<AbstractMember<Pass>>> tryLookUpLangMember;
 
     // ModuleGlueTyper
     private final Map<Fqn, PackageObjectDeclaration<Pass>> packageObjectDeclarations = Maps.newConcurrentMap();
@@ -61,11 +65,13 @@ public class Pass implements ModelContext<Pass> {
     private InterfaceData interfaceData;
     private ImplementationData implementationData;
 
-    public Pass() {
-        this.typeSystem = TypeSystemImpl.create(
-                name -> lookUpTypeOf(lookUpDeclaration(name)),
-                TypeTags.NAME,
-                () -> (TemplateTypeConstructorMixin<Pass>) lookUpTypeOf(lookUpDeclaration("Object")));
+    public Pass(TypeSystemImpl<Pass> typeSystem,
+                Function<ImmutableList<String>, Optional<TypeMixin<Pass, ?>>> tryLookUpLangType,
+                Function<String, Optional<AbstractMember<Pass>>> tryLookUpLangMember) {
+
+        this.typeSystem = typeSystem;
+        this.tryLookUpLangType = tryLookUpLangType;
+        this.tryLookUpLangMember = tryLookUpLangMember;
     }
 
     @Override
@@ -104,13 +110,6 @@ public class Pass implements ModelContext<Pass> {
         return implementationData == null
                 ? interfaceData == null ? constraintsData : interfaceData
                 : implementationData;
-    }
-
-    private AbstractTypeDeclaration<Pass> lookUpDeclaration(String name) {
-        return topLevelDeclarations.get(packageObjectDeclarations.get(Fqn.from("cofi", "lang"))).stream()
-                .filter(d -> d.getName().equals(name))
-                .sorted((a, b) -> a instanceof ObjectDeclaration<?> ? 1 : -1)
-                .findFirst().get();
     }
 
     public void defineGlueTypes(ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> glueTypes) {
@@ -260,5 +259,13 @@ public class Pass implements ModelContext<Pass> {
         final ExpressionNode<Pass> transformed = implementationData.expressionTransformations.get(untransformed);
         checkState(transformed != null);
         return transformed;
+    }
+
+    public Optional<TypeMixin<Pass, ?>> tryLookUpLangType(ImmutableList<String> names) {
+        return tryLookUpLangType.apply(names);
+    }
+
+    public Optional<AbstractMember<Pass>> tryLookUpLangMember(String name) {
+        return tryLookUpLangMember.apply(name);
     }
 }

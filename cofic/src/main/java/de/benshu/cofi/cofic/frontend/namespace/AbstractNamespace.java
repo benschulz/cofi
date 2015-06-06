@@ -75,17 +75,13 @@ public abstract class AbstractNamespace implements Namespace<Pass> {
     }
 
     public TypeMixin<Pass, ?> resolveType(LookUp lookUp, ImmutableList<String> ids, Snippet src) {
-        return resolveNamespace(lookUp, ids, src);
-    }
-
-    public TypeMixin<Pass, ?> resolveFullyQualifiedType(LookUp lookUp, Fqn ids, Snippet src) {
-        return getRoot().resolveNamespace(lookUp, ImmutableList.copyOf(ids), src);
-    }
-
-    private TypeMixin<Pass, ?> resolveNamespace(LookUp lookUp, ImmutableList<String> ids, Snippet src) {
         for (AbstractNamespace resolvedInThisScope : tryResolveNamespace(lookUp, ids, src))
             return resolvedInThisScope.asType(lookUp);
         return fail(ids, src).getType();
+    }
+
+    public TypeMixin<Pass, ?> resolveFullyQualifiedType(LookUp lookUp, Fqn ids, Snippet src) {
+        return getRoot().resolveType(lookUp, ImmutableList.copyOf(ids), src);
     }
 
     final Optional<AbstractNamespace> tryResolveNamespace(LookUp lookUp, ImmutableList<String> ids, Snippet src) {
@@ -102,7 +98,6 @@ public abstract class AbstractNamespace implements Namespace<Pass> {
     TypeMixin<Pass, ?> asType(LookUp lookUp) {
         throw new UnsupportedOperationException(this.getClass().toString());
     }
-
 
     public AbstractResolution resolve(LookUp lookUp, String name) {
         return resolve(lookUp, this, name);

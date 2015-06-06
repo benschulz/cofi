@@ -1,5 +1,5 @@
-module .cofi.lang;
-package .cofi.lang.helloworld;
+module .helloworld;
+package .helloworld;
 
 import .cofi.lang.collect.ArrayList;
 import .cofi.lang.collect.ImmutableList;
