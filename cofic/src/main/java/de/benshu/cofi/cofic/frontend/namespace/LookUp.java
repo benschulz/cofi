@@ -1,6 +1,5 @@
 package de.benshu.cofi.cofic.frontend.namespace;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import de.benshu.cofi.cofic.Pass;
@@ -12,10 +11,8 @@ import de.benshu.cofi.model.impl.TypeExpression;
 import de.benshu.cofi.model.impl.TypeParameterized;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
-import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.TypeSystemImpl;
-import de.benshu.cofi.types.impl.members.AbstractMember;
 import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.commons.core.Optional;
 
@@ -64,11 +61,11 @@ public class LookUp {
         return pass.lookUpTypeParametersOf(typeParameterized);
     }
 
-    public Optional<TypeMixin<Pass, ?>> tryLookUpLangType(ImmutableList<String> names) {
-        return pass.tryLookUpLangType(names);
+    public ProperTypeConstructorMixin<Pass, ?, ?> resolveQualifiedTypeName(Fqn typeName){
+        return pass.resolveQualifiedTypeName(typeName);
     }
 
-    public Optional<AbstractMember<Pass>> tryLookUpLangMember(String name) {
-        return pass.tryLookUpLangMember(name);
+    public Optional<ProperTypeConstructorMixin<Pass, ?, ?>> tryResolveQualifiedTypeName(Fqn typeName){
+        return pass.tryResolveQualifiedTypeName(typeName);
     }
 }

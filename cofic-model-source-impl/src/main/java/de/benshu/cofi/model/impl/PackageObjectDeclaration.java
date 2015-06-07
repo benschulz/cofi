@@ -5,11 +5,11 @@ import de.benshu.cofi.cofic.model.common.FullyQualifiedTypeName;
 import de.benshu.cofi.cofic.model.common.TypeTags;
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
 import de.benshu.cofi.parser.lexer.Token;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
-import de.benshu.cofi.types.impl.templates.UnboundTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.declarations.SourceType;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
+import de.benshu.cofi.types.impl.templates.UnboundTemplateTypeConstructor;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.streams.Collectors;
 import de.benshu.jswizzle.copyable.CopyFactory;
@@ -74,7 +74,7 @@ public class PackageObjectDeclaration<X extends ModelContext<X>> extends Abstrac
     }
 
     @Override
-    public ProperTypeConstructorMixin<X, ?, ?> bind(X context) {
+    public TemplateTypeConstructorMixin<X> bind(X context) {
         return unbound.bind(context);
     }
 }

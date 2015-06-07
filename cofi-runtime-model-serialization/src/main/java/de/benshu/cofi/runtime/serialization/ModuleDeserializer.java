@@ -22,6 +22,7 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import de.benshu.cofi.binary.deserialization.internal.BinaryModelContext;
 import de.benshu.cofi.binary.deserialization.internal.TypeParser;
 import de.benshu.cofi.binary.internal.Ancestry;
 import de.benshu.cofi.binary.internal.Constructor;
@@ -42,8 +43,6 @@ import de.benshu.cofi.runtime.ModelNode;
 import de.benshu.cofi.runtime.Module;
 import de.benshu.cofi.runtime.Multiton;
 import de.benshu.cofi.runtime.NameExpression;
-import de.benshu.cofi.runtime.NamedEntity;
-import de.benshu.cofi.runtime.NamedEntityVisitor;
 import de.benshu.cofi.runtime.ObjectSingleton;
 import de.benshu.cofi.runtime.Package;
 import de.benshu.cofi.runtime.Parameter;
@@ -67,23 +66,25 @@ import de.benshu.cofi.types.ProperTypeConstructor;
 import de.benshu.cofi.types.TemplateType;
 import de.benshu.cofi.types.TemplateTypeConstructor;
 import de.benshu.cofi.types.TypeList;
+import de.benshu.cofi.types.impl.AdHoc;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterImpl;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
-import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
-import de.benshu.cofi.types.impl.declarations.SourceMethodDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceMethodSignatureDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourcePropertyDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceType;
-import de.benshu.cofi.types.impl.declarations.SourceTypeDescriptor;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
 import de.benshu.cofi.types.impl.declarations.UnionTypeDeclaration;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
+import de.benshu.cofi.types.impl.declarations.source.SourceMethodDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMethodSignatureDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourcePropertyDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
+import de.benshu.cofi.types.impl.declarations.source.SourceTypeDescriptor;
 import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
+import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Optional;
@@ -168,7 +169,6 @@ public class ModuleDeserializer {
     }
 
     private class Deserialization {
-
         private final ImmutableTable<Class<? extends ModelNode>, String, SpecialPropertyDeserializer> specialProperties =
                 ImmutableTable.<Class<? extends ModelNode>, String, SpecialPropertyDeserializer>builder()
                         .putAll(MODEL_NODE_TYPES.stream()
@@ -205,17 +205,6 @@ public class ModuleDeserializer {
 
             final FqnResolver fqnResolver = new FqnResolver(this.result);
             this.typeParser = new TypeParser(
-                    new TypeParser.FqnResolver() {
-                        @Override
-                        public <X extends TypeSystemContext<X>> TypeMixin<X, ?> resolve(X context, Fqn fqn) {
-                            return fqnResolver.resolve(fqn).accept(new NamedEntityVisitor<TypeMixin<X, ?>>() {
-                                @Override
-                                public TypeMixin<X, ?> defaultAction(NamedEntity namedEntity) {
-                                    return TypeMixin.rebind(namedEntity.getType());
-                                }
-                            });
-                        }
-                    },
                     new TypeParser.Namer() {
                         @Override
                         public IndividualTags name(String name) {
@@ -313,8 +302,9 @@ public class ModuleDeserializer {
             BiFunction<JsonArray, RuntimeContext, ImmutableList<SourceType<RuntimeContext>>> hierarchySupplier =
                     (ts, x) -> deserializeArray(ts)
                             .map(e -> typeParser
-                                    .in(runtimeContext, rebind(Resolution.extractTypeReferenceContextFrom(ancestryIncludingMe)))
+                                    .in(rebind(Resolution.extractTypeReferenceContextFrom(ancestryIncludingMe)))
                                     .parseType(e.getAsString()))
+                            .map(t -> t.<RuntimeContext>bind(x))
                             .map(SourceType::of)
                             .collect(Collector.of(
                                     ImmutableList::<SourceType<RuntimeContext>>builder,
@@ -443,7 +433,9 @@ public class ModuleDeserializer {
 
             final de.benshu.cofi.types.Type returnType = signatureTypeArguments.get(parameterCount);
 
-            return returnType instanceof TemplateType && ((TemplateType) returnType).getConstructor() == runtimeContext.getTypeSystem().getFunction(parameterCount)
+            final boolean returnTypeIsFunction = isFunction(returnType);
+
+            return returnTypeIsFunction
                     ? ImmutableList.<ImmutableList<SourceType<RuntimeContext>>>builder().add(firstParameterList).addAll(determineParameterTypes((TemplateType) returnType)).build()
                     : ImmutableList.of(firstParameterList);
         }
@@ -459,10 +451,20 @@ public class ModuleDeserializer {
                     : SourceType.of(TypeMixin.<RuntimeContext>rebind(returnType));
         }
 
+        private boolean isFunction(de.benshu.cofi.types.Type type) {
+            if (!(type instanceof TemplateType))
+                return false;
+
+            final TemplateType templateType = (TemplateType) type;
+
+            return TypeMixin.<RuntimeContext>rebind(templateType.getConstructor()).isSameAs(
+                    runtimeContext.getTypeSystem().getFunctionOrNull(templateType.getArguments().size() - 1));
+        }
+
         private SourceMemberDescriptor<RuntimeContext> toPropertyDescriptor(PropertyDeclaration propertyDeclaration) {
             return new SourcePropertyDescriptor<RuntimeContext>() {
                 @Override
-                public SourceType<RuntimeContext> getType(RuntimeContext context) {
+                public SourceType<RuntimeContext> getValueType() {
                     return SourceType.of(TypeMixin.<RuntimeContext>rebind(propertyDeclaration.getValueType()));
                 }
 
@@ -558,7 +560,8 @@ public class ModuleDeserializer {
 
         private TypeParameterListReference createEmptyTypeParameters(JsonObject jsonObject, Optional<Ancestry> ancestry, ImmutableMap<String, Supplier<?>> otherProperties) {
             return x -> {
-                final AbstractConstraints<RuntimeContext> parentConstraints = ancestry.flatMap(a -> a.closest(MemberDeclaration.class))
+                final AbstractConstraints<RuntimeContext> parentConstraints = ancestry
+                        .flatMap(a -> a.closest(MemberDeclaration.class))
                         .map(MemberDeclaration::getTypeParameters)
                         .map(TypeParameterListImpl::<RuntimeContext>rebind)
                         .map(TypeParameterListImpl::getConstraints)
@@ -575,7 +578,9 @@ public class ModuleDeserializer {
                 final TypeParameterListReference typeParametersReference = (TypeParameterListReference) otherProperties.get("typeParameters").get();
                 final TypeParameterListImpl<RuntimeContext> typeParameters = TypeParameterListImpl.rebind(Resolution.resolve(ancestry.get(), typeParametersReference).get());
 
-                return typeParser.in(runtimeContext, rebind(x)).parseTemplateTypeConstructor(typeParameters, signatureString).unbind();
+                final TypeMixin<RuntimeContext, ?> proper = typeParser.in(rebind(x)).parseType(signatureString).<RuntimeContext>bind(runtimeContext);
+                final TemplateTypeConstructorMixin<RuntimeContext> constructor = AdHoc.templateTypeConstructor(runtimeContext, typeParameters, (TemplateTypeImpl<RuntimeContext>) proper);
+                return constructor.unbind();
             };
         }
 
@@ -620,13 +625,13 @@ public class ModuleDeserializer {
         private TypeParameterListReference deserializeTypeParameterListReference(JsonElement json, Type type, JsonDeserializationContext context) {
             final String typeParametersString = json.getAsString();
 
-            return x -> typeParser.in(runtimeContext, rebind(x)).parseTypeParameters(typeParametersString).unbind();
+            return x -> typeParser.in(rebind(x)).parseTypeParameters(typeParametersString).bind(runtimeContext).unbind();
         }
 
         private TypeReference<?> deserializeTypeReference(JsonElement json, Type type, JsonDeserializationContext context) {
             final String typeString = json.getAsString();
 
-            return x -> typeParser.in(runtimeContext, rebind(x)).parseType(typeString).unbind();
+            return x -> typeParser.in(rebind(x)).parseType(typeString).bind(runtimeContext).unbind();
         }
 
         private ImmutableList<?> deserializeList(JsonElement json, Type type, JsonDeserializationContext context) {
@@ -659,12 +664,12 @@ public class ModuleDeserializer {
         private de.benshu.cofi.binary.deserialization.internal.TypeReferenceContext rebind(TypeReferenceContext typeReferenceContext) {
             return new de.benshu.cofi.binary.deserialization.internal.TypeReferenceContext() {
                 @Override
-                public <X extends TypeSystemContext<X>> Optional<AbstractConstraints<X>> getOuterConstraints(X context) {
+                public <X extends BinaryModelContext<X>> Optional<AbstractConstraints<X>> getOuterConstraints(X context) {
                     return typeReferenceContext.getOuterConstraints().map(AbstractConstraints::rebind);
                 }
 
                 @Override
-                public <X extends TypeSystemContext<X>> AbstractConstraints<X> getConstraints(X context) {
+                public <X extends BinaryModelContext<X>> AbstractConstraints<X> getConstraints(X context) {
                     return AbstractConstraints.rebind(typeReferenceContext.getConstraints());
                 }
             };

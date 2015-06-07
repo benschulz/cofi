@@ -6,7 +6,7 @@ import de.benshu.cofi.cofic.model.common.TypeTags;
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
 import de.benshu.cofi.parser.lexer.Token;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
-import de.benshu.cofi.types.impl.declarations.SourceType;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
@@ -59,15 +59,9 @@ public final class ObjectDeclaration<X extends ModelContext<X>> extends Abstract
                                     ).getOrReturn(sourceTypes);
                         },
                         x -> x.lookUpMemberDescriptorsOf(this),
-                        x -> {
-                            FullyQualifiedTypeName name = x.isCompanion(this)
-                                    ? FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this), "\u262F")
-                                    : FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this));
-
-                            return IndividualTags.empty()
-                                    .set(TypeTags.NAME, name)
-                                    .set(Tag.INSTANCE, this);
-                        }
+                        x -> IndividualTags.empty()
+                                .set(TypeTags.NAME, FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this), x.isCompanion(this)? "\u262F": ""))
+                                .set(Tag.INSTANCE, this)
                 )
         );
     }

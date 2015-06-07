@@ -4,8 +4,8 @@ import com.google.common.collect.ImmutableSet;
 import de.benshu.cofi.binary.internal.Ancestry;
 import de.benshu.cofi.binary.internal.Constructor;
 import de.benshu.cofi.binary.internal.MemoizingSupplier;
-import de.benshu.cofi.runtime.internal.TypeParameterListReference;
 import de.benshu.cofi.common.Fqn;
+import de.benshu.cofi.runtime.internal.TypeParameterListReference;
 import de.benshu.cofi.types.TemplateTypeConstructor;
 import de.benshu.cofi.types.TypeList;
 import de.benshu.cofi.types.TypeParameterList;
@@ -29,7 +29,7 @@ public class Package implements NamedEntity, Singleton, PackageAccessors, TypeDe
     @Data.Exclude
     final Supplier<TypeList<TemplateTypeConstructor>> supertypes = MemoizingSupplier.of(() -> getType().getSupertypes());
     final TypeBody body;
-    final ImmutableSet<AbstractTypeDeclaration> topLevelDeclarations;
+    final ImmutableSet<AbstractTypeDeclaration<?>> topLevelDeclarations;
     final ImmutableSet<Package> subpackages;
 
     public Package(Ancestry ancestry,
@@ -38,7 +38,7 @@ public class Package implements NamedEntity, Singleton, PackageAccessors, TypeDe
                    TypeParameterListReference typeParameters,
                    Function<Package, TemplateTypeConstructor> type,
                    Constructor<TypeBody> body,
-                   ImmutableSet<Constructor<AbstractTypeDeclaration>> topLevelDeclarations,
+                   ImmutableSet<Constructor<AbstractTypeDeclaration<?>>> topLevelDeclarations,
                    ImmutableSet<Constructor<Package>> subpackages) {
 
         final Ancestry ancestryIncludingMe = ancestry.append(this);
@@ -83,8 +83,12 @@ public class Package implements NamedEntity, Singleton, PackageAccessors, TypeDe
 
     @Override
     public Stream<? extends MemberDeclaration> getMemberDeclarations() {
-        return Stream.of(subpackages.stream(), body.getMemberDeclarations(), topLevelDeclarations.stream())
-                .flatMap(s -> s);
+        return Stream.of(
+                subpackages.stream(),
+                body.getMemberDeclarations(),
+                topLevelDeclarations.stream()
+                        .map(d -> d.getCompanion().<AbstractTypeDeclaration<?>>map(c -> c).getOrReturn(d))
+        ).flatMap(s -> s);
     }
 
     @Override

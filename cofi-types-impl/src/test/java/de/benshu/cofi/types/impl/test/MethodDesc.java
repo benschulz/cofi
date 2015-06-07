@@ -1,8 +1,8 @@
 package de.benshu.cofi.types.impl.test;
 
 import com.google.common.collect.ImmutableList;
-import de.benshu.cofi.types.impl.declarations.SourceMethodDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceMethodSignatureDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMethodDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMethodSignatureDescriptor;
 import de.benshu.cofi.types.tags.IndividualTags;
 
 final class MethodDesc implements SourceMethodDescriptor<TestContext> {

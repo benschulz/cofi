@@ -7,11 +7,11 @@ import de.benshu.cofi.types.bound.TypeParameter;
 import de.benshu.cofi.types.tags.HashTags;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.cofi.types.tags.Tags;
+import de.benshu.commons.core.exception.UnexpectedBranchException;
 
 import java.util.function.Function;
 
 public class TypeParameterImpl<X extends TypeSystemContext<X>> implements TypeParameter<X> {
-
     private final TypeParameterListImpl<X> list;
     private final int index;
     private final Variance variance;
@@ -49,19 +49,30 @@ public class TypeParameterImpl<X extends TypeSystemContext<X>> implements TypePa
     }
 
     @Override
-    public String toString() {
+    public String debug() {
+        return toDescriptor();
+    }
+
+    public String toDescriptor() {
+        final String variableDescriptor = getVariable().toDescriptor();
+
         switch (getVariance()) {
             case BIVARIANT:
-                return "+-" + getVariable();
+                return "+-" + variableDescriptor;
             case CONTRAVARIANT:
-                return "-" + getVariable();
+                return "-" + variableDescriptor;
             case COVARIANT:
-                return "+" + getVariable();
+                return "+" + variableDescriptor;
             case INVARIANT:
-                return getVariable().toString();
+                return variableDescriptor;
             default:
-                throw new AssertionError();
+                throw new UnexpectedBranchException();
         }
+    }
+
+    @Override
+    public String toString() {
+        return debug();
     }
 
     @Override

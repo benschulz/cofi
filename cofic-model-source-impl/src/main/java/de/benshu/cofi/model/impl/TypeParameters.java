@@ -45,7 +45,7 @@ public class TypeParameters<X extends ModelContext<X>> extends AbstractModelNode
             }
 
             @Override
-            public <O> O supplyConstraints(X context, Interpreter<AbstractConstraints<X>, O> interpreter) {
+            public <O> O supplyConstraints(X context, TypeParameterListImpl<X> bound, Interpreter<AbstractConstraints<X>, O> interpreter) {
                 return interpreter.interpret(context.lookUpConstraintsOf(TypeParameters.this), context.getChecker());
             }
         });

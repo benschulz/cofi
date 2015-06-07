@@ -1,11 +1,11 @@
-package de.benshu.cofi.types.impl.declarations;
+package de.benshu.cofi.types.impl.declarations.source;
 
 import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.types.MemberSort;
 import de.benshu.cofi.types.impl.TypeSystemContext;
 
 public interface SourcePropertyDescriptor<X extends TypeSystemContext<X>> extends SourceMemberDescriptor<X> {
-    SourceType<X> getType(X context);
+    SourceType<X> getValueType();
 
     ImmutableList<SourceType<X>> getTraits();
 

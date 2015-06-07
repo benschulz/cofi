@@ -7,6 +7,7 @@ import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.reflect.TypeToken;
@@ -17,21 +18,20 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import de.benshu.cofi.binary.deserialization.internal.BinaryModelContext;
 import de.benshu.cofi.binary.deserialization.internal.TypeParser;
+import de.benshu.cofi.binary.deserialization.internal.UnboundTypeParameterList;
 import de.benshu.cofi.binary.internal.Ancestry;
 import de.benshu.cofi.binary.internal.Constructor;
 import de.benshu.cofi.binary.internal.MemoizingSupplier;
 import de.benshu.cofi.cofic.model.binary.internal.TypeParameterListReference;
 import de.benshu.cofi.cofic.model.binary.internal.TypeReference;
-import de.benshu.cofi.cofic.model.binary.internal.UnboundType;
-import de.benshu.cofi.cofic.model.binary.internal.UnboundTypeParameterList;
 import de.benshu.cofi.cofic.model.common.LocalTypeName;
 import de.benshu.cofi.cofic.model.common.TypeTags;
 import de.benshu.cofi.common.Fqn;
-import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterImpl;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
-import de.benshu.cofi.types.impl.TypeSystemContext;
+import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Optional;
 
@@ -60,6 +60,20 @@ public class BinaryDeserializer {
     }
 
     private class Deserialization {
+        private final ImmutableTable<Class<? extends BinaryModelNode>, String, SpecialPropertyDeserializer> specialProperties =
+                ImmutableTable.<Class<? extends BinaryModelNode>, String, SpecialPropertyDeserializer>builder()
+//                        .putAll(MODEL_NODE_TYPES.stream()
+//                                .filter(TypeDeclaration.class::isAssignableFrom)
+//                                .map(t -> immutableCell(t, "type", (SpecialPropertyDeserializer) this::createTypeDeclarationTypeFactory))
+//                                .collect(table()))
+//                        .put(Module.class, "root", (SimpleSpecialPropertyDeserializer) this::createRootObjectSingletonSupplier)
+                        .put(BinaryModule.class, "typeParameters", this::createEmptyTypeParameters)
+//                        .put(MethodDeclaration.class, "signatureConstructor", this::deserializeMethodSignature)
+//                        .put(PropertyDeclaration.class, "type", (SimpleSpecialPropertyDeserializer) this::deserializePropertyType)
+                        .put(BinaryPropertyDeclaration.class, "typeParameters", this::createEmptyTypeParameters)
+//                        .put(RootExpression.class, "type", (SimpleSpecialPropertyDeserializer) this::deserializeRootSignatureType)
+                        .build();
+
         private final Gson gson;
         private final TypeParser typeParser;
         private final BinaryModule result;
@@ -78,12 +92,6 @@ public class BinaryDeserializer {
                     .create();
 
             this.typeParser = new TypeParser(
-                    new TypeParser.FqnResolver() {
-                        @Override
-                        public <X extends TypeSystemContext<X>> TypeMixin<X, ?> resolve(X context, Fqn fqn) {
-                            throw null;
-                        }
-                    },
                     new TypeParser.Namer() {
                         @Override
                         public IndividualTags name(String name) {
@@ -135,7 +143,7 @@ public class BinaryDeserializer {
                     return BinaryUnion.class;
 
                 return BinaryClass.class;
-            } else if(jsonObject.has("supertypes"))
+            } else if (jsonObject.has("supertypes"))
                 return BinaryObjectSingleton.class;
 
             if (jsonObject.has("pieces"))
@@ -159,6 +167,8 @@ public class BinaryDeserializer {
                     return immutableEntry(parameter.getName(), MemoizingSupplier.of(() ->
                                     ancestry.map(a -> (Object) a)
                                             .filter(a -> parameter.getType() == Ancestry.class)
+                                            .or(() -> Optional.from(specialProperties.get(requiredType, parameter.getName()))
+                                                    .map(d -> d.deserialize(jsonObject, ancestry, NodeDeserialization.this.arguments)))
                                             .getOrSupply(() -> {
                                                 final String parameterName = parameter.getName();
                                                 final JsonObject debuggerOhDebugger = jsonObject;
@@ -208,21 +218,26 @@ public class BinaryDeserializer {
         private TypeParameterListReference deserializeTypeParameterListReference(JsonElement json, Type type, JsonDeserializationContext context) {
             final String typeParametersString = json.getAsString();
 
-            return x -> new UnboundTypeParameterList() {
-                @Override
-                public <X extends TypeSystemContext<X>> TypeParameterListImpl<X> bind(X context) {
-                    return typeParser.in(context, x).parseTypeParameters(typeParametersString);
-                }
-            };
+            return x -> typeParser.in(x).parseTypeParameters(typeParametersString);
         }
 
         private TypeReference deserializeTypeReference(JsonElement json, Type type, JsonDeserializationContext context) {
             final String typeString = json.getAsString();
 
-            return x -> new UnboundType() {
+            return x -> typeParser.in(x).parseType(typeString);
+        }
+
+        private TypeParameterListReference createEmptyTypeParameters(JsonObject jsonObject, Optional<Ancestry> ancestry, ImmutableMap<String, Supplier<?>> otherProperties) {
+            return x -> new UnboundTypeParameterList() {
                 @Override
-                public <X extends TypeSystemContext<X>> TypeMixin<X, ?> bind(X context) {
-                    return typeParser.in(context, x).parseType(typeString);
+                public <X extends BinaryModelContext<X>> TypeParameterListImpl<X> bind(X context) {
+                    final AbstractConstraints<X> parentConstraints = ancestry
+                            .flatMap(a -> a.closest(BinaryMemberDeclaration.class))
+                            .map(d -> d.bindTypeParameters(context))
+                            .map(TypeParameterListImpl::getConstraints)
+                            .getOrReturn(AbstractConstraints.none());
+
+                    return TypeParameterListImpl.empty(context, parentConstraints);
                 }
             };
         }
@@ -253,5 +268,17 @@ public class BinaryDeserializer {
             return ContiguousSet.create(Range.closedOpen(0, array.size()), DiscreteDomain.integers()).stream()
                     .map(array::get);
         }
+    }
+
+    private interface SpecialPropertyDeserializer {
+        Object deserialize(JsonObject jsonObject, Optional<Ancestry> ancestry, ImmutableMap<String, Supplier<?>> otherProperties);
+    }
+
+    private interface SimpleSpecialPropertyDeserializer extends SpecialPropertyDeserializer {
+        default Object deserialize(JsonObject jsonObject, Optional<Ancestry> ancestry, ImmutableMap<String, Supplier<?>> otherProperties) {
+            return deserialize(jsonObject);
+        }
+
+        Object deserialize(JsonObject jsonObject);
     }
 }

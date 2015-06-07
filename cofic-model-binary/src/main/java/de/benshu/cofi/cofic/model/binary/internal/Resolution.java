@@ -1,31 +1,26 @@
 package de.benshu.cofi.cofic.model.binary.internal;
 
 import com.google.common.collect.ImmutableList;
+import de.benshu.cofi.binary.deserialization.internal.BinaryModelContext;
 import de.benshu.cofi.binary.deserialization.internal.TypeReferenceContext;
+import de.benshu.cofi.binary.deserialization.internal.UnboundType;
+import de.benshu.cofi.binary.deserialization.internal.UnboundTypeParameterList;
 import de.benshu.cofi.binary.internal.Ancestry;
 import de.benshu.cofi.cofic.model.binary.BinaryMemberDeclaration;
-import de.benshu.cofi.types.Constraints;
-import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
-import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.commons.core.Optional;
 
-import static de.benshu.cofi.types.impl.lists.AbstractTypeList.typeList;
+import static de.benshu.commons.core.streams.Collectors.list;
 
 public class Resolution {
     public static UnboundTypeParameterList resolve(Ancestry ancestry, TypeParameterListReference reference) {
         return reference.resolve(extractTypeReferenceContextFrom(ancestry));
     }
 
-    public static UnboundTypeList resolveList(Ancestry ancestry, ImmutableList<TypeReference> references) {
-        return new UnboundTypeList() {
-            @Override
-            public <X extends TypeSystemContext<X>> AbstractTypeList<X, ?> bind(X context) {
-                return references.stream()
-                        .map(r -> resolve(ancestry, r).bind(context))
-                        .collect(typeList());
-            }
-        };
+    public static ImmutableList<UnboundType> resolveAll(Ancestry ancestry, ImmutableList<TypeReference> references) {
+        return references.stream()
+                .map(r -> resolve(ancestry, r))
+                .collect(list());
     }
 
     public static UnboundType resolve(Ancestry ancestry, TypeReference reference) {
@@ -39,13 +34,13 @@ public class Resolution {
 
         return new TypeReferenceContext() {
             @Override
-            public <X extends TypeSystemContext<X>> Optional<AbstractConstraints<X>> getOuterConstraints(X context) {
-                return outerMemberDeclaration.map(d -> d.getTypeParameters(context).getConstraints());
+            public <X extends BinaryModelContext<X>> Optional<AbstractConstraints<X>> getOuterConstraints(X context) {
+                return outerMemberDeclaration.map(d -> d.bindTypeParameters(context).getConstraints());
             }
 
             @Override
-            public <X extends TypeSystemContext<X>> AbstractConstraints<X> getConstraints(X context) {
-                return memberDeclaration.getTypeParameters(context).getConstraints();
+            public <X extends BinaryModelContext<X>> AbstractConstraints<X> getConstraints(X context) {
+                return memberDeclaration.bindTypeParameters(context).getConstraints();
             }
         };
     }

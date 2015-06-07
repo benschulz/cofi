@@ -1,13 +1,13 @@
 package de.benshu.cofi.cofic.model.binary;
 
 import com.google.common.collect.ImmutableSet;
+import de.benshu.cofi.binary.deserialization.internal.BinaryModelContext;
 import de.benshu.cofi.binary.internal.Ancestry;
 import de.benshu.cofi.binary.internal.Constructor;
 import de.benshu.cofi.cofic.model.binary.internal.TypeParameterListReference;
-import de.benshu.cofi.cofic.model.binary.internal.UnboundTypeParameterList;
-import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
+import de.benshu.cofi.binary.deserialization.internal.UnboundTypeParameterList;
+import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
-import de.benshu.cofi.types.impl.TypeSystemContext;
 
 import java.util.stream.Stream;
 
@@ -19,7 +19,7 @@ public abstract class AbstractBinaryTypeDeclaration
                    BinaryMemberDeclaration {
 
     private final ImmutableSet<BinaryAnnotation> annotations;
-    private final String name;
+    private final Fqn fqn;
     private final UnboundTypeParameterList typeParameters;
     private final BinaryTypeBody body;
 
@@ -33,9 +33,14 @@ public abstract class AbstractBinaryTypeDeclaration
         final Ancestry ancestryIncludingMe = ancestry.append(this);
 
         this.annotations = ancestryIncludingMe.constructAll(annotations);
-        this.name = name;
+        this.fqn = ancestry.closest(BinaryMemberDeclaration.class).get().getFqn().getChild(name);
         this.typeParameters = resolve(ancestryIncludingMe, typeParameters);
         this.body = ancestryIncludingMe.construct(body);
+    }
+
+    @Override
+    public Fqn getFqn() {
+        return fqn;
     }
 
     @Override
@@ -49,7 +54,7 @@ public abstract class AbstractBinaryTypeDeclaration
     }
 
     @Override
-    public <X extends TypeSystemContext<X>> TypeParameterListImpl<X> getTypeParameters(X context) {
+    public <X extends BinaryModelContext<X>> TypeParameterListImpl<X> bindTypeParameters(X context) {
         return typeParameters.bind(context);
     }
 }

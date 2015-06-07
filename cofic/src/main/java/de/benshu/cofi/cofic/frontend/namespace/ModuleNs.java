@@ -1,6 +1,5 @@
 package de.benshu.cofi.cofic.frontend.namespace;
 
-import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.notes.Source;
 import de.benshu.cofi.common.Fqn;
@@ -30,7 +29,8 @@ class ModuleNs extends AbstractNamespace {
         return cofiLangNs(lookUp).tryResolveLocally(lookUp, fromNamespace, name);
     }
 
-    private CofiLangNs cofiLangNs(LookUp lookUp) {
-        return CofiLangNs.create(ImmutableList.of(), lookUp.tryLookUpLangType(ImmutableList.of()).get());
+    private QualifiedTypeNs cofiLangNs(LookUp lookUp) {
+        final Fqn cofiLangFqn = Fqn.from("cofi", "lang");
+        return QualifiedTypeNs.create(cofiLangFqn, lookUp.resolveQualifiedTypeName(cofiLangFqn));
     }
 }

@@ -19,7 +19,7 @@ public class GlueTypeNs extends AbstractNamespace {
     public GlueTypeNs() {
         super();
 
-        this.fqn = Fqn.from();
+        this.fqn = Fqn.root();
     }
 
     GlueTypeNs(AbstractNamespace parent, Fqn fqn) {

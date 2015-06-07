@@ -2,8 +2,8 @@ package de.benshu.cofi.cofic.frontend.interfaces;
 
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
-import de.benshu.cofi.types.impl.declarations.SourceType;
-import de.benshu.cofi.types.impl.declarations.SourceTypeDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
+import de.benshu.cofi.types.impl.declarations.source.SourceTypeDescriptor;
 import de.benshu.cofi.types.tags.IndividualTags;
 
 class SourceTypeDescriptorImpl implements SourceTypeDescriptor<Pass> {

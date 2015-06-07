@@ -3,11 +3,11 @@ package de.benshu.cofi.cofic.frontend.infer;
 import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.inference.Parametrization;
-import de.benshu.cofi.types.impl.FunctionTypes;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.Substitutions;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
+import de.benshu.cofi.types.impl.functions.FunctionType;
 import de.benshu.commons.core.Optional;
 
 import static de.benshu.commons.core.Optional.some;
@@ -60,7 +60,7 @@ public class OverloadedClosureInferencer<T> implements OverloadedExpressionInfer
 
         @Override
         public Optional<ProperTypeMixin<Pass, ?>> inferSpecific(Pass pass) {
-            return some(FunctionTypes.construct(pass, closure.getParameterTypes(), pass.getTypeSystem().getBottom()));
+            return some(FunctionType.construct(pass, closure.getParameterTypes(), pass.getTypeSystem().getBottom()).asTemplateType());
         }
     }
 }

@@ -1,4 +1,4 @@
-package de.benshu.cofi.types.impl.declarations;
+package de.benshu.cofi.types.impl.declarations.source;
 
 import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.types.MemberSort;

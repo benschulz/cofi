@@ -8,6 +8,14 @@ import java.util.function.Supplier;
 import static java.util.stream.Collectors.joining;
 
 public class FullyQualifiedTypeName implements TypeName {
+    public static FullyQualifiedTypeName create(Fqn fqn, String postfix) {
+        return create(() -> fqn, postfix);
+    }
+
+    public static FullyQualifiedTypeName create(Fqn fqn) {
+        return create(fqn, "");
+    }
+
     public static FullyQualifiedTypeName create(Supplier<Fqn> fqn, String postfix) {
         return new FullyQualifiedTypeName(fqn, postfix);
     }

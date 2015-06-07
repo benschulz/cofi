@@ -20,6 +20,11 @@
         </dependency>
         <dependency>
             <groupId>de.benshu.cofi</groupId>
+            <artifactId>cofi-binary-model-deserialization-commons</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>de.benshu.cofi</groupId>
             <!-- TODO clearly a bad name -->
             <artifactId>cofic-notes</artifactId>
             <version>0.0.1-SNAPSHOT</version>

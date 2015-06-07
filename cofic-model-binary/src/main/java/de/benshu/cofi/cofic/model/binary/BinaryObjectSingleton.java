@@ -15,6 +15,6 @@ public class BinaryObjectSingleton extends AbstractBinaryObject {
             TypeParameterListReference typeParameters,
             ImmutableList<TypeReference> supertypes,
             Constructor<BinaryTypeBody> body) {
-        super(ancestry, annotations, name, typeParameters, supertypes, body);
+        super(ancestry, annotations, name, "", typeParameters, supertypes, body);
     }
 }

@@ -1,12 +1,13 @@
 package de.benshu.cofi.types.impl.intersections;
 
 import de.benshu.cofi.types.impl.TypeSystemContext;
+import de.benshu.cofi.types.impl.UnboundProperTypeConstructor;
 import de.benshu.cofi.types.impl.declarations.IntersectionTypeDeclaration;
 import de.benshu.cofi.types.impl.tags.Tagger;
 
 import static de.benshu.cofi.types.impl.declarations.Interpreter.id;
 
-public class UnboundIntersectionTypeConstructor<X extends TypeSystemContext<X>> {
+public class UnboundIntersectionTypeConstructor<X extends TypeSystemContext<X>> implements UnboundProperTypeConstructor<X> {
     private final IntersectionTypeDeclaration<X> declaration;
 
     UnboundIntersectionTypeConstructor(IntersectionTypeDeclaration<X> declaration) {

@@ -3,42 +3,38 @@ package de.benshu.cofi.binary.deserialization.internal;
 import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.types.Variance;
-import de.benshu.cofi.types.impl.AdHoc;
+import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterImpl;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
-import de.benshu.cofi.types.impl.TypeSystemContext;
-import de.benshu.cofi.types.impl.TypeVariableImpl;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 import de.benshu.cofi.types.impl.constraints.Disjunction;
 import de.benshu.cofi.types.impl.constraints.Monosemous;
 import de.benshu.cofi.types.impl.declarations.Interpreter;
 import de.benshu.cofi.types.impl.declarations.TypeParameterListDeclaration;
+import de.benshu.cofi.types.impl.intersections.AnonymousIntersectionType;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
-import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
-import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
+import de.benshu.cofi.types.impl.unions.AnonymousUnionType;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Pair;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.Preconditions.checkState;
+import static de.benshu.cofi.types.impl.lists.AbstractTypeList.typeList;
 import static de.benshu.commons.core.streams.Collectors.list;
 
 public class TypeParser {
-    private final FqnResolver fqnResolver;
     private final Namer namer;
 
-    public TypeParser(FqnResolver fqnResolver, Namer namer) {
-        this.fqnResolver = fqnResolver;
+    public TypeParser(Namer namer) {
         this.namer = namer;
     }
 
-    public <X extends TypeSystemContext<X>> ContextPrepared<X> in(X context, TypeReferenceContext typeReferenceContext) {
-        return new ContextPrepared<>(context, typeReferenceContext);
+    public <X extends BinaryModelContext<X>> ContextPrepared in(TypeReferenceContext typeReferenceContext) {
+        return new ContextPrepared(typeReferenceContext);
     }
 
     private ImmutableList<String> tokenizeTypeString(String typeString) {
@@ -69,41 +65,29 @@ public class TypeParser {
         return builder.build();
     }
 
-    public class ContextPrepared<X extends TypeSystemContext<X>> {
-        private final X context;
+    public class ContextPrepared {
         private final TypeReferenceContext typeReferenceContext;
 
-        public ContextPrepared(X context, TypeReferenceContext typeReferenceContext) {
-            this.context = context;
+        public ContextPrepared(TypeReferenceContext typeReferenceContext) {
             this.typeReferenceContext = typeReferenceContext;
         }
 
-        public TypeParameterListImpl<X> parseTypeParameters(String typeParametersString) {
-            return new TypeParameterListParse<>(context, typeReferenceContext, tokenizeTypeString(typeParametersString)).perform();
+        public UnboundTypeParameterList parseTypeParameters(String typeParametersString) {
+            return new TypeParameterListParse(typeReferenceContext, tokenizeTypeString(typeParametersString)).perform();
         }
 
-        public TemplateTypeConstructorMixin<X> parseTemplateTypeConstructor(TypeParameterListImpl<X> typeParameters, String typeString) {
-            return AdHoc.templateTypeConstructor(context, typeParameters, parseTemplateType(typeString));
-        }
-
-        public TemplateTypeImpl<X> parseTemplateType(String typeString) {
-            return (TemplateTypeImpl<X>) parseType(typeString);
-        }
-
-        public TypeMixin<X, ?> parseType(String typeString) {
-            return new TypeParse<>(context, typeReferenceContext, tokenizeTypeString(typeString)).perform();
+        public UnboundType parseType(String typeString) {
+            return new TypeParse(typeReferenceContext, tokenizeTypeString(typeString)).perform();
         }
     }
 
-    private abstract class Parse<X extends TypeSystemContext<X>, T> {
-        final X context;
+    private abstract class Parse<T> {
         final TypeReferenceContext typeReferenceContext;
 
         private final ImmutableList<String> tokens;
         private int index = 0;
 
-        public Parse(X context, TypeReferenceContext typeReferenceContext, ImmutableList<String> tokens) {
-            this.context = context;
+        public Parse(TypeReferenceContext typeReferenceContext, ImmutableList<String> tokens) {
             this.typeReferenceContext = typeReferenceContext;
             this.tokens = tokens;
         }
@@ -116,19 +100,34 @@ public class TypeParser {
 
         protected abstract T performInternal();
 
-        protected final TypeMixin<X, ?> lookUpNamedType() {
+        protected final UnboundType readAndResolveQualifiedTypeName() {
             ImmutableList.Builder<String> builder = ImmutableList.builder();
             while (test(".")) {
                 builder.add(tokens.get(index + 1));
                 index += 2;
             }
 
-            return fqnResolver.<X>resolve(context, Fqn.from(builder.build()));
+            final Fqn fqn = Fqn.from(builder.build());
+
+            return new UnboundType() {
+                @Override
+                public <X extends BinaryModelContext<X>> TypeMixin<X, ?> bind(X context) {
+                    return context.resolveQualifiedTypeName(fqn);
+                }
+            };
         }
 
         protected final String advance() {
             ++index;
             return peek();
+        }
+
+        protected final boolean advanceIf(String expected) {
+            if (!test(expected))
+                return false;
+
+            ++index;
+            return true;
         }
 
         protected final String read() {
@@ -151,41 +150,71 @@ public class TypeParser {
         }
     }
 
-    private class TypeParse<X extends TypeSystemContext<X>> extends Parse<X, TypeMixin<X, ?>> {
-        private TypeMixin<X, ?> result;
+    private class TypeParse extends Parse<UnboundType> {
 
-        public TypeParse(X context, TypeReferenceContext typeReferenceContext, ImmutableList<String> tokens) {
-            super(context, typeReferenceContext, tokens);
+        public TypeParse(TypeReferenceContext typeReferenceContext, ImmutableList<String> tokens) {
+            super(typeReferenceContext, tokens);
         }
 
         @Override
-        protected final TypeMixin<X, ?> performInternal() {
-            switch (peek()) {
-                case "(":
-                    advance();
-                    result = performInternal();
-                    assrt(")");
-                    advance();
-                    return result;
-                case ".":
-                    result = lookUpNamedType();
-                    if (test("\u3008"))
-                        result = invoke((TypeConstructorMixin<X, ?, ?>) result);
+        protected final UnboundType performInternal() {
+            if (peek().equals("(")) {
+                advance();
+                UnboundType result = performInternal();
+                assrt(")");
+                advance();
+                return result;
+            } else {
+                final UnboundType firstNamed = parseSingleNamedType();
 
-                    while (peek() != null && !test(")") && !test("\u3009") && !test(","))
-                        throw null; // TODO & and |
+                if (peek() == null || !peek().equals("|") && !peek().equals("&"))
+                    return firstNamed;
 
-                    return result;
-                default:
-                    return result = lookUpTypeVariable(read());
+                final String separator = read();
+                final ImmutableList<UnboundType> elements = parseFurtherElements(firstNamed, separator);
+
+                return new UnboundType() {
+                    @Override
+                    public <X extends BinaryModelContext<X>> TypeMixin<X, ?> bind(X context) {
+                        final AbstractTypeList<X, ProperTypeMixin<X, ?>> boundElements = elements.stream()
+                                .map(e -> (ProperTypeMixin<X, ?>) e.bind(context))
+                                .collect(typeList());
+
+                        return separator.equals("|")
+                                ? AnonymousUnionType.create(context, boundElements)
+                                : AnonymousIntersectionType.create(context, boundElements);
+                    }
+                };
             }
         }
 
-        private TypeMixin<X, ?> invoke(TypeConstructorMixin<X, ?, ?> typeConstructor) {
+        private ImmutableList<UnboundType> parseFurtherElements(UnboundType firstElement, String separator) {
+            ImmutableList.Builder<UnboundType> builder = ImmutableList.builder();
+            builder.add(firstElement);
+
+            do
+                builder.add(performInternal());
+            while (advanceIf(separator));
+
+            return builder.build();
+        }
+
+        private UnboundType parseSingleNamedType() {
+            if (peek().equals(".")) {
+                UnboundType resolved = readAndResolveQualifiedTypeName();
+                return test("\u3008")
+                        ? invoke(resolved)
+                        : resolved;
+            } else {
+                return resolveTypeVariableName(read());
+            }
+        }
+
+        private UnboundType invoke(UnboundType typeConstructor) {
             assrt("\u3008");
             advance();
 
-            ImmutableList.Builder<TypeMixin<X, ?>> builder = ImmutableList.builder();
+            ImmutableList.Builder<UnboundType> builder = ImmutableList.builder();
 
             while (!test("\u3009")) {
                 builder.add(performInternal());
@@ -196,38 +225,55 @@ public class TypeParser {
             }
             advance();
 
-            return typeConstructor.apply(AbstractTypeList.of(builder.build()));
+            final ImmutableList<UnboundType> arguments = builder.build();
+            return new UnboundType() {
+                @Override
+                public <X extends BinaryModelContext<X>> TypeMixin<X, ?> bind(X context) {
+                    final TypeConstructorMixin<X, ?, ?> boundTypeConstructor = (TypeConstructorMixin<X, ?, ?>) typeConstructor.bind(context);
+                    final AbstractTypeList<X, TypeMixin<X, ?>> boundArguments = arguments.stream().map(a -> a.<X>bind(context)).collect(typeList());
+                    return boundTypeConstructor.apply(boundArguments);
+                }
+            };
         }
 
-        private TypeVariableImpl<X, ?> lookUpTypeVariable(String name) {
-            final AbstractConstraints<X> constraints = typeReferenceContext.getConstraints(context);
+        private UnboundType resolveTypeVariableName(String name) {
+            return new UnboundType() {
+                @Override
+                public <X extends BinaryModelContext<X>> TypeMixin<X, ?> bind(X context) {
+                    final AbstractConstraints<X> constraints = typeReferenceContext.getConstraints(context);
 
-            Monosemous<X> currentConstraints = constraints.isDisjunctive()
-                    ? ((Disjunction<X>) constraints).getOptions().iterator().next()
-                    : (Monosemous<X>) constraints;
+                    Monosemous<X> currentConstraints = constraints.isDisjunctive()
+                            ? ((Disjunction<X>) constraints).getOptions().iterator().next()
+                            : (Monosemous<X>) constraints;
 
-            while (true) {
-                Optional<TypeParameterImpl<X>> parameter = currentConstraints.getTypeParams().stream()
-                        .filter(p -> namer.getNameOf(p).equals(name))
-                        .findAny();
+                    while (true) {
+                        Optional<TypeParameterImpl<X>> parameter = currentConstraints.getTypeParams().stream()
+                                .filter(p -> namer.getNameOf(p).equals(name))
+                                .findAny();
 
-                if (parameter.isPresent())
-                    return parameter.get().getVariable();
+                        if (parameter.isPresent())
+                            return parameter.get().getVariable();
 
-                Monosemous<X> parent = currentConstraints.getParent();
-                checkState(parent != currentConstraints);
-                currentConstraints = parent;
-            }
+                        Monosemous<X> parent = currentConstraints.getParent();
+                        checkState(parent != currentConstraints);
+                        currentConstraints = parent;
+                    }
+                }
+            };
         }
     }
 
-    private class TypeParameterListParse<X extends TypeSystemContext<X>> extends Parse<X, TypeParameterListImpl<X>> {
-        public TypeParameterListParse(X context, TypeReferenceContext typeReferenceContext, ImmutableList<String> tokens) {
-            super(context, typeReferenceContext, tokens);
+    private class TypeParameterListParse extends Parse<UnboundTypeParameterList> {
+        public TypeParameterListParse(TypeReferenceContext typeReferenceContext, ImmutableList<String> tokens) {
+            super(typeReferenceContext, tokens);
         }
 
         @Override
-        protected final TypeParameterListImpl<X> performInternal() {
+        protected final UnboundTypeParameterList performInternal() {
+            return performInternalInternal();
+        }
+
+        private <Y extends BinaryModelContext<Y>> UnboundTypeParameterList performInternalInternal() {
             assrt("\u3008");
             advance();
 
@@ -235,28 +281,32 @@ public class TypeParser {
                     .map(p -> Pair.of(p.a, namer.name(p.b)))
                     .collect(list());
 
-            final AtomicReference<AbstractConstraints<X>> constraints = new AtomicReference<>();
-            final TypeParameterListImpl<X> typeParameters = TypeParameterListImpl.create(new TypeParameterListDeclaration<X>() {
+            final de.benshu.cofi.types.impl.UnboundTypeParameterList<Y> unboundTypeParameterList = TypeParameterListImpl.create(new TypeParameterListDeclaration<Y>() {
                 @Override
-                public <O> O supplyParameters(X context, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
+                public <O> O supplyParameters(Y context, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
                     return interpreter.interpret(parameters, context.getChecker());
                 }
 
                 @Override
-                public <O> O supplyConstraints(X context, Interpreter<AbstractConstraints<X>, O> interpreter) {
-                    return interpreter.interpret(constraints.get(), context.getChecker());
-                }
-            }).bind(context);
+                public <O> O supplyConstraints(Y context, TypeParameterListImpl<Y> bound, Interpreter<AbstractConstraints<Y>, O> interpreter) {
+                    final AbstractConstraints<Y> contextualConstraints = typeReferenceContext.getOuterConstraints(context)
+                            .getOrReturn(AbstractConstraints.none());
 
+                    return interpreter.interpret(AbstractConstraints.trivial(context, contextualConstraints, bound), context.getChecker());
+                }
+            });
 
             if (test("|"))
                 throw null;
 
-            final AbstractConstraints<X> contextualConstraints = typeReferenceContext.getOuterConstraints(context)
-                    .getOrReturn(AbstractConstraints.none());
-            constraints.set(AbstractConstraints.trivial(context, contextualConstraints, typeParameters));
+            return new UnboundTypeParameterList() {
+                @Override
+                public <X extends BinaryModelContext<X>> TypeParameterListImpl<X> bind(X context) {
+                    final de.benshu.cofi.types.impl.UnboundTypeParameterList<X> hack = (de.benshu.cofi.types.impl.UnboundTypeParameterList<X>) unboundTypeParameterList;
+                    return hack.bind(context);
+                }
+            };
 
-            return typeParameters;
         }
 
         private ImmutableList<Pair<Variance, String>> collectParameters() {
@@ -277,10 +327,6 @@ public class TypeParser {
 
             return builder.build();
         }
-    }
-
-    public interface FqnResolver {
-        <X extends TypeSystemContext<X>> TypeMixin<X, ?> resolve(X context, Fqn fqn);
     }
 
     public interface Namer {

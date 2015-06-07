@@ -16,6 +16,7 @@ import de.benshu.cofi.model.impl.RelativeNameImpl;
 import de.benshu.cofi.model.impl.RootExpression;
 import de.benshu.cofi.parser.lexer.ArtificialToken;
 import de.benshu.cofi.parser.lexer.Token;
+import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 import de.benshu.commons.core.Optional;
@@ -56,10 +57,6 @@ public abstract class AbstractNamespace implements Namespace<Pass> {
         return parent;
     }
 
-    public AbstractNamespace getRoot() {
-        return parent == null ? this : parent.getRoot();
-    }
-
     ExpressionNode<Pass> getAccessor(LookUp lookUp) {
         throw new UnsupportedOperationException();
     }
@@ -74,14 +71,15 @@ public abstract class AbstractNamespace implements Namespace<Pass> {
         return MemberAccessExpression.of(index > 0 ? getAccessor(fqn, index - 1) : RootExpression.of(), RelativeNameImpl.of(id));
     }
 
-    public TypeMixin<Pass, ?> resolveType(LookUp lookUp, ImmutableList<String> ids, Snippet src) {
+    public TypeMixin<Pass, ?> resolveTypeName(LookUp lookUp, ImmutableList<String> ids, Snippet src) {
         for (AbstractNamespace resolvedInThisScope : tryResolveNamespace(lookUp, ids, src))
             return resolvedInThisScope.asType(lookUp);
         return fail(ids, src).getType();
     }
 
-    public TypeMixin<Pass, ?> resolveFullyQualifiedType(LookUp lookUp, Fqn ids, Snippet src) {
-        return getRoot().resolveType(lookUp, ImmutableList.copyOf(ids), src);
+    public ProperTypeConstructorMixin<Pass, ?, ?> resolveQualifiedTypeName(LookUp lookUp, Fqn ids, Snippet src) {
+        return lookUp.tryResolveQualifiedTypeName(ids)
+                .getOrSupply(() -> fail(Fqn.root().getRelativeNameOf(ids), src).getType());
     }
 
     final Optional<AbstractNamespace> tryResolveNamespace(LookUp lookUp, ImmutableList<String> ids, Snippet src) {
@@ -118,7 +116,7 @@ public abstract class AbstractNamespace implements Namespace<Pass> {
                 .map(DefaultResolution::new);
     }
 
-    AbstractResolution fail(ImmutableList<String> relativeName, Snippet src) {
+    ErrorResolution fail(ImmutableList<String> relativeName, Snippet src) {
         String msg = "Can't resolve " + Joiner.on(".").join(relativeName) + " in scope " + this + ".";
         PrintStreamNotes.err().attach(src, ImmutableNote.create(CofiNote.UNDEFINED_NAME, msg));
         return new ErrorResolution();

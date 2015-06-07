@@ -77,7 +77,7 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
         Pass,
         Constructor<? extends ModelNode>,
         Constructor<? extends TypeBody.Containable>,
-        Constructor<? extends AbstractTypeDeclaration>,
+        Constructor<? extends AbstractTypeDeclaration<?>>,
         Constructor<? extends Statement>,
         Constructor<? extends Expression>,
         Constructor<? extends TypeExpression>> {
@@ -127,11 +127,11 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
                 .map(d -> (PackageObjectDeclaration<Pass>) d)
                 .findAny().get();
 
-        final ImmutableSet<Constructor<AbstractTypeDeclaration>> otherNonCompanionObjectDeclarations = topLevelDeclarations.stream()
+        final ImmutableSet<Constructor<AbstractTypeDeclaration<?>>> otherNonCompanionObjectDeclarations = topLevelDeclarations.stream()
                 .filter(d -> !(d instanceof PackageObjectDeclaration<?>))
                 .filter(d -> !pass.isCompanion(d))
                 .map(this::transform)
-                .map(c -> ((Constructor<AbstractTypeDeclaration>) c))
+                .map(this::covariant)
                 .collect(set());
 
         final TemplateTypeConstructor type = pass.lookUpTypeOf(packageObjectDeclaration).unbind();
@@ -396,7 +396,7 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
     }
 
     @Override
-    public Constructor<AbstractTypeDeclaration> transformUnionDeclaration(UnionDeclaration<Pass> unionDeclaration) {
+    public Constructor<AbstractTypeDeclaration<?>> transformUnionDeclaration(UnionDeclaration<Pass> unionDeclaration) {
         return as -> new Union(
                 as,
                 transformAnnotationsOf(unionDeclaration),

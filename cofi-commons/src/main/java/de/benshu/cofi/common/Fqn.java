@@ -17,6 +17,10 @@ import java.util.stream.Stream;
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class Fqn implements Comparable<Fqn>, Iterable<String> {
+    public static Fqn root() {
+        return from();
+    }
+
     public static Fqn from(String... ids) {
         return from(ImmutableList.copyOf(ids));
     }
@@ -55,7 +59,15 @@ public class Fqn implements Comparable<Fqn>, Iterable<String> {
     }
 
     public boolean contains(Fqn other) {
-        return length() <= other.length() && equals(other.getAncestor(length()));
+        return length() <= other.length() && containsInternal(other);
+    }
+
+    public boolean strictlyContains(Fqn other) {
+        return length() < other.length() && containsInternal(other);
+    }
+
+    public boolean containsInternal(Fqn other) {
+        return equals(other.getAncestor(length()));
     }
 
     public ImmutableList<String> getRelativeNameOf(Fqn descendant) {

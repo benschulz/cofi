@@ -1,6 +1,0 @@
-module .cofi.lang;
-package .cofi.lang;
-
-public class CallFrame<R> {
-    public return$(value : R) : ();
-}

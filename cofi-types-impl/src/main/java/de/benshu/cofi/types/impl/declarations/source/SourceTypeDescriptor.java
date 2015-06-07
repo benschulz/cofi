@@ -1,4 +1,4 @@
-package de.benshu.cofi.types.impl.declarations;
+package de.benshu.cofi.types.impl.declarations.source;
 
 import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.MemberSort;

@@ -8,7 +8,7 @@ import de.benshu.cofi.parser.lexer.Token;
 import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.unions.UnboundUnionTypeConstructor;
-import de.benshu.cofi.types.impl.declarations.SourceType;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.impl.declarations.UnionTypeDeclaration;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.streams.Collectors;

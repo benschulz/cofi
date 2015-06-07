@@ -9,6 +9,7 @@ import de.benshu.cofi.types.bound.IntersectionTypeConstructor;
 import de.benshu.cofi.types.bound.Type;
 import de.benshu.cofi.types.impl.AbstractTypeConstructor;
 import de.benshu.cofi.types.impl.AbstractUnboundProperTypeConstructor;
+import de.benshu.cofi.types.impl.NamedProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.Substitutions;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
@@ -24,7 +25,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public abstract class AbstractIntersectionTypeConstructor<X extends TypeSystemContext<X>>
         extends AbstractTypeConstructor<X, AbstractIntersectionTypeConstructor<X>, ConstructedIntersectionTypeImpl<X>>
-        implements IntersectionTypeConstructor<X, AbstractIntersectionTypeConstructor<X>, ConstructedIntersectionTypeImpl<X>> {
+        implements NamedProperTypeConstructorMixin<X, AbstractIntersectionTypeConstructor<X>, ConstructedIntersectionTypeImpl<X>>,
+                   IntersectionTypeConstructor<X, AbstractIntersectionTypeConstructor<X>, ConstructedIntersectionTypeImpl<X>> {
 
     public static <X extends TypeSystemContext<X>> UnboundIntersectionTypeConstructor<X> create(IntersectionTypeDeclaration<X> declaration) {
         return new UnboundIntersectionTypeConstructor<>(declaration);

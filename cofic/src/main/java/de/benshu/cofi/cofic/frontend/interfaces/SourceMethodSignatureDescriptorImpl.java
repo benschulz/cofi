@@ -8,8 +8,8 @@ import de.benshu.cofi.types.impl.Substitutable;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
-import de.benshu.cofi.types.impl.declarations.SourceMethodSignatureDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceType;
+import de.benshu.cofi.types.impl.declarations.source.SourceMethodSignatureDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.tags.IndividualTags;
 
 import static de.benshu.cofi.types.impl.lists.AbstractTypeList.typeList;

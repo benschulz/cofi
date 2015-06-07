@@ -1,5 +1,7 @@
 package de.benshu.cofi.runtime.serialization;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -15,6 +17,8 @@ import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.commons.core.Optional;
 
 import java.lang.reflect.ParameterizedType;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import static de.benshu.commons.core.streams.Collectors.list;
@@ -24,6 +28,8 @@ public class ModuleSerializer {
         final Gson gson = new GsonBuilder().setPrettyPrinting()
                 .registerTypeAdapter(Fqn.class, (JsonSerializer<Fqn>) this::serializeFqn)
                 .registerTypeAdapter(Supplier.class, (JsonSerializer<Supplier<?>>) this::serializeSupplier)
+                .registerTypeAdapter(ImmutableSet.class, (JsonSerializer<ImmutableSet<?>>) this::serializeSet)
+                .registerTypeAdapter(ImmutableList.class, (JsonSerializer<ImmutableList<?>>) this::serializeList)
                 .registerTypeHierarchyAdapter(Type.class, (JsonSerializer<Type>) this::serializeType)
                 .registerTypeAdapter(TypeList.class, (JsonSerializer<TypeList<?>>) this::serializeTypeList)
                 .registerTypeAdapter(TypeParameterList.class, (JsonSerializer<TypeParameterList>) this::serializeTypeParameterList)
@@ -31,6 +37,14 @@ public class ModuleSerializer {
                 .create();
 
         gson.toJson(module, appendable);
+    }
+
+    private JsonElement serializeList(ImmutableList<?> list, java.lang.reflect.Type type, JsonSerializationContext context) {
+        return context.serialize(list, List.class);
+    }
+
+    private JsonElement serializeSet(ImmutableSet<?> set, java.lang.reflect.Type type, JsonSerializationContext context) {
+        return context.serialize(set, Set.class);
     }
 
     private JsonElement serializeFqn(Fqn fqn, java.lang.reflect.Type type, JsonSerializationContext context) {

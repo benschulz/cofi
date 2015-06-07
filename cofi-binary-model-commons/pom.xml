@@ -15,9 +15,8 @@
     <dependencies>
         <dependency>
             <groupId>de.benshu.cofi</groupId>
-            <artifactId>cofi-types-impl</artifactId>
+            <artifactId>cofi-commons</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
-
 </project>

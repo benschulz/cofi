@@ -17,6 +17,11 @@
         </dependency>
         <dependency>
             <groupId>de.benshu.cofi</groupId>
+            <artifactId>cofic-model-binary</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>de.benshu.cofi</groupId>
             <artifactId>cofi-parser-impl</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>

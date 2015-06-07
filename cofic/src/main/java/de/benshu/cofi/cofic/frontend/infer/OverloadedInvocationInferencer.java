@@ -8,12 +8,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.inference.Parametrization;
-import de.benshu.cofi.types.impl.FunctionTypes;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.Substitutions;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
+import de.benshu.cofi.types.impl.functions.FunctionType;
 import de.benshu.cofi.types.impl.intersections.AbstractIntersectionType;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
@@ -24,11 +24,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collector;
-import java.util.stream.Stream;
 
 import static de.benshu.commons.core.Optional.none;
 import static de.benshu.commons.core.Optional.some;
-import static de.benshu.commons.core.streams.Collectors.list;
 import static java.util.stream.Collectors.joining;
 
 public class OverloadedInvocationInferencer<T> implements OverloadedExpressionInferencer<T> {
@@ -299,11 +297,11 @@ public class OverloadedInvocationInferencer<T> implements OverloadedExpressionIn
         }
 
         private AbstractTypeList<Pass, ProperTypeMixin<Pass, ?>> extractParamTypes(List<Parametrization<Pass, T>> parametrizations) {
-            return FunctionTypes.extractParamTypes(pass, getPrimaryType(parametrizations));
+            return FunctionType.forceFrom(pass, getPrimaryType(parametrizations)).getParameterTypes();
         }
 
         private ProperTypeMixin<Pass, ?> extractReturnType(List<Parametrization<Pass, T>> parametrizations) {
-            return FunctionTypes.extractReturnType(pass, getPrimaryType(parametrizations));
+            return FunctionType.forceFrom(pass, getPrimaryType(parametrizations)).getReturnType();
         }
 
         private ProperTypeMixin<Pass, ?> getPrimaryType(List<Parametrization<Pass, T>> parametrizations) {
@@ -313,7 +311,7 @@ public class OverloadedInvocationInferencer<T> implements OverloadedExpressionIn
         @Override
         Optional<ProperTypeMixin<Pass, ?>> doInferSpecific(Pass pass) {
             for (ProperTypeMixin<Pass, ?> primarySpecificType : subInferencers.get(0).inferSpecific(pass)) {
-                ProperTypeMixin<Pass, ?> returnType = FunctionTypes.extractReturnType(pass, primarySpecificType);
+                ProperTypeMixin<Pass, ?> returnType = FunctionType.forceFrom(pass, primarySpecificType).getReturnType();
                 return Optional.<ProperTypeMixin<Pass, ?>>some(returnType);
             }
 

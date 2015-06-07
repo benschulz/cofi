@@ -1,17 +1,20 @@
 package de.benshu.cofi.runtime.context;
 
+import de.benshu.cofi.binary.deserialization.internal.BinaryModelContext;
 import de.benshu.cofi.cofic.notes.Note;
 import de.benshu.cofi.cofic.notes.async.Checker;
+import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.runtime.Module;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.runtime.NamedEntity;
+import de.benshu.cofi.runtime.NamedEntityVisitor;
 import de.benshu.cofi.types.impl.TypeMixin;
-import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.TypeSystemImpl;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class RuntimeContext implements TypeSystemContext<RuntimeContext> {
+public class RuntimeContext implements BinaryModelContext<RuntimeContext> {
     private final Supplier<Module> module;
     private final FqnResolver fqnResolver;
     private final TypeSystemImpl<RuntimeContext> typeSystem;
@@ -50,5 +53,15 @@ public class RuntimeContext implements TypeSystemContext<RuntimeContext> {
 
     public Module getModule() {
         return module.get();
+    }
+
+    @Override
+    public TypeMixin<RuntimeContext, ?> resolveQualifiedTypeName(Fqn fqn) {
+        return fqnResolver.resolve(fqn).accept(new NamedEntityVisitor<TypeMixin<RuntimeContext, ?>>() {
+            @Override
+            public TypeMixin<RuntimeContext, ?> defaultAction(NamedEntity namedEntity) {
+                return TypeMixin.rebind(namedEntity.getType());
+            }
+        });
     }
 }

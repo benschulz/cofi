@@ -36,7 +36,9 @@ public class PropertyDeclaration extends TypeBody.Containable implements MemberD
             Ancestry ancestry,
             ImmutableSet<Constructor<Annotation>> annotations,
             String name,
-            TypeParameterListReference typeParameters, ImmutableSet<TypeReference<TemplateTypeConstructor>> traits, TypeReference<ProperTypeConstructor<?>> type,
+            TypeParameterListReference typeParameters,
+            ImmutableSet<TypeReference<TemplateTypeConstructor>> traits,
+            TypeReference<ProperTypeConstructor<?>> type,
             TypeReference<ProperType> valueType,
             Optional<Constructor<Expression>> initialValue) {
 

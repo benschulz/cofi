@@ -8,7 +8,7 @@ import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
 import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.commons.core.Optional;
 
