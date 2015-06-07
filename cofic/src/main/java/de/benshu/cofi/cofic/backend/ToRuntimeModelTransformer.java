@@ -51,7 +51,7 @@ import de.benshu.cofi.runtime.Trait;
 import de.benshu.cofi.runtime.TypeBody;
 import de.benshu.cofi.runtime.TypeExpression;
 import de.benshu.cofi.runtime.Union;
-import de.benshu.cofi.runtime.internal.Constructor;
+import de.benshu.cofi.binary.internal.Constructor;
 import de.benshu.cofi.runtime.internal.TypeReference;
 import de.benshu.cofi.types.TemplateTypeConstructor;
 import de.benshu.cofi.types.Type;

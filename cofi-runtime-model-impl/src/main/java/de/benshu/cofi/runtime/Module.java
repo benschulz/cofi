@@ -1,15 +1,17 @@
 package de.benshu.cofi.runtime;
 
-import de.benshu.cofi.common.Fqn;
-import de.benshu.cofi.runtime.internal.Ancestry;
-import de.benshu.cofi.runtime.internal.Constructor;
+import de.benshu.cofi.binary.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Constructor;
 import de.benshu.cofi.runtime.internal.TypeParameterListReference;
+import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.types.TemplateTypeConstructor;
 import de.benshu.cofi.types.TypeParameterList;
 import de.benshu.jswizzle.data.Data;
 
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+
+import static de.benshu.cofi.runtime.internal.Resolution.resolve;
 
 public class Module implements Singleton, ModuleAccessors {
     @Data
@@ -29,7 +31,7 @@ public class Module implements Singleton, ModuleAccessors {
         final Ancestry ancestryIncludingMe = Ancestry.first(this);
 
         this.fqn = fqn;
-        this.typeParameters = ancestryIncludingMe.resolve(typeParameters);
+        this.typeParameters = resolve(ancestryIncludingMe, typeParameters);
         this.pakkage = ancestryIncludingMe.construct(pakkage);
         this.root = root;
     }

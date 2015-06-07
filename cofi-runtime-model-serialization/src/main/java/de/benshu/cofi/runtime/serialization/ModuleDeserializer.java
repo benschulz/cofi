@@ -22,6 +22,10 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import de.benshu.cofi.binary.deserialization.internal.TypeParser;
+import de.benshu.cofi.binary.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Constructor;
+import de.benshu.cofi.binary.internal.MemoizingSupplier;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.runtime.Annotation;
 import de.benshu.cofi.runtime.Closure;
@@ -38,6 +42,8 @@ import de.benshu.cofi.runtime.ModelNode;
 import de.benshu.cofi.runtime.Module;
 import de.benshu.cofi.runtime.Multiton;
 import de.benshu.cofi.runtime.NameExpression;
+import de.benshu.cofi.runtime.NamedEntity;
+import de.benshu.cofi.runtime.NamedEntityVisitor;
 import de.benshu.cofi.runtime.ObjectSingleton;
 import de.benshu.cofi.runtime.Package;
 import de.benshu.cofi.runtime.Parameter;
@@ -53,11 +59,10 @@ import de.benshu.cofi.runtime.Union;
 import de.benshu.cofi.runtime.context.FqnResolver;
 import de.benshu.cofi.runtime.context.RuntimeContext;
 import de.benshu.cofi.runtime.context.RuntimeTypeName;
-import de.benshu.cofi.runtime.internal.Ancestry;
-import de.benshu.cofi.runtime.internal.Constructor;
-import de.benshu.cofi.runtime.internal.MemoizingSupplier;
+import de.benshu.cofi.runtime.internal.Resolution;
 import de.benshu.cofi.runtime.internal.TypeParameterListReference;
 import de.benshu.cofi.runtime.internal.TypeReference;
+import de.benshu.cofi.runtime.internal.TypeReferenceContext;
 import de.benshu.cofi.types.ProperTypeConstructor;
 import de.benshu.cofi.types.TemplateType;
 import de.benshu.cofi.types.TemplateTypeConstructor;
@@ -65,7 +70,9 @@ import de.benshu.cofi.types.TypeList;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
+import de.benshu.cofi.types.impl.TypeParameterImpl;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
+import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptor;
 import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
@@ -195,7 +202,31 @@ public class ModuleDeserializer {
 
             this.result = MemoizingSupplier.of(() -> gson.fromJson(reader, Module.class));
             this.runtimeContext = new RuntimeContext(this.result);
-            this.typeParser = new TypeParser(runtimeContext, new FqnResolver(this.result));
+
+            final FqnResolver fqnResolver = new FqnResolver(this.result);
+            this.typeParser = new TypeParser(
+                    new TypeParser.FqnResolver() {
+                        @Override
+                        public <X extends TypeSystemContext<X>> TypeMixin<X, ?> resolve(X context, Fqn fqn) {
+                            return fqnResolver.resolve(fqn).accept(new NamedEntityVisitor<TypeMixin<X, ?>>() {
+                                @Override
+                                public TypeMixin<X, ?> defaultAction(NamedEntity namedEntity) {
+                                    return TypeMixin.rebind(namedEntity.getType());
+                                }
+                            });
+                        }
+                    },
+                    new TypeParser.Namer() {
+                        @Override
+                        public IndividualTags name(String name) {
+                            return IndividualTags.of(RuntimeTypeName.TAG, RuntimeTypeName.of(name));
+                        }
+
+                        @Override
+                        public String getNameOf(TypeParameterImpl<?> typeParameter) {
+                            return typeParameter.getTags().get(RuntimeTypeName.TAG).toDescriptor();
+                        }
+                    });
         }
 
         public RuntimeContext getResult() {
@@ -281,7 +312,9 @@ public class ModuleDeserializer {
 
             BiFunction<JsonArray, RuntimeContext, ImmutableList<SourceType<RuntimeContext>>> hierarchySupplier =
                     (ts, x) -> deserializeArray(ts)
-                            .map(e -> typeParser.in(ancestryIncludingMe.toTypeReferenceContext()).parseBoundType(e.getAsString()))
+                            .map(e -> typeParser
+                                    .in(runtimeContext, rebind(Resolution.extractTypeReferenceContextFrom(ancestryIncludingMe)))
+                                    .parseType(e.getAsString()))
                             .map(SourceType::of)
                             .collect(Collector.of(
                                     ImmutableList::<SourceType<RuntimeContext>>builder,
@@ -540,9 +573,9 @@ public class ModuleDeserializer {
                 final String signatureString = jsonObject.get("signature").getAsString();
 
                 final TypeParameterListReference typeParametersReference = (TypeParameterListReference) otherProperties.get("typeParameters").get();
-                final TypeParameterListImpl<RuntimeContext> typeParameters = TypeParameterListImpl.rebind(ancestry.get().resolve(typeParametersReference).get());
+                final TypeParameterListImpl<RuntimeContext> typeParameters = TypeParameterListImpl.rebind(Resolution.resolve(ancestry.get(), typeParametersReference).get());
 
-                return typeParser.in(x).parseBoundTemplateTypeConstructor(typeParameters, signatureString).unbind();
+                return typeParser.in(runtimeContext, rebind(x)).parseTemplateTypeConstructor(typeParameters, signatureString).unbind();
             };
         }
 
@@ -587,13 +620,13 @@ public class ModuleDeserializer {
         private TypeParameterListReference deserializeTypeParameterListReference(JsonElement json, Type type, JsonDeserializationContext context) {
             final String typeParametersString = json.getAsString();
 
-            return x -> typeParser.in(x).parseTypeParameters(typeParametersString);
+            return x -> typeParser.in(runtimeContext, rebind(x)).parseTypeParameters(typeParametersString).unbind();
         }
 
         private TypeReference<?> deserializeTypeReference(JsonElement json, Type type, JsonDeserializationContext context) {
             final String typeString = json.getAsString();
 
-            return x -> typeParser.in(x).parseType(typeString);
+            return x -> typeParser.in(runtimeContext, rebind(x)).parseType(typeString).unbind();
         }
 
         private ImmutableList<?> deserializeList(JsonElement json, Type type, JsonDeserializationContext context) {
@@ -621,6 +654,20 @@ public class ModuleDeserializer {
         private Stream<JsonElement> deserializeArray(JsonArray array) {
             return ContiguousSet.create(Range.closedOpen(0, array.size()), DiscreteDomain.integers()).stream()
                     .map(array::get);
+        }
+
+        private de.benshu.cofi.binary.deserialization.internal.TypeReferenceContext rebind(TypeReferenceContext typeReferenceContext) {
+            return new de.benshu.cofi.binary.deserialization.internal.TypeReferenceContext() {
+                @Override
+                public <X extends TypeSystemContext<X>> Optional<AbstractConstraints<X>> getOuterConstraints(X context) {
+                    return typeReferenceContext.getOuterConstraints().map(AbstractConstraints::rebind);
+                }
+
+                @Override
+                public <X extends TypeSystemContext<X>> AbstractConstraints<X> getConstraints(X context) {
+                    return AbstractConstraints.rebind(typeReferenceContext.getConstraints());
+                }
+            };
         }
     }
 

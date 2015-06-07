@@ -59,14 +59,16 @@ public abstract class TypeVariableImpl<X extends TypeSystemContext<X>, S extends
 
     @Override
     public String debug() {
-        return toDescriptor();
+        return getParameter().getTags().tryGet(getContext().getTypeSystem().getNameTag())
+                .map(Debuggable::debug)
+                .getOrSupply(this::fallbackName);
     }
 
     @Override
     public String toDescriptor() {
         return getParameter().getTags().tryGet(getContext().getTypeSystem().getNameTag())
                 .map(Debuggable::debug)
-                .getOrSupply(this::fallbackName);
+                .getOrThrow(new UnsupportedOperationException());
     }
 
     private String fallbackName() {

@@ -1,11 +1,11 @@
 package de.benshu.cofi.runtime;
 
 import com.google.common.collect.ImmutableSet;
-import de.benshu.cofi.common.Fqn;
-import de.benshu.cofi.runtime.internal.Ancestry;
-import de.benshu.cofi.runtime.internal.Constructor;
-import de.benshu.cofi.runtime.internal.MemoizingSupplier;
+import de.benshu.cofi.binary.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Constructor;
+import de.benshu.cofi.binary.internal.MemoizingSupplier;
 import de.benshu.cofi.runtime.internal.TypeParameterListReference;
+import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.types.TemplateTypeConstructor;
 import de.benshu.cofi.types.TypeList;
 import de.benshu.cofi.types.TypeParameterList;
@@ -15,10 +15,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static de.benshu.cofi.runtime.internal.Resolution.resolve;
+
 @Data
 public class Package implements NamedEntity, Singleton, PackageAccessors, TypeDeclaration, MemberDeclaration {
     final ImmutableSet<Annotation> annotations;
-    final Fqn fqn;
+    final transient Fqn fqn;
     final String name;
     @Data.Exclude
     final transient Supplier<TemplateTypeConstructor> type;
@@ -43,10 +45,11 @@ public class Package implements NamedEntity, Singleton, PackageAccessors, TypeDe
 
         this.annotations = ancestryIncludingMe.constructAll(annotations);
         this.fqn = ancestry.closest(Package.class).map(Package::getFqn)
-                .getOrSupply(() -> ancestry.closest(Module.class).get().fqn)
+                // TODO eliminate the getParent() when modules become a real thing
+                .getOrSupply(() -> ancestry.closest(Module.class).get().getFqn().getParent())
                 .getChild(name);
         this.name = name;
-        this.typeParameters = ancestryIncludingMe.resolve(typeParameters);
+        this.typeParameters = resolve(ancestryIncludingMe, typeParameters);
         this.type = MemoizingSupplier.of(() -> type.apply(this));
         this.body = ancestryIncludingMe.construct(body);
         this.topLevelDeclarations = ancestryIncludingMe.constructAll(topLevelDeclarations);

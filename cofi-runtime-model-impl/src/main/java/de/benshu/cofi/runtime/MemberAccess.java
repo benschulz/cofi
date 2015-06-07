@@ -1,8 +1,9 @@
 package de.benshu.cofi.runtime;
 
 import com.google.common.collect.ImmutableList;
-import de.benshu.cofi.runtime.internal.Ancestry;
-import de.benshu.cofi.runtime.internal.Constructor;
+import de.benshu.cofi.binary.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Constructor;
+import de.benshu.cofi.binary.internal.MemoizingSupplier;
 import de.benshu.cofi.runtime.internal.TypeReference;
 import de.benshu.cofi.types.ProperType;
 import de.benshu.cofi.types.Type;
@@ -10,6 +11,10 @@ import de.benshu.cofi.types.TypeList;
 import de.benshu.jswizzle.data.Data;
 
 import java.util.function.Supplier;
+
+import static de.benshu.cofi.runtime.internal.Resolution.resolve;
+import static de.benshu.cofi.runtime.internal.Resolution.resolveImmediately;
+import static de.benshu.cofi.types.TypeList.typeList;
 
 public class MemberAccess implements Expression, MemberAccessAccessors {
     @Data
@@ -32,8 +37,10 @@ public class MemberAccess implements Expression, MemberAccessAccessors {
 
         this.primary = ancestryIncludingMe.construct(primary);
         this.memberName = memberName;
-        this.typeArguments = ancestry.resolveList(typeArguments);
-        this.type = ancestryIncludingMe.resolve(type);
+        this.typeArguments = MemoizingSupplier.of(() -> typeArguments.stream()
+                .map(t -> resolveImmediately(ancestry, t))
+                .collect(typeList()));
+        this.type = resolve(ancestryIncludingMe, type);
     }
 
     @Override

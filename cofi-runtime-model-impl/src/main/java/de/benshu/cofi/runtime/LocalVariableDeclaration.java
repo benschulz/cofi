@@ -1,14 +1,16 @@
 package de.benshu.cofi.runtime;
 
 import com.google.common.collect.ImmutableSet;
-import de.benshu.cofi.runtime.internal.Ancestry;
-import de.benshu.cofi.runtime.internal.Constructor;
+import de.benshu.cofi.binary.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Constructor;
 import de.benshu.cofi.runtime.internal.TypeReference;
 import de.benshu.cofi.types.ProperType;
 import de.benshu.commons.core.Optional;
 import de.benshu.jswizzle.data.Data;
 
 import java.util.function.Supplier;
+
+import static de.benshu.cofi.runtime.internal.Resolution.resolve;
 
 @Data
 public class LocalVariableDeclaration implements VariableDeclaration, Statement, LocalVariableDeclarationAccessors {
@@ -29,7 +31,7 @@ public class LocalVariableDeclaration implements VariableDeclaration, Statement,
 
         this.annotations = ancestryIncludingMe.constructAll(annotations);
         this.name = name;
-        this.valueType = ancestryIncludingMe.resolve(valueType);
+        this.valueType = resolve(ancestryIncludingMe, valueType);
         this.initialValue = initialValue.map(ancestryIncludingMe::construct);
     }
 

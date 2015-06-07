@@ -101,5 +101,6 @@ public interface TypeMixin<X extends TypeSystemContext<X>, S extends TypeMixin<X
         throw new AssertionError();
     }
 
+    // TODO This is serialization specifc, should not be a concern here (i.e. in this module).
     String toDescriptor();
 }

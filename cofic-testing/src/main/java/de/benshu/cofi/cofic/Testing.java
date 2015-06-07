@@ -2,6 +2,7 @@ package de.benshu.cofi.cofic;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import de.benshu.cofi.cofic.backend.ToRuntimeModelTransformer;
 import de.benshu.cofi.cofic.frontend.ModuleGlueTyper;
@@ -10,6 +11,7 @@ import de.benshu.cofi.cofic.frontend.constraints.HierarchyAndConstraintEstablish
 import de.benshu.cofi.cofic.frontend.discovery.Discoverer;
 import de.benshu.cofi.cofic.frontend.implementations.ImplementationTyper;
 import de.benshu.cofi.cofic.frontend.interfaces.InterfaceTyper;
+import de.benshu.cofi.cofic.model.binary.BinaryDeserializer;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.interpreter.CofiInterpreter;
 import de.benshu.cofi.model.Module.Version;
@@ -18,7 +20,7 @@ import de.benshu.cofi.model.impl.CompilationUnit;
 import de.benshu.cofi.model.impl.ModuleImpl;
 import de.benshu.cofi.model.impl.ObjectDeclaration;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
-import de.benshu.cofi.model.impl.TypeTags;
+import de.benshu.cofi.cofic.model.common.TypeTags;
 import de.benshu.cofi.parser.EarleyCofiParser;
 import de.benshu.cofi.runtime.Module;
 import de.benshu.cofi.runtime.context.RuntimeContext;
@@ -84,6 +86,9 @@ public class Testing {
     }
 
     private static void compile() throws IOException {
+        Function<ImmutableList<String>, Optional<TypeMixin<Pass, ?>>> tryLookUpLangType;
+        ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> moduleTypes;
+
         compile(Fqn.from("cofi", "lang"));
         compile(Fqn.from("helloworld"));
     }
@@ -131,6 +136,8 @@ public class Testing {
         final String json = output.toString();
         Files.write(findRoot().resolve("target").resolve(moduleName.toCanonicalString() + ".cm"), json.getBytes());
         end();
+
+        new BinaryDeserializer().deserialize(new StringReader(json));
     }
 
     private static Pass createPass() {

@@ -2,8 +2,8 @@ package de.benshu.cofi.runtime;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import de.benshu.cofi.runtime.internal.Ancestry;
-import de.benshu.cofi.runtime.internal.Constructor;
+import de.benshu.cofi.binary.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Constructor;
 import de.benshu.cofi.runtime.internal.TypeParameterListReference;
 import de.benshu.cofi.runtime.internal.TypeReference;
 import de.benshu.cofi.types.TemplateType;
@@ -15,6 +15,8 @@ import de.benshu.jswizzle.data.Data;
 
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static de.benshu.cofi.runtime.internal.Resolution.resolve;
 
 public class MethodDeclaration extends TypeBody.Containable implements MemberDeclaration, MethodDeclarationAccessors {
     @Data
@@ -45,9 +47,9 @@ public class MethodDeclaration extends TypeBody.Containable implements MemberDec
         this.annotations = ancestryIncludingMe.constructAll(annotations);
         this.name = name;
         this.pieces = ancestryIncludingMe.constructAll(pieces);
-        this.typeParameters = ancestryIncludingMe.resolve(typeParameters);
-        this.signature = ancestryIncludingMe.resolve(signature);
-        this.signatureConstructor = ancestryIncludingMe.resolve(signatureConstructor);
+        this.typeParameters = resolve(ancestryIncludingMe, typeParameters);
+        this.signature = resolve(ancestryIncludingMe, signature);
+        this.signatureConstructor = resolve(ancestryIncludingMe, signatureConstructor);
         this.body = body.map(ancestryIncludingMe::constructAll);
     }
 

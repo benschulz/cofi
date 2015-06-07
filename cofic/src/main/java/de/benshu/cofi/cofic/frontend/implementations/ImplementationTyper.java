@@ -28,7 +28,7 @@ import de.benshu.cofi.model.impl.TransformationContext;
 import de.benshu.cofi.model.impl.TransformedUserDefinedNode;
 import de.benshu.cofi.parser.lexer.ArtificialToken;
 import de.benshu.cofi.parser.lexer.Token;
-import de.benshu.cofi.runtime.internal.MemoizingSupplier;
+import de.benshu.cofi.binary.internal.MemoizingSupplier;
 import de.benshu.cofi.types.impl.FunctionTypes;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;

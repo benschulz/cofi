@@ -1,9 +1,9 @@
 package de.benshu.cofi.runtime;
 
 import com.google.common.collect.ImmutableSet;
-import de.benshu.cofi.runtime.internal.Ancestry;
-import de.benshu.cofi.runtime.internal.Constructor;
-import de.benshu.cofi.runtime.internal.MemoizingSupplier;
+import de.benshu.cofi.binary.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Constructor;
+import de.benshu.cofi.binary.internal.MemoizingSupplier;
 import de.benshu.cofi.runtime.internal.TypeParameterListReference;
 import de.benshu.cofi.types.ProperTypeConstructor;
 import de.benshu.cofi.types.TypeParameterList;
@@ -12,6 +12,8 @@ import de.benshu.jswizzle.data.Data;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+
+import static de.benshu.cofi.runtime.internal.Resolution.resolve;
 
 @Data
 public abstract class AbstractTypeDeclaration<T extends ProperTypeConstructor<?>>
@@ -40,7 +42,7 @@ public abstract class AbstractTypeDeclaration<T extends ProperTypeConstructor<?>
 
         this.annotations = ancestryIncludingMe.constructAll(annotations);
         this.name = name;
-        this.typeParameters = ancestryIncludingMe.resolve(typeParameters);
+        this.typeParameters = resolve(ancestryIncludingMe, typeParameters);
         this.type = MemoizingSupplier.of(() -> type.apply(this));
         this.body = ancestryIncludingMe.construct(body);
     }
