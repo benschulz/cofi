@@ -1,5 +1,6 @@
 package de.benshu.cofi.interpreter;
 
+import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.interpreter.internal.ModuleInterpretation;
 import de.benshu.cofi.runtime.Module;
 import de.benshu.cofi.runtime.context.RuntimeContext;
@@ -11,7 +12,7 @@ public class CofiInterpreter {
         this.context = context;
     }
 
-    public void start(Module module) {
-        new ModuleInterpretation(context, module).perform();
+    public void start(Module module, String... application) {
+        new ModuleInterpretation(module, ImmutableList.copyOf(application)).perform();
     }
 }

@@ -5,7 +5,7 @@ import de.benshu.cofi.cofic.notes.CofiNote;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.declarations.Interpreter;
-import de.benshu.cofi.types.impl.declarations.SourceType;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.cofic.notes.ImmutableNote;
 import de.benshu.cofi.cofic.notes.async.Checker;

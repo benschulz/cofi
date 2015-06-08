@@ -2,7 +2,6 @@ package de.benshu.cofi.interpreter.internal;
 
 import com.google.common.base.Equivalence;
 import com.google.common.collect.Maps;
-import de.benshu.cofi.runtime.Module;
 import de.benshu.cofi.runtime.Multiton;
 import de.benshu.cofi.runtime.Singleton;
 import de.benshu.cofi.runtime.context.RuntimeContext;
@@ -15,16 +14,9 @@ import java.util.concurrent.ConcurrentMap;
 
 // TODO rename to Multitons
 public class Singletons {
-    private final RuntimeContext context;
-    private final Module module;
     private final ConcurrentMap<Singleton, CofiObject> singletons = Maps.newConcurrentMap();
     private final ConcurrentMap<Multiton, ConcurrentMap<Equivalence.Wrapper<TypeList<?>>, CofiObject>> multitons = Maps.newConcurrentMap();
     private final TypeArgumentEquivalence typeArgumentEquivalence = new TypeArgumentEquivalence();
-
-    public Singletons(RuntimeContext context, Module module) {
-        this.context = context;
-        this.module = module;
-    }
 
     public CofiObject lookUpOrCreate(Singleton singleton) {
         return singletons.computeIfAbsent(singleton, s -> new CofiObject(s.getProperType()));

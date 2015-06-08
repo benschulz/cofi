@@ -1,10 +1,10 @@
 package de.benshu.cofi.runtime;
 
 import com.google.common.collect.ImmutableSet;
+import de.benshu.cofi.binary.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Constructor;
+import de.benshu.cofi.binary.internal.MemoizingSupplier;
 import de.benshu.cofi.common.Fqn;
-import de.benshu.cofi.runtime.internal.Ancestry;
-import de.benshu.cofi.runtime.internal.Constructor;
-import de.benshu.cofi.runtime.internal.MemoizingSupplier;
 import de.benshu.cofi.runtime.internal.TypeParameterListReference;
 import de.benshu.cofi.types.TemplateTypeConstructor;
 import de.benshu.cofi.types.TypeList;
@@ -15,10 +15,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static de.benshu.cofi.runtime.internal.Resolution.resolve;
+
 @Data
 public class Package implements NamedEntity, Singleton, PackageAccessors, TypeDeclaration, MemberDeclaration {
     final ImmutableSet<Annotation> annotations;
-    final Fqn fqn;
+    final transient Fqn fqn;
     final String name;
     @Data.Exclude
     final transient Supplier<TemplateTypeConstructor> type;
@@ -27,7 +29,7 @@ public class Package implements NamedEntity, Singleton, PackageAccessors, TypeDe
     @Data.Exclude
     final Supplier<TypeList<TemplateTypeConstructor>> supertypes = MemoizingSupplier.of(() -> getType().getSupertypes());
     final TypeBody body;
-    final ImmutableSet<AbstractTypeDeclaration> topLevelDeclarations;
+    final ImmutableSet<AbstractTypeDeclaration<?>> topLevelDeclarations;
     final ImmutableSet<Package> subpackages;
 
     public Package(Ancestry ancestry,
@@ -36,17 +38,18 @@ public class Package implements NamedEntity, Singleton, PackageAccessors, TypeDe
                    TypeParameterListReference typeParameters,
                    Function<Package, TemplateTypeConstructor> type,
                    Constructor<TypeBody> body,
-                   ImmutableSet<Constructor<AbstractTypeDeclaration>> topLevelDeclarations,
+                   ImmutableSet<Constructor<AbstractTypeDeclaration<?>>> topLevelDeclarations,
                    ImmutableSet<Constructor<Package>> subpackages) {
 
         final Ancestry ancestryIncludingMe = ancestry.append(this);
 
         this.annotations = ancestryIncludingMe.constructAll(annotations);
         this.fqn = ancestry.closest(Package.class).map(Package::getFqn)
-                .getOrSupply(() -> ancestry.closest(Module.class).get().fqn)
+                // TODO eliminate the getParent() when modules become a real thing
+                .getOrSupply(() -> ancestry.closest(Module.class).get().getFqn().getParent())
                 .getChild(name);
         this.name = name;
-        this.typeParameters = ancestryIncludingMe.resolve(typeParameters);
+        this.typeParameters = resolve(ancestryIncludingMe, typeParameters);
         this.type = MemoizingSupplier.of(() -> type.apply(this));
         this.body = ancestryIncludingMe.construct(body);
         this.topLevelDeclarations = ancestryIncludingMe.constructAll(topLevelDeclarations);
@@ -80,8 +83,12 @@ public class Package implements NamedEntity, Singleton, PackageAccessors, TypeDe
 
     @Override
     public Stream<? extends MemberDeclaration> getMemberDeclarations() {
-        return Stream.of(subpackages.stream(), body.getMemberDeclarations(), topLevelDeclarations.stream())
-                .flatMap(s -> s);
+        return Stream.of(
+                subpackages.stream(),
+                body.getMemberDeclarations(),
+                topLevelDeclarations.stream()
+                        .map(d -> d.getCompanion().<AbstractTypeDeclaration<?>>map(c -> c).getOrReturn(d))
+        ).flatMap(s -> s);
     }
 
     @Override

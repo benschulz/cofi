@@ -1,29 +1,28 @@
 package de.benshu.cofi.cofic.frontend;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import de.benshu.cofi.cofic.Pass;
+import de.benshu.cofi.cofic.model.common.FullyQualifiedTypeName;
+import de.benshu.cofi.cofic.model.common.TypeTags;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.CompilationUnit;
-import de.benshu.cofi.model.impl.FullyQualifiedTypeName;
-import de.benshu.cofi.model.impl.ModuleImpl;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
-import de.benshu.cofi.model.impl.TypeTags;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
-import de.benshu.cofi.types.impl.declarations.SourceType;
-import de.benshu.cofi.types.impl.declarations.SourceTypeDescriptor;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
+import de.benshu.cofi.types.impl.declarations.source.SourceTypeDescriptor;
 import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
-import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.cofi.types.tags.IndividualTags;
+import de.benshu.commons.core.Optional;
 
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.Maps.immutableEntry;
@@ -32,10 +31,7 @@ import static de.benshu.commons.core.streams.Collectors.set;
 import static de.benshu.commons.core.streams.Collectors.setMultimap;
 
 public class ModuleGlueTyper {
-    public static void type(Pass pass, ModuleImpl<Pass> module, ImmutableSet<ModuleImpl<Pass>> dependencies, ImmutableSet<CompilationUnit<Pass>> compilationUnits) {
-        final ImmutableSet<ModuleImpl<Pass>> modules = FluentIterable.from(dependencies).append(module).toSet();
-        final Fqn moduleFqn = module.getFullyQualifiedName();
-
+    public static void type(Pass pass, Fqn moduleFqn, ImmutableSet<CompilationUnit<Pass>> compilationUnits) {
         final ImmutableMap.Builder<Fqn, PackageObjectDeclaration<Pass>> packageObjectDeclarationsBuilder = ImmutableMap.builder();
         final ImmutableSetMultimap.Builder<Fqn, AbstractTypeDeclaration<Pass>> topLevelDeclarationsBuilder = ImmutableSetMultimap.builder();
 
@@ -61,10 +57,17 @@ public class ModuleGlueTyper {
                 .map(e -> immutableEntry(packageObjectDeclarations.get(e.getKey()), e.getValue()))
                 .collect(setMultimap()));
 
-        final ImmutableSet<Fqn> glueObjectFqns = modules
-                .stream()
-                .map(m -> m.getFullyQualifiedName().getParent())
-                .flatMap(fqn -> fqn.getAncestry().stream())
+        final PackageObjectDeclaration<Pass> module = packageObjectDeclarations.get(moduleFqn);
+
+        final ImmutableMap<Fqn, Supplier<TemplateTypeConstructorMixin<Pass>>> dependencies = pass.getDependencyTypes().entrySet().stream()
+                .map(d -> immutableEntry(d.getKey(), (Supplier<TemplateTypeConstructorMixin<Pass>>) d::getValue))
+                .collect(map());
+
+        final ImmutableSet<Fqn> moduleFqns = Stream.concat(Stream.of(moduleFqn), dependencies.keySet().stream()).collect(set());
+
+        final ImmutableSet<Fqn> glueObjectFqns = moduleFqns.stream()
+                .filter(fqn -> moduleFqns.stream().noneMatch(other -> other.strictlyContains(fqn)))
+                .flatMap(fqn -> fqn.getParent().getAncestry().stream())
                 .distinct()
                 .collect(set());
 
@@ -74,12 +77,17 @@ public class ModuleGlueTyper {
                                 x -> TypeParameterListImpl.empty(),
                                 x -> ImmutableList.of(),
                                 x -> {
-                                    final Stream<Map.Entry<String, TemplateTypeConstructorMixin<Pass>>> containedModules = modules.stream()
-                                            .filter(m -> m.getFullyQualifiedName().getParent().equals(fqn))
-                                            .map(m -> immutableEntry(
-                                                    m.getFullyQualifiedName().getLocalName(),
-                                                    pass.lookUpTypeOf(pass.lookUpPackageObjectDeclarationOf(m.getFullyQualifiedName()))
-                                            ));
+                                    final Stream<Map.Entry<String, TemplateTypeConstructorMixin<Pass>>> containedDependencies = x.getDependencyTypes().entrySet().stream()
+                                            .filter(m -> m.getKey().getParent().equals(fqn))
+                                            .map(m -> immutableEntry(m.getKey().getLocalName(), m.getValue()));
+
+                                    final Stream<Map.Entry<String, TemplateTypeConstructorMixin<Pass>>> containedModules = Stream.concat(
+                                            Optional.some(moduleFqn)
+                                                    .filter(n -> n.getParent().equals(fqn))
+                                                    .map(n -> immutableEntry(n.getLocalName(), x.lookUpTypeOf(module)))
+                                                    .stream(),
+                                            containedDependencies
+                                    );
 
                                     final Stream<Map.Entry<String, TemplateTypeConstructorMixin<Pass>>> containedGlueObjects = pass.getGlueTypes().entrySet().stream()
                                             .filter(e -> e.getKey().length() > 0)
@@ -94,7 +102,7 @@ public class ModuleGlueTyper {
                                                 }
 
                                                 @Override
-                                                public SourceType<Pass> getType(Pass context) {
+                                                public SourceType<Pass> getType() {
                                                     return SourceType.of(e.getValue());
                                                 }
                                             })

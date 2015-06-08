@@ -1,10 +1,10 @@
 package de.benshu.cofi.cofic.frontend.namespace;
 
 import de.benshu.cofi.cofic.Pass;
+import de.benshu.cofi.cofic.notes.Source;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.impl.CompilationUnit;
 import de.benshu.commons.core.Optional;
-import de.benshu.cofi.cofic.notes.Source;
 
 class ModuleNs extends AbstractNamespace {
     public static ModuleNs wrap(AbstractNamespace parent, CompilationUnit.ModuleDeclaration<Pass> moduleDeclaration) {
@@ -29,8 +29,8 @@ class ModuleNs extends AbstractNamespace {
         return cofiLangNs(lookUp).tryResolveLocally(lookUp, fromNamespace, name);
     }
 
-    private PackageObjectNs cofiLangNs(LookUp lookUp) {
+    private QualifiedTypeNs cofiLangNs(LookUp lookUp) {
         final Fqn cofiLangFqn = Fqn.from("cofi", "lang");
-        return PackageObjectNs.create(this, cofiLangFqn, lookUp.lookUpPackageObjectDeclarationOf(cofiLangFqn));
+        return QualifiedTypeNs.create(cofiLangFqn, lookUp.resolveQualifiedTypeName(cofiLangFqn));
     }
 }

@@ -152,20 +152,20 @@ public final class Conjunction<X extends TypeSystemContext<X>> extends Monosemou
                     Constraint.upper(context.getTypeSystem().getTop())));
         }
 
-        final ImmutableSetMultimap<TypeVariableImpl<X, ?>, Constraint<X>> constraints;
+        ImmutableSetMultimap<TypeVariableImpl<X, ?>, Constraint<X>> constraints = ImmutableSetMultimap.of(
+                var, constraint,
+                var, normalization
+        );
+
         if (constraint.getBound() instanceof TypeVariableImpl<?, ?>) {
             final TypeVariableImpl<X, ?> rVar = (TypeVariableImpl<X, ?>) constraint.getBound();
-            constraints = ImmutableSetMultimap.of(
-                    var, constraint,
-                    var, normalization,
-                    rVar, reverse,
-                    rVar, rNormalization);
 
-        } else {
-            constraints = ImmutableSetMultimap.of(
-                    var, constraint,
-                    var, normalization
-            );
+            if (rVar.getParameterList().isSameAs(params))
+                constraints = ImmutableSetMultimap.of(
+                        var, constraint,
+                        var, normalization,
+                        rVar, reverse,
+                        rVar, rNormalization);
         }
 
         return new Conjunction<>(parent, params, constraints);
@@ -480,7 +480,7 @@ public final class Conjunction<X extends TypeSystemContext<X>> extends Monosemou
             }
 
             @Override
-            public <O> O supplyConstraints(X context, Interpreter<AbstractConstraints<X>, O> interpreter) {
+            public <O> O supplyConstraints(X context, TypeParameterListImpl<X> bound, Interpreter<AbstractConstraints<X>, O> interpreter) {
                 return interpreter.interpret(hack.get(), context.getChecker());
             }
         });

@@ -57,6 +57,12 @@ public class TypeSystemImpl<X extends TypeSystemContext<X>> implements TypeSyste
         return lookUpUnchecked("Function");
     }
 
+    public AbstractTemplateTypeConstructor<X> getFunctionOrNull(int arity) {
+        if (arity < 0)
+            return null;
+        return lookUpUnchecked("Function" + arity);
+    }
+
     public AbstractTemplateTypeConstructor<X> getFunction(int arity) {
         if (arity < 0)
             throw new IllegalArgumentException(String.valueOf(arity));

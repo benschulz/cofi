@@ -13,6 +13,8 @@
     </properties>
 
     <modules>
+        <module>cofi-binary-model-commons</module>
+        <module>cofi-binary-model-deserialization-commons</module>
         <module>cofi-commons</module>
         <module>cofi-inference</module>
         <module>cofi-interpreter</module>
@@ -26,8 +28,10 @@
         <module>cofi-types-unbound</module>
         <module>cofi-types-impl</module>
         <module>cofic</module>
-        <module>cofic-model</module>
-        <module>cofic-model-impl</module>
+        <module>cofic-model-binary</module>
+        <module>cofic-model-commons</module>
+        <module>cofic-model-source</module>
+        <module>cofic-model-source-impl</module>
         <module>cofic-notes</module>
         <module>cofic-testing</module>
     </modules>

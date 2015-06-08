@@ -36,7 +36,6 @@ import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.function.IntFunction;
 
 import static de.benshu.cofi.types.impl.lists.AbstractTypeList.typeList;
 
@@ -284,12 +283,12 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
         final Source.Snippet src = name.ids.get(0).getTokenString(name.ids.get(name.ids.size() - 1));
 
         return name instanceof FullyQualifiedName
-                ? getNs().resolveFullyQualifiedType(lookUp, ((FullyQualifiedName) name).fqn, src)
-                : getNs().resolveType(lookUp, ImmutableList.copyOf(name.ids.stream().map(Token::getLexeme).iterator()), src);
+                ? getNs().resolveQualifiedTypeName(lookUp, ((FullyQualifiedName) name).fqn, src)
+                : getNs().resolveTypeName(lookUp, ImmutableList.copyOf(name.ids.stream().map(Token::getLexeme).iterator()), src);
     }
 
     protected final TypeMixin<Pass, ?> resolveFullyQualifiedType(Fqn name, Source.Snippet src, T aggregate) {
-        return getNs().resolveFullyQualifiedType(lookUp(aggregate), name, src);
+        return getNs().resolveQualifiedTypeName(lookUp(aggregate), name, src);
     }
 
     protected final AbstractResolution resolve(NameImpl<Pass> name, T aggregate) {

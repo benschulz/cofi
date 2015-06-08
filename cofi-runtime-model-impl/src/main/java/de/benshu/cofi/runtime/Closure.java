@@ -1,8 +1,8 @@
 package de.benshu.cofi.runtime;
 
 import com.google.common.collect.ImmutableList;
-import de.benshu.cofi.runtime.internal.Ancestry;
-import de.benshu.cofi.runtime.internal.Constructor;
+import de.benshu.cofi.binary.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Constructor;
 import de.benshu.cofi.runtime.internal.TypeReference;
 import de.benshu.cofi.types.ProperType;
 import de.benshu.commons.core.Debuggable;
@@ -10,6 +10,7 @@ import de.benshu.jswizzle.data.Data;
 
 import java.util.function.Supplier;
 
+import static de.benshu.cofi.runtime.internal.Resolution.resolve;
 import static java.util.stream.Collectors.joining;
 
 public class Closure implements Expression, ClosureAccessors {
@@ -25,7 +26,7 @@ public class Closure implements Expression, ClosureAccessors {
         final Ancestry ancestryIncludingMe = ancestry.append(this);
 
         this.cases = ancestryIncludingMe.constructAll(cases);
-        this.type = ancestryIncludingMe.resolve(type);
+        this.type = resolve(ancestryIncludingMe, type);
     }
 
     @Override

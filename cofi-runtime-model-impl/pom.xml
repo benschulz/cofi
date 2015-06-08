@@ -16,6 +16,11 @@
     <dependencies>
         <dependency>
             <groupId>de.benshu.cofi</groupId>
+            <artifactId>cofi-binary-model-commons</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>de.benshu.cofi</groupId>
             <artifactId>cofi-types-unbound</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>

@@ -1,11 +1,11 @@
 package de.benshu.cofi.types.impl.members;
 
-import de.benshu.cofi.types.impl.FunctionTypes;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.Substitutions;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
+import de.benshu.cofi.types.impl.functions.FunctionType;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 
@@ -20,8 +20,8 @@ public class MethodSignatureComparator<X extends TypeSystemContext<X>> {
         final TemplateTypeConstructorMixin<X> typeA = a.getType();
         final TemplateTypeConstructorMixin<X> typeB = b.getType();
 
-        final AbstractTypeList<X, ProperTypeMixin<X, ?>> parameterTypesA = FunctionTypes.extractParamTypes(context, typeA.applyTrivially());
-        final AbstractTypeList<X, ProperTypeMixin<X, ?>> parameterTypesB = FunctionTypes.extractParamTypes(context, typeB.applyTrivially());
+        final AbstractTypeList<X, ProperTypeMixin<X, ?>> parameterTypesA = FunctionType.from(context, typeA.applyTrivially()).getParameterTypes();
+        final AbstractTypeList<X, ProperTypeMixin<X, ?>> parameterTypesB = FunctionType.from(context, typeB.applyTrivially()).getParameterTypes();
 
         final TypeParameterListImpl<X> typeParametersA = typeA.getParameters();
         final TypeParameterListImpl<X> typeParametersB = typeB.getParameters();

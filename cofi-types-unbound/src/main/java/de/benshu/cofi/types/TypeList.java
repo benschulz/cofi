@@ -6,11 +6,20 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static de.benshu.commons.core.streams.Collectors.list;
+import static java.util.stream.Collectors.collectingAndThen;
+
 public interface TypeList<T extends Type> extends Iterable<T>, Debuggable {
+    @SuppressWarnings("unchecked")
+    static <T extends Type> Collector<T, ?, TypeList<T>> typeList() {
+        return collectingAndThen(list(), ts -> of(ts.toArray((T[]) new Type[ts.size()])));
+    }
+
     static <T extends Type> TypeList<T> empty() {
         return new ArrayTypeList<>();
     }

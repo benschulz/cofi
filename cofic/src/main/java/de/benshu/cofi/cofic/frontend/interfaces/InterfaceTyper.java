@@ -20,7 +20,7 @@ import de.benshu.cofi.model.impl.TypeExpression;
 import de.benshu.cofi.model.impl.TypeParamDecl;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
-import de.benshu.cofi.types.impl.declarations.SourceType;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.streams.Collectors;
 
@@ -130,7 +130,7 @@ public class InterfaceTyper {
             final ImmutableList<SourceType<Pass>> traits = traitsBuilder.build();
             final AbstractTypeDeclaration<Pass> owner = getContainingTypeDeclaration();
 
-            aggregate.addProperty(owner, new SourcePropertyDescriptorImpl(traits, propertyDeclaration, owner));
+            aggregate.addProperty(owner, new SourcePropertyDescriptorImpl(pass, traits, propertyDeclaration, owner));
 
             return aggregate;
         }
@@ -152,12 +152,12 @@ public class InterfaceTyper {
                 final Fqn packageFqn = getNs().getPackageFqn();
 
                 for (PackageObjectDeclaration<Pass> containingPackage : pass.tryLookUpPackageObjectDeclarationOf(packageFqn.getParent())) {
-                    final SourceTypeDescriptorImpl descriptor = new SourceTypeDescriptorImpl(typeDeclaration, packageFqn.getLocalName(), IndividualTags.empty());
+                    final SourceTypeDescriptorImpl descriptor = new SourceTypeDescriptorImpl(pass, typeDeclaration, packageFqn.getLocalName(), IndividualTags.empty());
 
                     aggregate.addType(containingPackage, descriptor);
                 }
             } else if (typeDeclaration instanceof ObjectDeclaration<?>) {
-                final SourceTypeDescriptorImpl descriptor = new SourceTypeDescriptorImpl(typeDeclaration, typeDeclaration.getName(), IndividualTags.empty());
+                final SourceTypeDescriptorImpl descriptor = new SourceTypeDescriptorImpl(pass, typeDeclaration, typeDeclaration.getName(), IndividualTags.empty());
 
                 aggregate.addType(getContainingTypeDeclaration(), descriptor);
             }

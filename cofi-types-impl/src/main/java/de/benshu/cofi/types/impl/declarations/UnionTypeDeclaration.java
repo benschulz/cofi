@@ -3,6 +3,7 @@ package de.benshu.cofi.types.impl.declarations;
 import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.TypeSystemContext;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.tags.IndividualTags;
 
 import java.util.function.Function;

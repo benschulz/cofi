@@ -17,6 +17,10 @@ import java.util.stream.Stream;
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class Fqn implements Comparable<Fqn>, Iterable<String> {
+    public static Fqn root() {
+        return from();
+    }
+
     public static Fqn from(String... ids) {
         return from(ImmutableList.copyOf(ids));
     }
@@ -55,12 +59,20 @@ public class Fqn implements Comparable<Fqn>, Iterable<String> {
     }
 
     public boolean contains(Fqn other) {
-        return length() <= other.length() && equals(other.getAncestor(length()));
+        return length() <= other.length() && containsInternal(other);
     }
 
-    public ImmutableList<String> getRelativeNameOf(Fqn child) {
-        checkArgument(contains(child));
-        return FluentIterable.of(child.ids).skip(length()).toList();
+    public boolean strictlyContains(Fqn other) {
+        return length() < other.length() && containsInternal(other);
+    }
+
+    public boolean containsInternal(Fqn other) {
+        return equals(other.getAncestor(length()));
+    }
+
+    public ImmutableList<String> getRelativeNameOf(Fqn descendant) {
+        checkArgument(contains(descendant));
+        return FluentIterable.of(descendant.ids).skip(length()).toList();
     }
 
     public Fqn getParent() {
@@ -79,14 +91,26 @@ public class Fqn implements Comparable<Fqn>, Iterable<String> {
     }
 
     public Fqn getChild(String localName) {
+        return getDescendant(localName);
+    }
+
+    public Fqn getDescendant(ImmutableList<String> names) {
+        return getDescendant(names.toArray(new String[names.size()]));
+    }
+
+    public Fqn getDescendant(String... names) {
         final int length = length();
-        String[] childIds = Arrays.copyOf(ids, length + 1);
-        childIds[length] = localName;
-        return new Fqn(childIds);
+        String[] descendantIds = Arrays.copyOf(ids, length + names.length);
+        System.arraycopy(names, 0, descendantIds, ids.length, names.length);
+        return new Fqn(descendantIds);
     }
 
     public int length() {
         return ids.length;
+    }
+
+    public boolean isRoot() {
+        return length() == 0;
     }
 
     public String get(int index) {

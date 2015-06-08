@@ -1,8 +1,8 @@
 package de.benshu.cofi.runtime;
 
 import com.google.common.collect.ImmutableSet;
-import de.benshu.cofi.runtime.internal.Ancestry;
-import de.benshu.cofi.runtime.internal.Constructor;
+import de.benshu.cofi.binary.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Constructor;
 import de.benshu.cofi.runtime.internal.TypeReference;
 import de.benshu.cofi.types.ProperType;
 import de.benshu.commons.core.Debuggable;
@@ -12,6 +12,8 @@ import de.benshu.jswizzle.data.Data;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static de.benshu.cofi.runtime.internal.Resolution.resolve;
 
 public class Annotation implements ModelNode, AnnotationAccessors {
     final Supplier<ProperType> type;
@@ -28,7 +30,7 @@ public class Annotation implements ModelNode, AnnotationAccessors {
 
         final Ancestry ancestryIncludingMe = ancestry.append(this);
 
-        this.type = ancestryIncludingMe.resolve(type);
+        this.type = resolve(ancestryIncludingMe, type);
         this.value = value.map(ancestryIncludingMe::construct);
         this.propertyAssignments = ancestryIncludingMe.constructAll(propertyAssignments);
     }

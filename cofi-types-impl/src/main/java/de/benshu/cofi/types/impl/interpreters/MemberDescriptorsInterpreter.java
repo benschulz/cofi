@@ -19,13 +19,13 @@ import de.benshu.cofi.types.impl.declarations.InterpretedMethodSignatureDescript
 import de.benshu.cofi.types.impl.declarations.InterpretedPropertyDescriptor;
 import de.benshu.cofi.types.impl.declarations.InterpretedTypeDescriptor;
 import de.benshu.cofi.types.impl.declarations.Interpreter;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
-import de.benshu.cofi.types.impl.declarations.SourceMethodDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceMethodSignatureDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourcePropertyDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceType;
-import de.benshu.cofi.types.impl.declarations.SourceTypeDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
+import de.benshu.cofi.types.impl.declarations.source.SourceMethodDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMethodSignatureDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourcePropertyDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
+import de.benshu.cofi.types.impl.declarations.source.SourceTypeDescriptor;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Optional;
@@ -129,7 +129,7 @@ public class MemberDescriptorsInterpreter<X extends TypeSystemContext<X>> implem
     }
 
     private InterpretedPropertyDescriptor<X> interpretPropertyDescriptor(SourcePropertyDescriptor<X> propertyDescriptor) {
-        final ProperTypeMixin<X, ?> type = interpretTypeAsProper(propertyDescriptor.getType(context));
+        final ProperTypeMixin<X, ?> type = interpretTypeAsProper(propertyDescriptor.getValueType());
         final AbstractTypeList<X, AbstractTemplateTypeConstructor<X>> traits = propertyDescriptor.getTraits().stream()
                 .flatMap(this::interpretTypeAsTemplateTypeConstructor).collect(typeList());
         final String name = propertyDescriptor.getName();
@@ -164,7 +164,7 @@ public class MemberDescriptorsInterpreter<X extends TypeSystemContext<X>> implem
     }
 
     private InterpretedTypeDescriptor<X> interpretTypeDescriptor(SourceTypeDescriptor<X> typeDescriptor) {
-        final ProperTypeConstructorMixin<X, ?, ?> type = interpretTypeAsProperTypeConstructor(typeDescriptor.getType(context));
+        final ProperTypeConstructorMixin<X, ?, ?> type = interpretTypeAsProperTypeConstructor(typeDescriptor.getType());
         final String name = typeDescriptor.getName();
         final IndividualTags tags = typeDescriptor.getTags(context);
 

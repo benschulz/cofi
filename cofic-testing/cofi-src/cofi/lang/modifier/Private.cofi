@@ -1,8 +1,0 @@
-module .cofi.lang;
-package .cofi.lang.modifier;
-
-public class Private {
-}
-
-public class Public {
-}

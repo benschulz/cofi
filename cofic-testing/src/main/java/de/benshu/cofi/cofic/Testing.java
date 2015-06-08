@@ -9,22 +9,26 @@ import de.benshu.cofi.cofic.frontend.constraints.HierarchyAndConstraintEstablish
 import de.benshu.cofi.cofic.frontend.discovery.Discoverer;
 import de.benshu.cofi.cofic.frontend.implementations.ImplementationTyper;
 import de.benshu.cofi.cofic.frontend.interfaces.InterfaceTyper;
+import de.benshu.cofi.cofic.model.binary.BinaryDeserializer;
+import de.benshu.cofi.cofic.model.binary.BinaryModule;
+import de.benshu.cofi.cofic.model.common.TypeTags;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.interpreter.CofiInterpreter;
-import de.benshu.cofi.model.Module.Version;
 import de.benshu.cofi.model.impl.CompilationUnit;
-import de.benshu.cofi.model.impl.ModuleImpl;
 import de.benshu.cofi.parser.EarleyCofiParser;
 import de.benshu.cofi.runtime.Module;
 import de.benshu.cofi.runtime.context.RuntimeContext;
 import de.benshu.cofi.runtime.serialization.ModuleDeserializer;
 import de.benshu.cofi.runtime.serialization.ModuleSerializer;
+import de.benshu.cofi.types.impl.TypeSystemImpl;
+import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 
 import java.io.IOException;
+import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
@@ -33,6 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static de.benshu.commons.core.streams.Collectors.set;
@@ -69,31 +74,32 @@ public class Testing {
     }
 
     private static void compile() throws IOException {
-        // TODO A separate hello-world module.
+        final Path cofiLangPath = findRoot().resolve("target/.cofi.lang.cm");
 
+        final BinaryModule cofiLang = Files.exists(cofiLangPath)
+                ? read(cofiLangPath, new BinaryDeserializer()::deserialize)
+                : compile(Fqn.from("cofi", "lang"));
+
+        compile(Fqn.from("helloworld"), ImmutableSet.of(cofiLang));
+    }
+
+    private static BinaryModule compile(Fqn moduleName) throws IOException {
+        return compile(moduleName, ImmutableSet.of());
+    }
+
+    private static BinaryModule compile(Fqn moduleName, ImmutableSet<BinaryModule> dependencies) throws IOException {
         begin("Parsing…");
-        ImmutableSet<CompilationUnit<Pass>> rawCompilationUnits = findCompilationUnits()
-                .map(p -> {
-                    try {
-                        return Files.newBufferedReader(p, StandardCharsets.UTF_8);
-                    } catch (Exception e) {
-                        throw Throwables.propagate(e);
-                    }
-                })
-                .map(EarleyCofiParser.INSTANCE::<Pass>parse)
-                .collect(set());
+        ImmutableSet<CompilationUnit<Pass>> rawCompilationUnits = parseCompilationUnits(moduleName.toCanonicalString());
         end();
 
-        Pass pass = new Pass();
-
-        final ModuleImpl<Pass> langModule = ModuleImpl.create(pass, Fqn.from("cofi", "lang"), new Version());
+        Pass pass = createPass(moduleName, dependencies);
 
         begin("Normalizing meta objects…");
         final ImmutableSet<CompilationUnit<Pass>> normalizedCompilationUnints = CompanionObjectNormalizer.normalize(pass, rawCompilationUnits);
         end();
 
         begin("Creating glue types…");
-        ModuleGlueTyper.type(pass, langModule, ImmutableSet.of(), normalizedCompilationUnints);
+        ModuleGlueTyper.type(pass, moduleName, normalizedCompilationUnints);
         end();
 
         begin("Discovering types…");
@@ -120,20 +126,49 @@ public class Testing {
         final StringWriter output = new StringWriter();
         new ModuleSerializer().serialize(langRtModule, output);
         final String json = output.toString();
-        Files.write(findRoot().resolve("target").resolve("core.cm"), json.getBytes());
+        Files.write(findRoot().resolve("target").resolve(moduleName.toCanonicalString() + ".cm"), json.getBytes());
         end();
+
+        return new BinaryDeserializer().deserialize(new StringReader(json));
+    }
+
+    private static Pass createPass(Fqn moduleFqn, ImmutableSet<BinaryModule> dependencies) {
+        return new Pass(
+                moduleFqn,
+                dependencies,
+                pass -> TypeSystemImpl.create(
+                        name -> pass.resolveQualifiedTypeName(Fqn.from("cofi", "lang", name)),
+                        TypeTags.NAME,
+                        () -> (TemplateTypeConstructorMixin<Pass>) pass.resolveQualifiedTypeName(Fqn.from("cofi", "lang", "Object")))
+        );
+    }
+
+    private static ImmutableSet<CompilationUnit<Pass>> parseCompilationUnits(String moduleName) {
+        return findCompilationUnits(moduleName)
+                .map(p -> read(p, EarleyCofiParser.INSTANCE::<Pass>parse))
+                .collect(set());
+    }
+
+    private static <R> R read(Path path, Function<Reader, R> f) {
+        try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            return f.apply(reader);
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     private static void interpret() throws IOException {
-        begin("Loading module file…");
-        String json = new String(Files.readAllBytes(findRoot().resolve("target").resolve("core.cm")), StandardCharsets.UTF_8);
-        final RuntimeContext runtimeContext = new ModuleDeserializer().deserialize(new StringReader(json));
-        Module deserializedLangModule = runtimeContext.getModule();
+        begin("Loading module files…");
+        RuntimeContext runtimeContext = new RuntimeContext();
+        final Module cofiLang = read(findRoot().resolve("target/.cofi.lang.cm"), new ModuleDeserializer(runtimeContext, ImmutableSet.of())::deserialize);
+        final Module helloworld = read(findRoot().resolve("target/.helloworld.cm"), new ModuleDeserializer(runtimeContext, ImmutableSet.of(cofiLang))::deserialize);
+        runtimeContext.load(cofiLang);
+        runtimeContext.load(helloworld);
         end();
 
         begin("Interpreting program…");
         System.out.println();
-        new CofiInterpreter(runtimeContext).start(deserializedLangModule);
+        new CofiInterpreter(runtimeContext).start(helloworld, "HelloWorld");
         System.out.print(" … ...........................");
         end();
     }
@@ -150,8 +185,8 @@ public class Testing {
         System.out.println(" [" + (time / 1000f) + "s]");
     }
 
-    private static Stream<Path> findCompilationUnits() {
-        return findCompilationUnits(findRoot().resolve("cofi-src"));
+    private static Stream<Path> findCompilationUnits(String moduleName) {
+        return findCompilationUnits(findRoot().resolve("cofi-src").resolve(moduleName));
     }
 
     private static Stream<Path> findCompilationUnits(Path sourceDirectory) {
@@ -172,7 +207,7 @@ public class Testing {
         final Path cwd = Paths.get(".");
 
         if (Files.isDirectory(cwd.resolve("cofi")))
-            return cwd.resolve("cofi").resolve("cofic-testing");
+            return cwd.resolve("cofi/cofic-testing");
         else if (Files.isDirectory(cwd.resolve("cofic-testing")))
             return cwd.resolve("cofic-testing");
         else if (Files.isDirectory(cwd.resolve("cofi-src")))

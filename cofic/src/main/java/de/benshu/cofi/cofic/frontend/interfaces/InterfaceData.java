@@ -8,7 +8,7 @@ import de.benshu.cofi.model.MemberDeclaration;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.TypeExpression;
 import de.benshu.cofi.types.impl.TypeMixin;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
 
 public class InterfaceData extends GenericModelData {
     public static InterfaceDataBuilder builder(Pass pass) {

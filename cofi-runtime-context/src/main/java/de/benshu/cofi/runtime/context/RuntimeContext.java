@@ -1,25 +1,25 @@
 package de.benshu.cofi.runtime.context;
 
+import de.benshu.cofi.binary.deserialization.internal.AbstractBinaryModelContext;
+import de.benshu.cofi.binary.internal.BinaryTypeDeclarationMixin;
 import de.benshu.cofi.cofic.notes.Note;
 import de.benshu.cofi.cofic.notes.async.Checker;
+import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.runtime.Module;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.runtime.TypeDeclaration;
 import de.benshu.cofi.types.impl.TypeMixin;
-import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.TypeSystemImpl;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 
+import java.util.HashSet;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.Set;
 
-public class RuntimeContext implements TypeSystemContext<RuntimeContext> {
-    private final Supplier<Module> module;
-    private final FqnResolver fqnResolver;
+public class RuntimeContext extends AbstractBinaryModelContext<RuntimeContext> {
+    private final Set<Module> modules = new HashSet<>();
     private final TypeSystemImpl<RuntimeContext> typeSystem;
 
-    public RuntimeContext(Supplier<Module> module) {
-        this.module = module;
-        this.fqnResolver = new FqnResolver(module);
-
+    public RuntimeContext() {
         this.typeSystem = TypeSystemImpl.create(
                 this::lookUpLangType,
                 RuntimeTypeName.TAG,
@@ -27,12 +27,21 @@ public class RuntimeContext implements TypeSystemContext<RuntimeContext> {
         );
     }
 
+    @Override
+    protected TypeMixin<RuntimeContext, ?> bind(BinaryTypeDeclarationMixin typeDeclaration) {
+        return TypeMixin.rebind(((TypeDeclaration) typeDeclaration).getType());
+    }
+
+    private TypeMixin<RuntimeContext, ?> lookUpLangType(String name) {
+        return resolveQualifiedTypeName(Fqn.from("cofi", "lang", name));
+    }
+
     private AbstractTemplateTypeConstructor<RuntimeContext> lookUpTopConstructor() {
         return (AbstractTemplateTypeConstructor<RuntimeContext>) lookUpLangType("Object");
     }
 
-    private TypeMixin<RuntimeContext, ?> lookUpLangType(String name) {
-        return TypeMixin.<RuntimeContext>rebind(fqnResolver.resolve("cofi", "lang", name).getType());
+    public void load(Module module) {
+        modules.add(module);
     }
 
     @Override
@@ -48,7 +57,14 @@ public class RuntimeContext implements TypeSystemContext<RuntimeContext> {
                 .forEach(System.out::println);
     }
 
-    public Module getModule() {
-        return module.get();
+    @Override
+    public TypeMixin<RuntimeContext, ?> resolveQualifiedTypeName(Fqn fqn) {
+        final Module module = modules.stream()
+                .filter(m -> m.getFqn().contains(fqn))
+                .sorted((a, b) -> -a.getFqn().compareTo(b.getFqn()))
+                .findFirst()
+                .get();
+
+        return tryResolveTypeInModule(module, module.getFqn().getRelativeNameOf(fqn)).get();
     }
 }

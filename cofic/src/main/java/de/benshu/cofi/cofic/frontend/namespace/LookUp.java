@@ -60,4 +60,12 @@ public class LookUp {
     public TypeParameterListImpl<Pass> lookUpTypeParametersOf(TypeParameterized<Pass> typeParameterized) {
         return pass.lookUpTypeParametersOf(typeParameterized);
     }
+
+    public ProperTypeConstructorMixin<Pass, ?, ?> resolveQualifiedTypeName(Fqn typeName){
+        return pass.resolveQualifiedTypeName(typeName);
+    }
+
+    public Optional<ProperTypeConstructorMixin<Pass, ?, ?>> tryResolveQualifiedTypeName(Fqn typeName){
+        return pass.tryResolveQualifiedTypeName(typeName);
+    }
 }

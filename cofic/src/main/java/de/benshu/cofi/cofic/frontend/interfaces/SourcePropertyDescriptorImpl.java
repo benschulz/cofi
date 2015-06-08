@@ -4,16 +4,18 @@ import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.PropertyDeclaration;
-import de.benshu.cofi.types.impl.declarations.SourcePropertyDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceType;
+import de.benshu.cofi.types.impl.declarations.source.SourcePropertyDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.tags.IndividualTags;
 
 class SourcePropertyDescriptorImpl implements SourcePropertyDescriptor<Pass> {
+    private final Pass pass;
     private final ImmutableList<SourceType<Pass>> traits;
     private final PropertyDeclaration<Pass> propertyDeclaration;
     private final AbstractTypeDeclaration<Pass> owner;
 
-    public SourcePropertyDescriptorImpl(ImmutableList<SourceType<Pass>> traits, PropertyDeclaration<Pass> propertyDeclaration, AbstractTypeDeclaration<Pass> owner) {
+    public SourcePropertyDescriptorImpl(Pass pass, ImmutableList<SourceType<Pass>> traits, PropertyDeclaration<Pass> propertyDeclaration, AbstractTypeDeclaration<Pass> owner) {
+        this.pass = pass;
         this.traits = traits;
         this.propertyDeclaration = propertyDeclaration;
         this.owner = owner;
@@ -35,7 +37,7 @@ class SourcePropertyDescriptorImpl implements SourcePropertyDescriptor<Pass> {
     }
 
     @Override
-    public SourceType<Pass> getType(Pass context) {
-        return SourceType.of(context.lookUpProperTypeOf(propertyDeclaration.type));
+    public SourceType<Pass> getValueType() {
+        return SourceType.of(pass.lookUpProperTypeOf(propertyDeclaration.type));
     }
 }

@@ -14,7 +14,7 @@ import de.benshu.cofi.types.impl.Bottom;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.TypeSystemImpl;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.test.StringNameTag;

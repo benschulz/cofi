@@ -1,11 +1,13 @@
 package de.benshu.cofi.runtime;
 
-import de.benshu.cofi.runtime.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Ancestry;
 import de.benshu.cofi.runtime.internal.TypeReference;
 import de.benshu.cofi.types.ProperType;
 import de.benshu.jswizzle.data.Data;
 
 import java.util.function.Supplier;
+
+import static de.benshu.cofi.runtime.internal.Resolution.resolve;
 
 public class LiteralValue implements Expression, LiteralValueAccessors {
     @Data
@@ -20,7 +22,7 @@ public class LiteralValue implements Expression, LiteralValueAccessors {
         final Ancestry ancestryIncludingMe = ancestry.append(this);
 
         this.literal = literal;
-        this.type = ancestryIncludingMe.resolve(type);
+        this.type = resolve(ancestryIncludingMe, type);
     }
 
     @Override

@@ -9,8 +9,8 @@ import de.benshu.cofi.cofic.frontend.GenericModelDataBuilder;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.MemberDeclarationImpl;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Pair;
 

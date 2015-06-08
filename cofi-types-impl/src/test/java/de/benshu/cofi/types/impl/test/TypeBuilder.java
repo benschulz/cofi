@@ -7,17 +7,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
-
 import de.benshu.cofi.types.Variance;
-import de.benshu.cofi.types.impl.intersections.AbstractIntersectionTypeConstructor;
 import de.benshu.cofi.types.impl.AbstractProperType;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.cofi.types.impl.AbstractTypeConstructor;
-import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
 import de.benshu.cofi.types.impl.AdHoc;
-import de.benshu.cofi.types.impl.intersections.ConstructedIntersectionTypeImpl;
-import de.benshu.cofi.types.impl.unions.ConstructedUnionTypeImpl;
 import de.benshu.cofi.types.impl.Error;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
@@ -26,13 +19,19 @@ import de.benshu.cofi.types.impl.TypeSystemImpl;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 import de.benshu.cofi.types.impl.declarations.Interpreter;
 import de.benshu.cofi.types.impl.declarations.IntersectionTypeDeclaration;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
-import de.benshu.cofi.types.impl.declarations.SourceType;
 import de.benshu.cofi.types.impl.declarations.TypeDeclaration;
 import de.benshu.cofi.types.impl.declarations.TypeParameterListDeclaration;
 import de.benshu.cofi.types.impl.declarations.UnionTypeDeclaration;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
+import de.benshu.cofi.types.impl.intersections.AbstractIntersectionTypeConstructor;
+import de.benshu.cofi.types.impl.intersections.ConstructedIntersectionTypeImpl;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
+import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
+import de.benshu.cofi.types.impl.unions.ConstructedUnionTypeImpl;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Pair;
 
@@ -187,7 +186,7 @@ public class TypeBuilder {
         }
 
         @Override
-        public <O> O supplyConstraints(TestContext context, Interpreter<AbstractConstraints<TestContext>, O> interpreter) {
+        public <O> O supplyConstraints(TestContext context, TypeParameterListImpl<TestContext> bound, Interpreter<AbstractConstraints<TestContext>, O> interpreter) {
             return interpreter.interpret(constraints, context.getChecker());
         }
 

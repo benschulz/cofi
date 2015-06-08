@@ -64,7 +64,7 @@ public final class TypeParameterListImpl<X extends TypeSystemContext<X>> impleme
             }
 
             @Override
-            public <O> O supplyConstraints(X context, Interpreter<AbstractConstraints<X>, O> interpreter) {
+            public <O> O supplyConstraints(X context, TypeParameterListImpl<X> bound, Interpreter<AbstractConstraints<X>, O> interpreter) {
                 return interpreter.interpret(AbstractConstraints.trivial(context, hack.get()), context.getChecker());
             }
         });
@@ -116,6 +116,10 @@ public final class TypeParameterListImpl<X extends TypeSystemContext<X>> impleme
                 : AbstractConstraints.trivial(context, parentConstraints, this);
     }
 
+    public boolean isSameAs(TypeParameterListImpl<X> other) {
+        return getUnbound() == other.getUnbound();
+    }
+
     X getContext() {
         return context;
     }
@@ -155,7 +159,7 @@ public final class TypeParameterListImpl<X extends TypeSystemContext<X>> impleme
         if (constraints == null)
             synchronized (this) {
                 if (constraints == null)
-                    this.constraints = original.getDeclaration().supplyConstraints(context, id());
+                    this.constraints = original.getDeclaration().supplyConstraints(context, this, id());
             }
 
         return constraints;
@@ -171,7 +175,15 @@ public final class TypeParameterListImpl<X extends TypeSystemContext<X>> impleme
     }
 
     private String debug() {
-        final String parameters = getVariables().stream().map(v -> v.debug()).collect(joining(", "));
+        return toPrettyDescriptor();
+    }
+
+    public String toDescriptor() {
+        return CharMatcher.WHITESPACE.removeFrom(toPrettyDescriptor());
+    }
+
+    private String toPrettyDescriptor() {
+        final String parameters = stream().map(p -> p.toDescriptor()).collect(joining(", "));
         final String constraints = Joiner.on(", ").join(new String[0]); // TODO debug constraints
 
         return parameters.isEmpty() && constraints.isEmpty()
@@ -187,10 +199,6 @@ public final class TypeParameterListImpl<X extends TypeSystemContext<X>> impleme
 
     public UnboundTypeParameterList<X> getUnbound() {
         return original;
-    }
-
-    public String toDescriptor() {
-        return CharMatcher.WHITESPACE.removeFrom(debug());
     }
 
     public Stream<TypeParameterImpl<X>> stream() {

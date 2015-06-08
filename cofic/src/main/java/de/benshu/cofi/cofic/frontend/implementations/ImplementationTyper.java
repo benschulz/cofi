@@ -2,6 +2,7 @@ package de.benshu.cofi.cofic.frontend.implementations;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import de.benshu.cofi.binary.internal.MemoizingSupplier;
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.frontend.infer.ExpressionTreeInferencer;
 import de.benshu.cofi.cofic.frontend.infer.InferClosure;
@@ -28,11 +29,10 @@ import de.benshu.cofi.model.impl.TransformationContext;
 import de.benshu.cofi.model.impl.TransformedUserDefinedNode;
 import de.benshu.cofi.parser.lexer.ArtificialToken;
 import de.benshu.cofi.parser.lexer.Token;
-import de.benshu.cofi.runtime.internal.MemoizingSupplier;
-import de.benshu.cofi.types.impl.FunctionTypes;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
+import de.benshu.cofi.types.impl.functions.FunctionType;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.members.AbstractMember;
 import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
@@ -50,7 +50,7 @@ import static java.util.stream.Collectors.joining;
 public class ImplementationTyper {
     public static ImplementationData type(Pass pass, ImmutableSet<CompilationUnit<Pass>> compilationUnits) {
         return compilationUnits
-                .parallelStream()
+                .stream()
                 .map(u -> new Visitor(pass).visit(u, ImplementationData.builder()))
                 .collect(ImplementationData::builder, ImplementationDataBuilder::addAll, ImplementationDataBuilder::addAll)
                 .addAll(new ImplementationDataBuilder(pass.getGenericModelData()))
@@ -104,7 +104,7 @@ public class ImplementationTyper {
             inferencer.beginInvocation(new InferFunctionInvocation<ImplementationDataBuilder>() {
                 @Override
                 public ImplementationDataBuilder setSignature(int index, ProperTypeMixin<Pass, ?> explicit, ProperTypeMixin<Pass, ?> implicit, ImplementationDataBuilder aggregate) {
-                    final ProperTypeMixin<Pass, ?> returnType = FunctionTypes.extractReturnType(pass, explicit);
+                    final ProperTypeMixin<Pass, ?> returnType = FunctionType.forceFrom(pass, explicit).getReturnType();
                     return aggregate.defineTypeOf(functionInvocationExpression, returnType);
                 }
 
@@ -232,7 +232,7 @@ public class ImplementationTyper {
 
         @Override
         public ImplementationDataBuilder visitRootExpression(RootExpression<Pass> rootExpression, ImplementationDataBuilder aggregate) {
-            final TemplateTypeImpl<Pass> type = pass.getGlueTypes().get(Fqn.from()).applyTrivially();
+            final TemplateTypeImpl<Pass> type = pass.getGlueTypes().get(Fqn.root()).applyTrivially();
 
             inferencer.pushValue(type);
 

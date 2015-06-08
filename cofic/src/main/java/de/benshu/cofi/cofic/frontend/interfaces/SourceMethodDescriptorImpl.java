@@ -4,8 +4,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.types.MemberSort;
-import de.benshu.cofi.types.impl.declarations.SourceMethodDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceMethodSignatureDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMethodDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMethodSignatureDescriptor;
 import de.benshu.cofi.types.tags.IndividualTags;
 
 final class SourceMethodDescriptorImpl implements SourceMethodDescriptor<Pass> {

@@ -9,7 +9,6 @@ import de.benshu.cofi.cofic.frontend.Owners;
 import de.benshu.cofi.inference.Parametrization;
 import de.benshu.cofi.types.Variance;
 import de.benshu.cofi.types.impl.AdHoc;
-import de.benshu.cofi.types.impl.FunctionTypes;
 import de.benshu.cofi.types.impl.NullaryTypeConstructor;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
@@ -20,6 +19,7 @@ import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
 import de.benshu.cofi.types.impl.declarations.Interpreter;
 import de.benshu.cofi.types.impl.declarations.TypeParameterListDeclaration;
+import de.benshu.cofi.types.impl.functions.FunctionType;
 import de.benshu.cofi.types.impl.intersections.AbstractIntersectionType;
 import de.benshu.cofi.types.impl.intersections.AnonymousIntersectionType;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
@@ -82,7 +82,7 @@ public class OverloadedMemberAccessInferencer<T> implements OverloadedExpression
             }
 
             @Override
-            public <O> O supplyConstraints(Pass context, Interpreter<AbstractConstraints<Pass>, O> interpreter) {
+            public <O> O supplyConstraints(Pass context, TypeParameterListImpl<Pass> bound, Interpreter<AbstractConstraints<Pass>, O> interpreter) {
                 final AbstractConstraints<Pass> existing = typeConstructor.getParameters().getConstraints();
                 final AbstractConstraints<Pass> partial = existing.transferTo(context, trivial(context, hack.get()), substitutions);
                 return interpreter.interpret(partial, context.getChecker());
@@ -120,8 +120,9 @@ public class OverloadedMemberAccessInferencer<T> implements OverloadedExpression
 
         int implicitParamCount = implicits.getParamCount();
 
-        AbstractTypeList<Pass, ProperTypeMixin<Pass, ?>> paramTypes = FunctionTypes.extractParamTypes(pass, type);
-        ProperTypeMixin<Pass, ?> returnType = FunctionTypes.extractReturnType(pass, type);
+        final FunctionType<Pass> functionType = FunctionType.forceFrom(pass, type);
+        AbstractTypeList<Pass, ProperTypeMixin<Pass, ?>> paramTypes = functionType.getParameterTypes();
+        ProperTypeMixin<Pass, ?> returnType = functionType.getReturnType();
 
         AbstractTemplateTypeConstructor<Pass> function = pass.getTypeSystem().getFunction(paramTypes.size() - implicitParamCount);
 

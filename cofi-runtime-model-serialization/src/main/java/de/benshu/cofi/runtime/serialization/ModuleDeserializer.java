@@ -22,6 +22,12 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import de.benshu.cofi.binary.deserialization.internal.AbstractBinaryModelContext;
+import de.benshu.cofi.binary.deserialization.internal.BinaryModelContext;
+import de.benshu.cofi.binary.deserialization.internal.TypeParser;
+import de.benshu.cofi.binary.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Constructor;
+import de.benshu.cofi.binary.internal.MemoizingSupplier;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.runtime.Annotation;
 import de.benshu.cofi.runtime.Closure;
@@ -43,40 +49,41 @@ import de.benshu.cofi.runtime.Package;
 import de.benshu.cofi.runtime.Parameter;
 import de.benshu.cofi.runtime.PropertyDeclaration;
 import de.benshu.cofi.runtime.RootExpression;
-import de.benshu.cofi.runtime.Singleton;
 import de.benshu.cofi.runtime.SingletonCompanion;
 import de.benshu.cofi.runtime.ThisExpression;
 import de.benshu.cofi.runtime.Trait;
 import de.benshu.cofi.runtime.TypeBody;
 import de.benshu.cofi.runtime.TypeDeclaration;
 import de.benshu.cofi.runtime.Union;
-import de.benshu.cofi.runtime.context.FqnResolver;
 import de.benshu.cofi.runtime.context.RuntimeContext;
 import de.benshu.cofi.runtime.context.RuntimeTypeName;
-import de.benshu.cofi.runtime.internal.Ancestry;
-import de.benshu.cofi.runtime.internal.Constructor;
-import de.benshu.cofi.runtime.internal.MemoizingSupplier;
+import de.benshu.cofi.runtime.internal.Resolution;
 import de.benshu.cofi.runtime.internal.TypeParameterListReference;
 import de.benshu.cofi.runtime.internal.TypeReference;
+import de.benshu.cofi.runtime.internal.TypeReferenceContext;
 import de.benshu.cofi.types.ProperTypeConstructor;
 import de.benshu.cofi.types.TemplateType;
 import de.benshu.cofi.types.TemplateTypeConstructor;
 import de.benshu.cofi.types.TypeList;
+import de.benshu.cofi.types.impl.AdHoc;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
+import de.benshu.cofi.types.impl.TypeParameterImpl;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.constraints.AbstractConstraints;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceMemberDescriptors;
-import de.benshu.cofi.types.impl.declarations.SourceMethodDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceMethodSignatureDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourcePropertyDescriptor;
-import de.benshu.cofi.types.impl.declarations.SourceType;
-import de.benshu.cofi.types.impl.declarations.SourceTypeDescriptor;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
 import de.benshu.cofi.types.impl.declarations.UnionTypeDeclaration;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
+import de.benshu.cofi.types.impl.declarations.source.SourceMethodDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMethodSignatureDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourcePropertyDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
+import de.benshu.cofi.types.impl.declarations.source.SourceTypeDescriptor;
 import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
+import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Optional;
@@ -86,8 +93,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.Comparator;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -155,13 +162,20 @@ public class ModuleDeserializer {
         return checkNotNull(type);
     }
 
+    private final RuntimeContext runtimeContext;
+    private final ImmutableSet<Module> dependencies;
+
+    public ModuleDeserializer(RuntimeContext runtimeContext, ImmutableSet<Module> dependencies) {
+        this.runtimeContext = runtimeContext;
+        this.dependencies = dependencies;
+    }
+
     // TODO Decouple RuntimeContext and Module; RuntimeContext should be a constructor argument to ModuleDeserializer.
-    public RuntimeContext deserialize(Reader reader) {
+    public Module deserialize(Reader reader) {
         return new Deserialization(reader).getResult();
     }
 
     private class Deserialization {
-
         private final ImmutableTable<Class<? extends ModelNode>, String, SpecialPropertyDeserializer> specialProperties =
                 ImmutableTable.<Class<? extends ModelNode>, String, SpecialPropertyDeserializer>builder()
                         .putAll(MODEL_NODE_TYPES.stream()
@@ -176,9 +190,20 @@ public class ModuleDeserializer {
                         .put(RootExpression.class, "type", (SimpleSpecialPropertyDeserializer) this::deserializeRootSignatureType)
                         .build();
 
-        private final RuntimeContext runtimeContext;
+        private final TypeParser typeParser = new TypeParser(
+                new TypeParser.Namer() {
+                    @Override
+                    public IndividualTags name(String name) {
+                        return IndividualTags.of(RuntimeTypeName.TAG, RuntimeTypeName.of(name));
+                    }
+
+                    @Override
+                    public String getNameOf(TypeParameterImpl<?> typeParameter) {
+                        return typeParameter.getTags().get(RuntimeTypeName.TAG).toDescriptor();
+                    }
+                });
+
         private final Supplier<Module> result;
-        private final TypeParser typeParser;
 
         public Deserialization(Reader reader) {
             final Gson gson = new GsonBuilder().setPrettyPrinting()
@@ -194,12 +219,10 @@ public class ModuleDeserializer {
                     .create();
 
             this.result = MemoizingSupplier.of(() -> gson.fromJson(reader, Module.class));
-            this.runtimeContext = new RuntimeContext(this.result);
-            this.typeParser = new TypeParser(runtimeContext, new FqnResolver(this.result));
         }
 
-        public RuntimeContext getResult() {
-            return runtimeContext;
+        public Module getResult() {
+            return result.get();
         }
 
         private ModelNode deserializeModelNode(JsonElement json, Type requiredType, JsonDeserializationContext context) throws JsonParseException {
@@ -274,14 +297,22 @@ public class ModuleDeserializer {
                         .map(JsonElement::getAsString)
                         .getOrSupply(() -> jsonObject.get("fqn").getAsString());
 
-                return IndividualTags.empty()
+                final IndividualTags regular = IndividualTags.empty()
                         .set(RuntimeTypeName.TAG, RuntimeTypeName.of(name))
                         .set(TypeDeclaration.TAG, declaration);
+
+                return declaration instanceof Companion
+                        ? regular.set(AbstractBinaryModelContext.ACCOMPANIED_TAG, ProperTypeConstructorMixin.rebind(((Companion) declaration).getAccompanied().getType()))
+                        : regular;
+
             };
 
             BiFunction<JsonArray, RuntimeContext, ImmutableList<SourceType<RuntimeContext>>> hierarchySupplier =
                     (ts, x) -> deserializeArray(ts)
-                            .map(e -> typeParser.in(ancestryIncludingMe.toTypeReferenceContext()).parseBoundType(e.getAsString()))
+                            .map(e -> typeParser
+                                    .in(rebind(Resolution.extractTypeReferenceContextFrom(ancestryIncludingMe)))
+                                    .parseType(e.getAsString()))
+                            .map(t -> t.<RuntimeContext>bind(x))
                             .map(SourceType::of)
                             .collect(Collector.of(
                                     ImmutableList::<SourceType<RuntimeContext>>builder,
@@ -410,7 +441,9 @@ public class ModuleDeserializer {
 
             final de.benshu.cofi.types.Type returnType = signatureTypeArguments.get(parameterCount);
 
-            return returnType instanceof TemplateType && ((TemplateType) returnType).getConstructor() == runtimeContext.getTypeSystem().getFunction(parameterCount)
+            final boolean returnTypeIsFunction = isFunction(returnType);
+
+            return returnTypeIsFunction
                     ? ImmutableList.<ImmutableList<SourceType<RuntimeContext>>>builder().add(firstParameterList).addAll(determineParameterTypes((TemplateType) returnType)).build()
                     : ImmutableList.of(firstParameterList);
         }
@@ -426,10 +459,20 @@ public class ModuleDeserializer {
                     : SourceType.of(TypeMixin.<RuntimeContext>rebind(returnType));
         }
 
+        private boolean isFunction(de.benshu.cofi.types.Type type) {
+            if (!(type instanceof TemplateType))
+                return false;
+
+            final TemplateType templateType = (TemplateType) type;
+
+            return TypeMixin.<RuntimeContext>rebind(templateType.getConstructor()).isSameAs(
+                    runtimeContext.getTypeSystem().getFunctionOrNull(templateType.getArguments().size() - 1));
+        }
+
         private SourceMemberDescriptor<RuntimeContext> toPropertyDescriptor(PropertyDeclaration propertyDeclaration) {
             return new SourcePropertyDescriptor<RuntimeContext>() {
                 @Override
-                public SourceType<RuntimeContext> getType(RuntimeContext context) {
+                public SourceType<RuntimeContext> getValueType() {
                     return SourceType.of(TypeMixin.<RuntimeContext>rebind(propertyDeclaration.getValueType()));
                 }
 
@@ -461,7 +504,7 @@ public class ModuleDeserializer {
 
             return new SourceTypeDescriptor<RuntimeContext>() {
                 @Override
-                public SourceType<RuntimeContext> getType(RuntimeContext context) {
+                public SourceType<RuntimeContext> getType() {
                     return SourceType.of(TypeMixin.<RuntimeContext>rebind(multiton.getType()));
                 }
 
@@ -482,50 +525,69 @@ public class ModuleDeserializer {
         }
 
         private ObjectSingleton createRootObjectSingleton() {
-            // TODO Handle module dependencies.
-            Singleton current = result.get().getPakkage();
-            for (Fqn memberFqn : result.get().getFqn().getAncestry().stream().filter(n -> n.length() > 0).sorted(Comparator.<Fqn>naturalOrder().reversed()).collect(set())) {
-                final Singleton member = current;
+            final ImmutableSet<Module> modules = Stream.concat(Stream.of(result.get()), dependencies.stream()).collect(set());
 
-                final TemplateTypeConstructor typeConstructor = AbstractTemplateTypeConstructor.<RuntimeContext>create(
-                        TemplateTypeDeclaration.memoizing(
-                                x -> TypeParameterListImpl.empty(),
-                                x -> ImmutableList.of(),
-                                x -> SourceMemberDescriptors.create(ImmutableSet.of(new SourceTypeDescriptor<RuntimeContext>() {
-                                    @Override
-                                    public String getName() {
-                                        return memberFqn.getLocalName();
-                                    }
+            final ImmutableSet<Fqn> glueObjectFqns = modules.stream()
+                    .filter(m -> modules.stream().noneMatch(other -> other.getFqn().strictlyContains(m.getFqn())))
+                    .flatMap(m -> m.getFqn().getParent().getAncestry().stream())
+                    .distinct()
+                    .collect(set());
 
-                                    @Override
-                                    public SourceType<RuntimeContext> getType(RuntimeContext context) {
-                                        return SourceType.of(TypeMixin.<RuntimeContext>rebind(member.getType()));
-                                    }
+            final AtomicReference<ImmutableMap<Fqn, ObjectSingleton>> hack = new AtomicReference<>();
+            final ImmutableMap<Fqn, ObjectSingleton> glueTypes = glueObjectFqns.stream()
+                    .map(fqn -> immutableEntry(fqn, AbstractTemplateTypeConstructor.<RuntimeContext>create(
+                            TemplateTypeDeclaration.memoizing(
+                                    x -> TypeParameterListImpl.empty(),
+                                    x -> ImmutableList.of(),
+                                    x -> {
+                                        final Stream<Map.Entry<String, TypeDeclaration>> containedModules = modules.stream()
+                                                .filter(m -> m.getFqn().getParent().equals(fqn))
+                                                .map(m -> immutableEntry(m.getFqn().getLocalName(), m));
 
-                                    @Override
-                                    public IndividualTags getTags(RuntimeContext context) {
-                                        return IndividualTags.of(MemberDeclaration.TAG, member);
-                                    }
-                                })),
-                                x -> IndividualTags.of(RuntimeTypeName.TAG, RuntimeTypeName.of(memberFqn.getParent().toCanonicalString())))
-                ).bind(runtimeContext).unbind();
+                                        final Stream<Map.Entry<String, TypeDeclaration>> containedGlueObjects = hack.get().entrySet().stream()
+                                                .filter(e -> e.getKey().length() > 0)
+                                                .filter(e -> e.getKey().getParent().equals(fqn))
+                                                .map(e -> immutableEntry(e.getKey().getLocalName(), e.getValue()));
 
-                current = new ObjectSingleton(
-                        Ancestry.empty(),
-                        ImmutableSet.of(),
-                        memberFqn.length() == 1 ? "<root>" : memberFqn.getParent().getLocalName(),
-                        x -> typeConstructor.getParameters(),
-                        x -> typeConstructor,
-                        x -> new TypeBody(x, ImmutableList.of())
-                );
-            }
+                                        return SourceMemberDescriptors.create(Stream.concat(containedModules, containedGlueObjects)
+                                                .map(e -> new SourceTypeDescriptor<RuntimeContext>() {
+                                                    @Override
+                                                    public String getName() {
+                                                        return e.getKey();
+                                                    }
 
-            return (ObjectSingleton) current;
+                                                    @Override
+                                                    public SourceType<RuntimeContext> getType() {
+                                                        return SourceType.of(TypeMixin.<RuntimeContext>rebind(e.getValue().getType()));
+                                                    }
+
+                                                    @Override
+                                                    public IndividualTags getTags(RuntimeContext context) {
+                                                        return IndividualTags.of(MemberDeclaration.TAG, e.getValue());
+                                                    }
+                                                })
+                                                .collect(set()));
+                                    },
+                                    x -> IndividualTags.of(RuntimeTypeName.TAG, RuntimeTypeName.of(fqn.toCanonicalString())))
+                    ).bind(runtimeContext)))
+                    .map(e -> immutableEntry(e.getKey(), new ObjectSingleton(
+                            Ancestry.empty(),
+                            ImmutableSet.of(),
+                            e.getKey().isRoot() ? "<root>" : e.getKey().getLocalName(),
+                            x -> e.getValue().getParameters().unbind(),
+                            x -> e.getValue().unbind(),
+                            x -> new TypeBody(x, ImmutableList.of())
+                    )))
+                    .collect(map());
+            hack.set(glueTypes);
+
+            return glueTypes.get(Fqn.root());
         }
 
         private TypeParameterListReference createEmptyTypeParameters(JsonObject jsonObject, Optional<Ancestry> ancestry, ImmutableMap<String, Supplier<?>> otherProperties) {
             return x -> {
-                final AbstractConstraints<RuntimeContext> parentConstraints = ancestry.flatMap(a -> a.closest(MemberDeclaration.class))
+                final AbstractConstraints<RuntimeContext> parentConstraints = ancestry
+                        .flatMap(a -> a.closest(MemberDeclaration.class))
                         .map(MemberDeclaration::getTypeParameters)
                         .map(TypeParameterListImpl::<RuntimeContext>rebind)
                         .map(TypeParameterListImpl::getConstraints)
@@ -540,9 +602,11 @@ public class ModuleDeserializer {
                 final String signatureString = jsonObject.get("signature").getAsString();
 
                 final TypeParameterListReference typeParametersReference = (TypeParameterListReference) otherProperties.get("typeParameters").get();
-                final TypeParameterListImpl<RuntimeContext> typeParameters = TypeParameterListImpl.rebind(ancestry.get().resolve(typeParametersReference).get());
+                final TypeParameterListImpl<RuntimeContext> typeParameters = TypeParameterListImpl.rebind(Resolution.resolve(ancestry.get(), typeParametersReference).get());
 
-                return typeParser.in(x).parseBoundTemplateTypeConstructor(typeParameters, signatureString).unbind();
+                final TypeMixin<RuntimeContext, ?> proper = typeParser.in(rebind(x)).parseType(signatureString).<RuntimeContext>bind(runtimeContext);
+                final TemplateTypeConstructorMixin<RuntimeContext> constructor = AdHoc.templateTypeConstructor(runtimeContext, typeParameters, (TemplateTypeImpl<RuntimeContext>) proper);
+                return constructor.unbind();
             };
         }
 
@@ -587,13 +651,13 @@ public class ModuleDeserializer {
         private TypeParameterListReference deserializeTypeParameterListReference(JsonElement json, Type type, JsonDeserializationContext context) {
             final String typeParametersString = json.getAsString();
 
-            return x -> typeParser.in(x).parseTypeParameters(typeParametersString);
+            return x -> typeParser.in(rebind(x)).parseTypeParameters(typeParametersString).bind(runtimeContext).unbind();
         }
 
         private TypeReference<?> deserializeTypeReference(JsonElement json, Type type, JsonDeserializationContext context) {
             final String typeString = json.getAsString();
 
-            return x -> typeParser.in(x).parseType(typeString);
+            return x -> typeParser.in(rebind(x)).parseType(typeString).bind(runtimeContext).unbind();
         }
 
         private ImmutableList<?> deserializeList(JsonElement json, Type type, JsonDeserializationContext context) {
@@ -621,6 +685,20 @@ public class ModuleDeserializer {
         private Stream<JsonElement> deserializeArray(JsonArray array) {
             return ContiguousSet.create(Range.closedOpen(0, array.size()), DiscreteDomain.integers()).stream()
                     .map(array::get);
+        }
+
+        private de.benshu.cofi.binary.deserialization.internal.TypeReferenceContext rebind(TypeReferenceContext typeReferenceContext) {
+            return new de.benshu.cofi.binary.deserialization.internal.TypeReferenceContext() {
+                @Override
+                public <X extends BinaryModelContext<X>> Optional<AbstractConstraints<X>> getOuterConstraints(X context) {
+                    return typeReferenceContext.getOuterConstraints().map(AbstractConstraints::rebind);
+                }
+
+                @Override
+                public <X extends BinaryModelContext<X>> AbstractConstraints<X> getConstraints(X context) {
+                    return AbstractConstraints.rebind(typeReferenceContext.getConstraints());
+                }
+            };
         }
     }
 

@@ -2,7 +2,7 @@ package de.benshu.cofi.types.impl;
 
 import com.google.inject.Inject;
 
-import de.benshu.cofi.types.impl.declarations.SourceMethodDescriptor;
+import de.benshu.cofi.types.impl.declarations.source.SourceMethodDescriptor;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.members.AbstractMember;
 import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
