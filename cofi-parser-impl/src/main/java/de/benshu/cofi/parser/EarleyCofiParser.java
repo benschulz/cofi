@@ -22,6 +22,7 @@ import de.benshu.cofi.model.impl.MemberAccessExpression;
 import de.benshu.cofi.model.impl.MethodDeclarationImpl;
 import de.benshu.cofi.model.impl.ModelContext;
 import de.benshu.cofi.model.impl.ModifierImpl;
+import de.benshu.cofi.model.impl.ModuleObjectDeclaration;
 import de.benshu.cofi.model.impl.NameExpression;
 import de.benshu.cofi.model.impl.NamedTypeExpression;
 import de.benshu.cofi.model.impl.ObjectDeclaration;
@@ -140,13 +141,14 @@ public enum EarleyCofiParser {
     private static final NonTerminal METHOD_DECLARATION_PIECES = NonTerminal.create("MethodDeclarationPieces", listFactory());
     private static final NonTerminal MODIFIER = NonTerminal.create("Modifier", factory(ModifierImpl.class));
     private static final NonTerminal MODULUE_DECLARATION = NonTerminal.create("CompilationUnitModuleDeclaration", factory(CompilationUnit.ModuleDeclaration.class));
-    private static final NonTerminal PACKAGE_DECLARATION = NonTerminal.create("CompilationUnitPackageDeclaration", factory(CompilationUnit.PackageDeclaration.class));
+    private static final NonTerminal MODULE_OBJECT_DECLARATION = NonTerminal.create("ModuleObjectDeclaration", factory(ModuleObjectDeclaration.class));
     private static final NonTerminal MODIFIERS = NonTerminal.create("Modifiers", listFactory());
     private static final NonTerminal NAME = NonTerminal.createPassThrough("Name");
     private static final NonTerminal NAME_EXPRESSION = NonTerminal.create("NameExpression", EarleyCofiParser::userDefinedNameExpression);
     private static final NonTerminal NAMED_TYPE = NonTerminal.create("NamedType", factory(NamedTypeExpression.class));
-    private static final NonTerminal OBJECT_DECL = NonTerminal.create("AbstractObjectDeclaration", factory(ObjectDeclaration.class));
-    private static final NonTerminal PACKAGE_OBJECT_DECL = NonTerminal.create("PackageObjectDeclaration", factory(PackageObjectDeclaration.class));
+    private static final NonTerminal OBJECT_DECLARATION = NonTerminal.create("AbstractObjectDeclaration", factory(ObjectDeclaration.class));
+    private static final NonTerminal PACKAGE_DECLARATION = NonTerminal.create("CompilationUnitPackageDeclaration", factory(CompilationUnit.PackageDeclaration.class));
+    private static final NonTerminal PACKAGE_OBJECT_DECLARATION = NonTerminal.create("PackageObjectDeclaration", factory(PackageObjectDeclaration.class));
     private static final NonTerminal PARAMETER = NonTerminal.create("Parameter", factory(ParameterImpl.class));
     private static final NonTerminal PARAMETER_LIST = NonTerminal.createReturnPairA("ParameterList", listFactory());
     private static final NonTerminal PARAMETERS_OPT = NonTerminal.createPassThrough("ParametersOpt");
@@ -210,12 +212,6 @@ public enum EarleyCofiParser {
             .create(COMPILATION_UNIT, production(MODULUE_DECLARATION, PACKAGE_DECLARATION, IMPORTS, TYPE_DECLARATIONS), 1, 2,
                     3, 4);
 
-    static final Rule MODULE_DECLARATION_____MODULE__FULLY_QUALIFIED_NAME__SEMICOLON = Rule.create(MODULUE_DECLARATION,
-            production(MODULE, FULLY_QUALIFIED_NAME, SEMICOLON), 2);
-
-    static final Rule PACKAGE_DECLARATION_____PACKAGE__FULLY_QUALIFIED_NAME__SEMICOLON = Rule.create(PACKAGE_DECLARATION,
-            production(PACKAGE, FULLY_QUALIFIED_NAME, SEMICOLON), 2);
-
     static final Rule EMPTY_PARAMETER_LIST_____ = Rule.create(EMPTY_PARAMETER_LIST, production());
 
     static final Rule EMPTY_TYPE_BOUNDS_____ = Rule.create(EMPTY_TYPE_BOUNDS, production());
@@ -268,6 +264,12 @@ public enum EarleyCofiParser {
     static final Rule METHOD_DECLARATION_PIECE_____IDENTIFIER__TYPE_PARAMETERS__PARAMETERS = Rule.create(
             METHOD_DECLARATION_PIECE, production(IDENTIFIER, TYPE_PARAMETERS, PARAMETERS), 1, 2, 3);
 
+    static final Rule MODULE_DECLARATION_____MODULE__FULLY_QUALIFIED_NAME__SEMICOLON = Rule.create(MODULUE_DECLARATION,
+            production(MODULE, FULLY_QUALIFIED_NAME, SEMICOLON), 2);
+
+    static final Rule MODULE_OBJECT_DECLARATION_____ANNOTATIONS__MODIFIERS__MODULE__TYPE_PARAMETERS__EXTENDS_LIST__TYPE_BODY = Rule
+            .create(MODULE_OBJECT_DECLARATION, production(ANNOTATIONS, MODIFIERS, MODULE, TYPE_PARAMETERS, EXTENDS_LIST, TYPE_BODY), 1, 2, 4, 5, 6);
+
     static final Rule NAME_____FULLY_QUALIFIED_NAME = Rule.create(NAME, production(FULLY_QUALIFIED_NAME), 1);
     static final Rule NAME_____RELATIVE_NAME = Rule.create(NAME, production(RELATIVE_NAME), 1);
 
@@ -291,10 +293,13 @@ public enum EarleyCofiParser {
     static final Rule NAMED_TYPE_____NAME = Rule.create(NAMED_TYPE, production(NAME), 1);
 
     static final Rule OBJECT_DECL_____ANNOTATIONS__MODIFIERS__OBJECT__IDENTIFIER__EXTENDS_LIST__TYPE_BODY = Rule.create(
-            OBJECT_DECL, production(ANNOTATIONS, MODIFIERS, OBJECT, IDENTIFIER, EXTENDS_LIST, TYPE_BODY), 1, 2, 4, 5, 6);
+            OBJECT_DECLARATION, production(ANNOTATIONS, MODIFIERS, OBJECT, IDENTIFIER, EXTENDS_LIST, TYPE_BODY), 1, 2, 4, 5, 6);
+
+    static final Rule PACKAGE_DECLARATION_____PACKAGE__FULLY_QUALIFIED_NAME__SEMICOLON = Rule.create(PACKAGE_DECLARATION,
+            production(PACKAGE, FULLY_QUALIFIED_NAME, SEMICOLON), 2);
 
     static final Rule PACKAGE_OBJECT_DECLARATION_____ANNOTATIONS__MODIFIERS__PACKAGE__EXTENDS_LIST__TYPE_BODY = Rule
-            .create(PACKAGE_OBJECT_DECL, production(ANNOTATIONS, MODIFIERS, PACKAGE, EXTENDS_LIST, TYPE_BODY), 1, 2, 4, 5);
+            .create(PACKAGE_OBJECT_DECLARATION, production(ANNOTATIONS, MODIFIERS, PACKAGE, EXTENDS_LIST, TYPE_BODY), 1, 2, 4, 5);
 
     static final Rule PARAMETER_____ANNOTATIONS__IDENTIFIER__COLON__TYPE_EXPRESSION = Rule.create(PARAMETER,
             production(ANNOTATIONS, MODIFIERS, IDENTIFIER, COLON, TYPE_EXPRESSION), 1, 2, 3, 5, 0, 0);
@@ -358,15 +363,12 @@ public enum EarleyCofiParser {
     static final Rule TYPE_BODY_ELEMENT_____TYPE_DECLARATION = Rule
             .createPassThrough(TYPE_BODY_ELEMENT, TYPE_DECLARATION);
 
-    static final Rule TYPE_DECLARATION_____CLASS_DECLARATION = Rule
-            .createPassThrough(TYPE_DECLARATION, CLASS_DECLARATION);
-    static final Rule TYPE_DECLARATION_____OBJECT_DECL = Rule.createPassThrough(TYPE_DECLARATION, OBJECT_DECL);
-    static final Rule TYPE_DECLARATION_____PACKAGE_OBJECT_DECL = Rule.createPassThrough(TYPE_DECLARATION,
-            PACKAGE_OBJECT_DECL);
-    static final Rule TYPE_DECLARATION_____TRAIT_DECLARATION = Rule
-            .createPassThrough(TYPE_DECLARATION, TRAIT_DECLARATION);
-    static final Rule TYPE_DECLARATION_____UNION_DECLARATION = Rule
-            .createPassThrough(TYPE_DECLARATION, UNION_DECLARATION);
+    static final Rule TYPE_DECLARATION_____CLASS_DECLARATION = Rule.createPassThrough(TYPE_DECLARATION, CLASS_DECLARATION);
+    static final Rule TYPE_DECLARATION_____MODULE_OBJECT_DECLARATION = Rule.createPassThrough(TYPE_DECLARATION, MODULE_OBJECT_DECLARATION);
+    static final Rule TYPE_DECLARATION_____OBJECT_DECLARATION = Rule.createPassThrough(TYPE_DECLARATION, OBJECT_DECLARATION);
+    static final Rule TYPE_DECLARATION_____PACKAGE_OBJECT_DECLARATION = Rule.createPassThrough(TYPE_DECLARATION, PACKAGE_OBJECT_DECLARATION);
+    static final Rule TYPE_DECLARATION_____TRAIT_DECLARATION = Rule.createPassThrough(TYPE_DECLARATION, TRAIT_DECLARATION);
+    static final Rule TYPE_DECLARATION_____UNION_DECLARATION = Rule.createPassThrough(TYPE_DECLARATION, UNION_DECLARATION);
 
     static final Rule TYPE_EXPRESSION_____LITERAL_TYPE = Rule.createPassThrough(TYPE_EXPRESSION, LITERAL_TYPE);
     static final Rule TYPE_EXPRESSION_____NAMED_TYPE = Rule.createPassThrough(TYPE_EXPRESSION, NAMED_TYPE);
