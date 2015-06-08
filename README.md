@@ -22,12 +22,10 @@ The compiler is in its alpha stage. It compiles the current "language runtime" a
 
 The following things are next on the (long) to-do list. They are ordered by significance for some definition of significance.
 
-1. **Modules.** Implement basic module support so as to allow `helloworld.cofi` to be separated into its own module.
+1. **Higher kinded types.** The type system API and implementation are largely higher-kind ready. The biggest issue will likely be local type inference.
 
-2. **Higher kinded types.** The type system API and implementation are largely higher-kind ready. The biggest issue will likely be local type inference.
+2. **Graceful error handling.** Most compile time errors lead to an exception being thrown. One exception is, for instance, provinding an illegal supertype (e.g. `FixList<E> extends List` is ill-kinded). This sort of graceful error handling should be extended to cover all compile time errors.
 
-3. **Graceful error handling.** Most compile time errors lead to an exception being thrown. One exception is, for instance, provinding an illegal supertype (e.g. `FixList<E> extends List` is ill-kinded). This sort of graceful error handling should be extended to cover all compile time errors.
+3. …
 
-4. …
-
-
+Also, there's a [trello board](https://trello.com/b/KimbB7Rs/cofic)…
