@@ -27,13 +27,13 @@ class DerivedUnionTypeConstructor<X extends TypeSystemContext<X>> extends Abstra
     @Override
     public AbstractTypeList<X, TypeConstructorMixin<X, ?, ProperTypeMixin<X, ?>>> getElements() {
         final HierarchyInterpreter<X, ProperTypeMixin<X, ?>> hierarchyInterpreter = HierarchyInterpreter.of(ProperTypeMixin.class::isInstance, t -> (ProperTypeMixin<X, ?>) t);
-        return getDeclaration().supplyHierarchy(getContext(), hierarchyInterpreter)
+        return getDeclaration().supplyHierarchy(getContext(), this, hierarchyInterpreter)
                 .map(e -> AdHoc.typeConstructor(getContext(), getParameters(), e.substitutable()));
     }
 
     @Override
     public TypeParameterListImpl<X> getParameters() {
-        return getDeclaration().supplyParameters(getContext(), id());
+        return getDeclaration().supplyParameters(getContext(), this, id());
     }
 
     private UnionTypeDeclaration<X> getDeclaration() {

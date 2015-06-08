@@ -5,8 +5,6 @@ import de.benshu.cofi.types.impl.UnboundProperTypeConstructor;
 import de.benshu.cofi.types.impl.declarations.UnionTypeDeclaration;
 import de.benshu.cofi.types.impl.tags.Tagger;
 
-import static de.benshu.cofi.types.impl.declarations.Interpreter.id;
-
 public class UnboundUnionTypeConstructor<X extends TypeSystemContext<X>> implements UnboundProperTypeConstructor<X> {
     private final UnionTypeDeclaration<X> declaration;
 
@@ -19,6 +17,6 @@ public class UnboundUnionTypeConstructor<X extends TypeSystemContext<X>> impleme
     }
 
     public AbstractUnionTypeConstructor<X> bind(X context) {
-        return new DerivedUnionTypeConstructor<>(this, context, Tagger.of(getDeclaration().supplyTags(context, id())));
+        return new DerivedUnionTypeConstructor<>(this, context, Tagger.of(context, getDeclaration()));
     }
 }

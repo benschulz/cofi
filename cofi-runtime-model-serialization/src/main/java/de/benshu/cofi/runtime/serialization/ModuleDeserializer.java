@@ -324,19 +324,19 @@ public class ModuleDeserializer {
             if (declaration instanceof Union) {
                 final JsonArray elements = jsonObject.getAsJsonArray("elements");
 
-                return AbstractUnionTypeConstructor.create(UnionTypeDeclaration.lazy(
-                        x -> TypeParameterListImpl.rebind(declaration.getTypeParameters()),
-                        x -> hierarchySupplier.apply(elements, x),
-                        tagsSupplier
+                return AbstractUnionTypeConstructor.create(UnionTypeDeclaration.<RuntimeContext>lazy(
+                        (x, b) -> TypeParameterListImpl.rebind(declaration.getTypeParameters()),
+                        (x, b) -> hierarchySupplier.apply(elements, x),
+                        (x, b) -> tagsSupplier.apply(x)
                 )).bind(runtimeContext);
             } else {
                 final JsonArray supertypes = jsonObject.getAsJsonArray("supertypes");
 
-                return AbstractTemplateTypeConstructor.create(TemplateTypeDeclaration.memoizing(
-                        x -> TypeParameterListImpl.rebind(declaration.getTypeParameters()),
-                        x -> hierarchySupplier.apply(supertypes, x),
-                        x -> collectMemberDescriptorsOf(declaration),
-                        tagsSupplier
+                return AbstractTemplateTypeConstructor.create(TemplateTypeDeclaration.<RuntimeContext>memoizing(
+                        (x, b) -> TypeParameterListImpl.<RuntimeContext>rebind(declaration.getTypeParameters()),
+                        (x, b) -> hierarchySupplier.apply(supertypes, x),
+                        (x, b) -> collectMemberDescriptorsOf(declaration),
+                        (x, b) -> tagsSupplier.apply(x)
                 )).bind(runtimeContext);
             }
         }
@@ -537,9 +537,9 @@ public class ModuleDeserializer {
             final ImmutableMap<Fqn, ObjectSingleton> glueTypes = glueObjectFqns.stream()
                     .map(fqn -> immutableEntry(fqn, AbstractTemplateTypeConstructor.<RuntimeContext>create(
                             TemplateTypeDeclaration.memoizing(
-                                    x -> TypeParameterListImpl.empty(),
-                                    x -> ImmutableList.of(),
-                                    x -> {
+                                    (x, b) -> TypeParameterListImpl.empty(),
+                                    (x, b) -> ImmutableList.of(),
+                                    (x, b) -> {
                                         final Stream<Map.Entry<String, TypeDeclaration>> containedModules = modules.stream()
                                                 .filter(m -> m.getFqn().getParent().equals(fqn))
                                                 .map(m -> immutableEntry(m.getFqn().getLocalName(), m));
@@ -568,7 +568,7 @@ public class ModuleDeserializer {
                                                 })
                                                 .collect(set()));
                                     },
-                                    x -> IndividualTags.of(RuntimeTypeName.TAG, RuntimeTypeName.of(fqn.toCanonicalString())))
+                                    (x, b) -> IndividualTags.of(RuntimeTypeName.TAG, RuntimeTypeName.of(fqn.toCanonicalString())))
                     ).bind(runtimeContext)))
                     .map(e -> immutableEntry(e.getKey(), new ObjectSingleton(
                             Ancestry.empty(),

@@ -1,8 +1,8 @@
 package de.benshu.cofi.types.impl.declarations;
 
-import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
+import de.benshu.cofi.types.impl.TypeSystemContext;
 
-public interface ParameterizedTypeDeclaration<X extends TypeSystemContext<X>> {
-    <O> O supplyParameters(X context, Interpreter<TypeParameterListImpl<X>, O> interpreter);
+public interface ParameterizedTypeDeclaration<X extends TypeSystemContext<X>, B> {
+    <O> O supplyParameters(X context, B bound, Interpreter<TypeParameterListImpl<X>, O> interpreter);
 }

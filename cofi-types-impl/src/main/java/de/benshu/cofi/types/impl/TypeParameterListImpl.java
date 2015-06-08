@@ -59,7 +59,7 @@ public final class TypeParameterListImpl<X extends TypeSystemContext<X>> impleme
 
         final UnboundTypeParameterList<X> original = create(new TypeParameterListDeclaration<X>() {
             @Override
-            public <O> O supplyParameters(X context, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
+            public <O> O supplyParameters(X context, TypeParameterListImpl<X> bound, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
                 return interpreter.interpret(params, context.getChecker());
             }
 
@@ -92,7 +92,7 @@ public final class TypeParameterListImpl<X extends TypeSystemContext<X>> impleme
     private volatile AbstractConstraints<X> constraints;
 
     public TypeParameterListImpl(UnboundTypeParameterList<X> original, X context) {
-        final ImmutableList<Pair<Variance, IndividualTags>> parameterDeclarations = original.getDeclaration().supplyParameters(context, id());
+        final ImmutableList<Pair<Variance, IndividualTags>> parameterDeclarations = original.getDeclaration().supplyParameters(context, this, id());
 
         this.original = original;
         this.context = context;

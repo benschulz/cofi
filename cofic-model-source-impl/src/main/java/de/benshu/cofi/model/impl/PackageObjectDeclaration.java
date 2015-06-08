@@ -5,8 +5,8 @@ import de.benshu.cofi.cofic.model.common.FullyQualifiedTypeName;
 import de.benshu.cofi.cofic.model.common.TypeTags;
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
 import de.benshu.cofi.parser.lexer.Token;
-import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.cofi.types.impl.templates.UnboundTemplateTypeConstructor;
@@ -38,10 +38,10 @@ public class PackageObjectDeclaration<X extends ModelContext<X>> extends Abstrac
         this.typeParameters = typeParameters;
         this.unbound = AbstractTemplateTypeConstructor.<X>create(
                 TemplateTypeDeclaration.memoizing(
-                        x -> x.lookUpTypeParametersOf(this),
-                        x -> getExtending().stream().map(e -> SourceType.of(x.lookUpTypeOf(e), e.getSourceSnippet())).collect(Collectors.list()),
-                        x -> x.lookUpMemberDescriptorsOf(this),
-                        x -> IndividualTags.empty()
+                        (x,b) -> x.lookUpTypeParametersOf(this),
+                        (x, b) -> getExtending().stream().map(e -> SourceType.of(x.lookUpTypeOf(e), e.getSourceSnippet())).collect(Collectors.list()),
+                        (x, b) -> x.lookUpMemberDescriptorsOf(this),
+                        (x, b) -> IndividualTags.empty()
                                 .set(TypeTags.NAME, FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this)))
                                 .set(AbstractTypeDeclaration.Tag.INSTANCE, this)
                 )

@@ -3,9 +3,7 @@ package de.benshu.cofi.types.impl.templates;
 import de.benshu.cofi.types.impl.TypeSystemContext;
 import de.benshu.cofi.types.impl.UnboundProperTypeConstructor;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
-import de.benshu.cofi.types.tags.HashTags;
-
-import static de.benshu.cofi.types.impl.declarations.Interpreter.id;
+import de.benshu.cofi.types.impl.tags.Tagger;
 
 public class UnboundTemplateTypeConstructor<X extends TypeSystemContext<X>> implements UnboundProperTypeConstructor<X> {
     private final TemplateTypeDeclaration<X> declaration;
@@ -20,6 +18,6 @@ public class UnboundTemplateTypeConstructor<X extends TypeSystemContext<X>> impl
     }
 
     public AbstractTemplateTypeConstructor<X> bind(X context) {
-        return new DerivedTemplateTypeConstructor<>(this, context, t -> HashTags.create(t, declaration.supplyTags(context, id())));
+        return new DerivedTemplateTypeConstructor<>(this, context, Tagger.of(context, getDeclaration()));
     }
 }

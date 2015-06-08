@@ -48,15 +48,15 @@ public abstract class AbstractBinaryObject extends AbstractBinaryTypeDeclaration
     @Override
     public <X extends BinaryModelContext<X>> ProperTypeConstructorMixin<X, ?, ?> bind(X context) {
         return AbstractTemplateTypeConstructor.<X>create(TemplateTypeDeclaration.memoizing(
-                this::bindTypeParameters,
-                x -> supertypes.stream().map(t -> SourceType.of(t.bind(x))).collect(list()),
-                x -> SourceMemberDescriptors.create(this.bindTypeParameters(x).getConstraints(), getMemberDeclarations()
+                (x, b) -> bindTypeParameters(x),
+                (x, b) -> supertypes.stream().map(t -> SourceType.of(t.bind(x))).collect(list()),
+                (x, b) -> SourceMemberDescriptors.create(b.getParameters().getConstraints(), getMemberDeclarations()
                         .map(d -> d.toDescriptor(context))
                         .collect(setMultimap(SourceMemberDescriptor::getName, identity()))
                         .asMap().values().stream()
                         .map(ds -> ds.stream().reduce(CombinableSourceMemberDescriptor::combineWith).get())
                         .collect(set())),
-                x -> individualTags(context).set(TypeTags.NAME, FullyQualifiedTypeName.create(getFqn(), postfix))
+                (x, b) -> individualTags(context).set(TypeTags.NAME, FullyQualifiedTypeName.create(getFqn(), postfix))
         )).bind(context);
     }
 

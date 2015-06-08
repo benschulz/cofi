@@ -5,11 +5,11 @@ import de.benshu.cofi.cofic.model.common.FullyQualifiedTypeName;
 import de.benshu.cofi.cofic.model.common.TypeTags;
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
 import de.benshu.cofi.parser.lexer.Token;
-import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
-import de.benshu.cofi.types.impl.unions.UnboundUnionTypeConstructor;
-import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.impl.declarations.UnionTypeDeclaration;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
+import de.benshu.cofi.types.impl.unions.AbstractUnionTypeConstructor;
+import de.benshu.cofi.types.impl.unions.UnboundUnionTypeConstructor;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.streams.Collectors;
 import de.benshu.jswizzle.copyable.CopyFactory;
@@ -38,9 +38,9 @@ public class UnionDeclaration<X extends ModelContext<X>> extends AbstractTypeDec
         this.typeParameters = typeParameters;
         this.unbound = AbstractUnionTypeConstructor.<X>create(
                 UnionTypeDeclaration.lazy(
-                        x -> x.lookUpTypeParametersOf(this),
-                        x -> getExtending().stream().map(e -> SourceType.of(x.lookUpTypeOf(e), e.getSourceSnippet())).collect(Collectors.list()),
-                        x -> IndividualTags.empty()
+                        (x, b) -> x.lookUpTypeParametersOf(this),
+                        (x, b) -> getExtending().stream().map(e -> SourceType.of(x.lookUpTypeOf(e), e.getSourceSnippet())).collect(Collectors.list()),
+                        (x, b) -> IndividualTags.empty()
                                 .set(TypeTags.NAME, FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this)))
                                 .set(AbstractTypeDeclaration.Tag.INSTANCE, this)
                 )

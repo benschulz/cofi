@@ -5,8 +5,6 @@ import de.benshu.cofi.types.impl.UnboundProperTypeConstructor;
 import de.benshu.cofi.types.impl.declarations.IntersectionTypeDeclaration;
 import de.benshu.cofi.types.impl.tags.Tagger;
 
-import static de.benshu.cofi.types.impl.declarations.Interpreter.id;
-
 public class UnboundIntersectionTypeConstructor<X extends TypeSystemContext<X>> implements UnboundProperTypeConstructor<X> {
     private final IntersectionTypeDeclaration<X> declaration;
 
@@ -19,6 +17,6 @@ public class UnboundIntersectionTypeConstructor<X extends TypeSystemContext<X>> 
     }
 
     public AbstractIntersectionTypeConstructor<X> bind(X context) {
-        return new DerivedIntersectionTypeConstructor<>(this, context, Tagger.of(getDeclaration().supplyTags(context, id())));
+        return new DerivedIntersectionTypeConstructor<>(this, context, Tagger.of(context, getDeclaration()));
     }
 }

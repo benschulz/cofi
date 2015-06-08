@@ -214,7 +214,7 @@ public abstract class TemplateTypeImpl<X extends TypeSystemContext<X>>
         @Override
         public ImmutableMap<String, AbstractMember<X>> getMembers() {
             final InterpretedMemberDescriptors<X> interpretedMemberDescriptors = getConstructor().getOriginal().getDeclaration()
-                    .supplyMembers(getContext(), MemberDescriptorsInterpreter.create(getContext()));
+                    .supplyMembers(getContext(), getConstructor(), MemberDescriptorsInterpreter.create(getContext()));
 
             final AbstractConstraints<X> contextualConstraints = interpretedMemberDescriptors.getContext();
 

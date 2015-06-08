@@ -8,6 +8,7 @@ import de.benshu.cofi.types.impl.interpreters.HierarchyInterpreter;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.tags.Tagger;
 import de.benshu.cofi.types.tags.Tags;
+
 import static de.benshu.cofi.types.impl.declarations.Interpreter.id;
 
 class DerivedTemplateTypeConstructor<X extends TypeSystemContext<X>> extends AbstractTemplateTypeConstructor<X> {
@@ -23,13 +24,13 @@ class DerivedTemplateTypeConstructor<X extends TypeSystemContext<X>> extends Abs
 
     @Override
     public TypeParameterListImpl<X> getParameters() {
-        return getDeclaration().supplyParameters(getContext(), id());
+        return getDeclaration().supplyParameters(getContext(), this, id());
     }
 
     @Override
     public AbstractTypeList<X, TemplateTypeConstructorMixin<X>> getSupertypes() {
         final HierarchyInterpreter<X, TemplateTypeImpl<X>> hierarchyInterpreter = HierarchyInterpreter.of(TemplateTypeImpl.class::isInstance, t -> (TemplateTypeImpl<X>) t);
-        AbstractTypeList<X, TemplateTypeImpl<X>> checkedSupertypes = getDeclaration().supplyHierarchy(getContext(), hierarchyInterpreter);
+        AbstractTypeList<X, TemplateTypeImpl<X>> checkedSupertypes = getDeclaration().supplyHierarchy(getContext(), this, hierarchyInterpreter);
 
         if (checkedSupertypes.isEmpty()) {
             TemplateTypeImpl<X> top = getContext().getTypeSystem().getTop();

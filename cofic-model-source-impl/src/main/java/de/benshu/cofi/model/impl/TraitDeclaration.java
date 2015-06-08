@@ -5,11 +5,11 @@ import de.benshu.cofi.cofic.model.common.FullyQualifiedTypeName;
 import de.benshu.cofi.cofic.model.common.TypeTags;
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
 import de.benshu.cofi.parser.lexer.Token;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
-import de.benshu.cofi.types.impl.templates.UnboundTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.UnboundTemplateTypeConstructor;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.streams.Collectors;
 import de.benshu.jswizzle.copyable.CopyFactory;
@@ -36,12 +36,12 @@ public class TraitDeclaration<X extends ModelContext<X>> extends AbstractTypeDec
 
         this.unbound = AbstractTemplateTypeConstructor.<X>create(
                 TemplateTypeDeclaration.memoizing(
-                        x -> x.lookUpTypeParametersOf(this),
-                        x -> getExtending().isEmpty()
+                        (x, b) -> x.lookUpTypeParametersOf(this),
+                        (x, b) -> getExtending().isEmpty()
                                 ? ImmutableList.of(SourceType.of(x.getTypeSystem().getTop(), id))
                                 : getExtending().stream().map(e -> SourceType.of(x.lookUpTypeOf(e), e.getSourceSnippet())).collect(Collectors.list()),
-                        x -> x.lookUpMemberDescriptorsOf(this),
-                        x -> IndividualTags.empty()
+                        (x, b) -> x.lookUpMemberDescriptorsOf(this),
+                        (x, b) -> IndividualTags.empty()
                                 .set(TypeTags.NAME, FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this)))
                                 .set(AbstractTypeDeclaration.Tag.INSTANCE, this)
                 )

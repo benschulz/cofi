@@ -475,8 +475,8 @@ public final class Conjunction<X extends TypeSystemContext<X>> extends Monosemou
 
         final UnboundTypeParameterList<X> unbound = TypeParameterListImpl.create(new TypeParameterListDeclaration<X>() {
             @Override
-            public <O> O supplyParameters(X context, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
-                return getTypeParams().getUnbound().getDeclaration().supplyParameters(context, interpreter);
+            public <O> O supplyParameters(X context, TypeParameterListImpl<X> bound, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
+                return getTypeParams().getUnbound().getDeclaration().supplyParameters(context, bound, interpreter);
             }
 
             @Override

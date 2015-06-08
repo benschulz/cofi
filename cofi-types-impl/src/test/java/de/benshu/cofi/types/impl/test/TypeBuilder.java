@@ -147,7 +147,7 @@ public class TypeBuilder {
         }
 
         @Override
-        public <O> O supplyParameters(TestContext context, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
+        public <O> O supplyParameters(TestContext context, TypeParameterListImpl<TestContext> bound, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
             final ImmutableList<Pair<Variance, IndividualTags>> up = Pair.up(variances, names).stream()
                     .map(p -> Pair.of(p.a, StringNameTag.labeled(p.b)))
                     .collect(list());
@@ -254,7 +254,7 @@ public class TypeBuilder {
         }
     }
 
-    public class IntersectionOrUnionTypeToBeNamed<D extends TypeDeclaration<TestContext>, C extends AbstractTypeConstructor<TestContext, ?, T>, T extends AbstractProperType<TestContext, T>> {
+    public class IntersectionOrUnionTypeToBeNamed<D extends TypeDeclaration<TestContext, C>, C extends AbstractTypeConstructor<TestContext, ?, T>, T extends AbstractProperType<TestContext, T>> {
         private final Function<String, Function<TypeParameterListImpl<TestContext>, Function<ImmutableList<SourceType<TestContext>>, C>>> typeFactory;
 
         public IntersectionOrUnionTypeToBeNamed(
@@ -268,7 +268,7 @@ public class TypeBuilder {
         }
     }
 
-    public class IntersectionOrUnionTypeToParametrized<D extends TypeDeclaration<TestContext>, C extends AbstractTypeConstructor<TestContext, ?, T>, T extends AbstractProperType<TestContext, T>> {
+    public class IntersectionOrUnionTypeToParametrized<D extends TypeDeclaration<TestContext, C>, C extends AbstractTypeConstructor<TestContext, ?, T>, T extends AbstractProperType<TestContext, T>> {
         private final Function<TypeParameterListImpl<TestContext>, Function<ImmutableList<SourceType<TestContext>>, C>> typeFactory;
 
         public IntersectionOrUnionTypeToParametrized(Function<TypeParameterListImpl<TestContext>, Function<ImmutableList<SourceType<TestContext>>, C>> typeFactory) {
@@ -284,7 +284,7 @@ public class TypeBuilder {
         }
     }
 
-    private class IntersectionOrUnionTypeToBeOrdered<D extends TypeDeclaration<TestContext>, C extends AbstractTypeConstructor<TestContext, ?, T>, T extends AbstractProperType<TestContext, T>> {
+    private class IntersectionOrUnionTypeToBeOrdered<D extends TypeDeclaration<TestContext, C>, C extends AbstractTypeConstructor<TestContext, ?, T>, T extends AbstractProperType<TestContext, T>> {
         private final Function<ImmutableList<SourceType<TestContext>>, C> typeFactory;
 
         private IntersectionOrUnionTypeToBeOrdered(Function<ImmutableList<SourceType<TestContext>>, C> typeFactory) {

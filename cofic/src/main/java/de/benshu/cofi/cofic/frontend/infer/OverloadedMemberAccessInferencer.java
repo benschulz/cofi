@@ -77,7 +77,7 @@ public class OverloadedMemberAccessInferencer<T> implements OverloadedExpression
 
         TypeParameterListImpl<Pass> newTps = TypeParameterListImpl.create(new TypeParameterListDeclaration<Pass>() {
             @Override
-            public <O> O supplyParameters(Pass context, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
+            public <O> O supplyParameters(Pass context, TypeParameterListImpl<Pass> bound, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
                 return interpreter.interpret(TypeParameterListImpl.describeN(newTpCount), context.getChecker());
             }
 

@@ -49,9 +49,9 @@ public class BinaryUnion extends AbstractBinaryTypeDeclaration {
     @Override
     public <X extends BinaryModelContext<X>> ProperTypeConstructorMixin<X, ?, ?> bind(X context) {
         return AbstractUnionTypeConstructor.<X>create(UnionTypeDeclaration.lazy(
-                this::bindTypeParameters,
-                x -> elements.stream().map(t -> SourceType.of(t.bind(x))).collect(list()),
-                x -> IndividualTags.of(TypeTags.NAME, FullyQualifiedTypeName.create(getFqn()))
+                (x, b) -> bindTypeParameters(x),
+                (x, b) -> elements.stream().map(t -> SourceType.of(t.bind(x))).collect(list()),
+                (x, b) -> IndividualTags.of(TypeTags.NAME, FullyQualifiedTypeName.create(getFqn()))
         )).bind(context);
     }
 }

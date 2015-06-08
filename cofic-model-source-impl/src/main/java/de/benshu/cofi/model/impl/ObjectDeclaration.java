@@ -6,8 +6,8 @@ import de.benshu.cofi.cofic.model.common.TypeTags;
 import de.benshu.cofi.parser.AstNodeConstructorMethod;
 import de.benshu.cofi.parser.lexer.Token;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
-import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
 import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
@@ -42,9 +42,9 @@ public final class ObjectDeclaration<X extends ModelContext<X>> extends Abstract
         this.id = id;
         this.unbound = AbstractTemplateTypeConstructor.<X>create(
                 TemplateTypeDeclaration.memoizing(
-                        x -> x.lookUpTypeParametersOf(x.tryLookUpCompanionOf(this)
+                        (x, b) -> x.lookUpTypeParametersOf(x.tryLookUpCompanionOf(this)
                                 .getOrReturn(this)),
-                        x -> {
+                        (x, b) -> {
                             final ImmutableList<SourceType<X>> sourceTypes = getExtending().stream()
                                     .map(e -> SourceType.of(x.lookUpTypeOf(e), e.getSourceSnippet()))
                                     .collect(list());
@@ -58,9 +58,9 @@ public final class ObjectDeclaration<X extends ModelContext<X>> extends Abstract
                                             }
                                     ).getOrReturn(sourceTypes);
                         },
-                        x -> x.lookUpMemberDescriptorsOf(this),
-                        x -> IndividualTags.empty()
-                                .set(TypeTags.NAME, FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this), x.isCompanion(this)? "\u262F": ""))
+                        (x, b) -> x.lookUpMemberDescriptorsOf(this),
+                        (x, b) -> IndividualTags.empty()
+                                .set(TypeTags.NAME, FullyQualifiedTypeName.create(() -> x.lookUpFqnOf(this), x.isCompanion(this) ? "\u262F" : ""))
                                 .set(Tag.INSTANCE, this)
                 )
         );

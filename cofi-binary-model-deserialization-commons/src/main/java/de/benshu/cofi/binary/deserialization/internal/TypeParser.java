@@ -283,7 +283,7 @@ public class TypeParser {
 
             final de.benshu.cofi.types.impl.UnboundTypeParameterList<Y> unboundTypeParameterList = TypeParameterListImpl.create(new TypeParameterListDeclaration<Y>() {
                 @Override
-                public <O> O supplyParameters(Y context, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
+                public <O> O supplyParameters(Y context, TypeParameterListImpl<Y> bound, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
                     return interpreter.interpret(parameters, context.getChecker());
                 }
 

@@ -4,10 +4,10 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.declarations.IntersectionTypeDeclaration;
-import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
-import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
 import de.benshu.cofi.types.impl.declarations.UnionTypeDeclaration;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
+import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.tags.IndividualTags;
 
 public class TypeDeclarationFactory {
@@ -25,7 +25,11 @@ public class TypeDeclarationFactory {
             Supplier<SourceMemberDescriptors<TestContext>> memberDescriptorsSupplier,
             Supplier<IndividualTags> tagsSupplier
     ) {
-        return TemplateTypeDeclaration.memoizing(x -> parametersSupplier.get(), x -> supertypesSupplier.get(), x -> memberDescriptorsSupplier.get(), x -> tagsSupplier.get());
+        return TemplateTypeDeclaration.memoizing(
+                (x, b) -> parametersSupplier.get(),
+                (x, b) -> supertypesSupplier.get(),
+                (x, b) -> memberDescriptorsSupplier.get(),
+                (x, b) -> tagsSupplier.get());
     }
 
     public IntersectionTypeDeclaration<TestContext> createIntersectionTypeDeclaration(
@@ -33,7 +37,10 @@ public class TypeDeclarationFactory {
             Supplier<ImmutableList<SourceType<TestContext>>> elementsSupplier,
             Supplier<IndividualTags> tagsSupplier
     ) {
-        return IntersectionTypeDeclaration.<TestContext>lazy(x -> parametersSupplier.get(), x -> elementsSupplier.get(), x -> tagsSupplier.get());
+        return IntersectionTypeDeclaration.<TestContext>lazy(
+                (x, b) -> parametersSupplier.get(),
+                (x, b) -> elementsSupplier.get(),
+                (x, b) -> tagsSupplier.get());
     }
 
     public UnionTypeDeclaration<TestContext> createUnionTypeDeclaration(
@@ -41,6 +48,9 @@ public class TypeDeclarationFactory {
             Supplier<ImmutableList<SourceType<TestContext>>> elementsSupplier,
             Supplier<IndividualTags> tagsSupplier
     ) {
-        return UnionTypeDeclaration.lazy(x -> parametersSupplier.get(), x -> elementsSupplier.get(), x -> tagsSupplier.get());
+        return UnionTypeDeclaration.lazy(
+                (x, b) -> parametersSupplier.get(),
+                (x, b) -> elementsSupplier.get(),
+                (x, b) -> tagsSupplier.get());
     }
 }

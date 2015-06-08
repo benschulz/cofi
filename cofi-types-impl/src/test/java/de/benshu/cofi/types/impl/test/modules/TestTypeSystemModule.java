@@ -5,18 +5,17 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
-
 import de.benshu.cofi.types.Variance;
-import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
-import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
-import de.benshu.cofi.types.impl.templates.UnboundTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.Bottom;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.TypeSystemImpl;
-import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
+import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
 import de.benshu.cofi.types.impl.lists.AbstractTypeList;
+import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
+import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
+import de.benshu.cofi.types.impl.templates.UnboundTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.test.StringNameTag;
 import de.benshu.cofi.types.impl.test.TestContext;
 import de.benshu.cofi.types.impl.test.TypeBuilder;
@@ -24,6 +23,7 @@ import de.benshu.cofi.types.impl.test.TypeDeclarationFactory;
 import de.benshu.cofi.types.impl.test.Util;
 import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Pair;
+
 import static de.benshu.cofi.types.impl.test.Util.flattenFqn;
 import static de.benshu.cofi.types.impl.test.Util.types;
 
@@ -54,10 +54,10 @@ public class TestTypeSystemModule implements Module {
     };
 
     final UnboundTemplateTypeConstructor<TestContext> unboundTopConstructor = AbstractTemplateTypeConstructor.<TestContext>create(TemplateTypeDeclaration.memoizing(
-            x -> noTypeParams(),
-            x -> ImmutableList.of(),
-            x -> SourceMemberDescriptors.empty(),
-            x -> StringNameTag.labeled(flattenFqn("cofi", "lang", "Object"))));
+            (x, b) -> noTypeParams(),
+            (x, b) -> ImmutableList.of(),
+            (x, b) -> SourceMemberDescriptors.empty(),
+            (x, b) -> StringNameTag.labeled(flattenFqn("cofi", "lang", "Object"))));
 
 
     final TypeSystemImpl<TestContext> typeSystem = TypeSystemImpl.create(lookerUpper, StringNameTag.INSTANCE, this::getTopConstructor);

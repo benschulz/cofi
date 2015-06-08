@@ -74,9 +74,9 @@ public class ModuleGlueTyper {
         final ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> glueTypes = glueObjectFqns.stream()
                 .map(fqn -> immutableEntry(fqn, AbstractTemplateTypeConstructor.<Pass>create(
                         TemplateTypeDeclaration.memoizing(
-                                x -> TypeParameterListImpl.empty(),
-                                x -> ImmutableList.of(),
-                                x -> {
+                                (x, b) -> TypeParameterListImpl.empty(),
+                                (x, b) -> ImmutableList.of(),
+                                (x, b) -> {
                                     final Stream<Map.Entry<String, TemplateTypeConstructorMixin<Pass>>> containedDependencies = x.getDependencyTypes().entrySet().stream()
                                             .filter(m -> m.getKey().getParent().equals(fqn))
                                             .map(m -> immutableEntry(m.getKey().getLocalName(), m.getValue()));
@@ -108,7 +108,7 @@ public class ModuleGlueTyper {
                                             })
                                             .collect(set()));
                                 },
-                                x -> IndividualTags.of(TypeTags.NAME, FullyQualifiedTypeName.create(() -> fqn)))
+                                (x, b) -> IndividualTags.of(TypeTags.NAME, FullyQualifiedTypeName.create(() -> fqn)))
                 ).bind(pass)))
                 .collect(map());
 

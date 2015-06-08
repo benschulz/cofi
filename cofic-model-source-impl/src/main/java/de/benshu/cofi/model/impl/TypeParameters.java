@@ -40,7 +40,7 @@ public class TypeParameters<X extends ModelContext<X>> extends AbstractModelNode
 
         this.params = TypeParameterListImpl.create(new TypeParameterListDeclaration<X>() {
             @Override
-            public <O> O supplyParameters(X context, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
+            public <O> O supplyParameters(X context, TypeParameterListImpl<X> bound, Interpreter<ImmutableList<Pair<Variance, IndividualTags>>, O> interpreter) {
                 return interpreter.interpret(parameterDeclarations, context.getChecker());
             }
 
