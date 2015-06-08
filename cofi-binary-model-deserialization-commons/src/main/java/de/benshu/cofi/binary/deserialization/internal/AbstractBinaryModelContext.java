@@ -15,7 +15,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 import static de.benshu.commons.core.streams.Collectors.singleOrNone;
-import static java.util.function.Function.identity;
 
 public abstract class AbstractBinaryModelContext<X extends AbstractBinaryModelContext<X>> implements BinaryModelContext<X> {
     public static IndividualTag<ProperTypeConstructorMixin<?, ?, ?>> ACCOMPANIED_TAG = IndividualTag.named("Accompanied").unambiguouslyDerivable();
@@ -32,7 +31,7 @@ public abstract class AbstractBinaryModelContext<X extends AbstractBinaryModelCo
                 .orElseGet(() -> {
                     final Optional<ProperTypeConstructorMixin<X, ?, ?>> resolved = resolveIn(Optional.of(module), relativeName)
                             .map(this::bind)
-                            .map(t -> t.getTags().tryGet(ACCOMPANIED_TAG).<TypeMixin<?, ?>>map(identity()).getOrReturn(t))
+                            .map(t -> t.getTags().tryGet(ACCOMPANIED_TAG).<TypeMixin<?, ?>>map(x -> x).getOrReturn(t))
                             .map(t -> (ProperTypeConstructorMixin<X, ?, ?>) t);
 
                     return resolved.map(t -> computeIfAbsent(moduleCache, relativeName, () -> t));

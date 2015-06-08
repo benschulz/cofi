@@ -10,7 +10,6 @@ import com.google.common.collect.Range;
 import de.benshu.cofi.types.Variance;
 import de.benshu.cofi.types.impl.AbstractProperType;
 import de.benshu.cofi.types.impl.AbstractTypeConstructor;
-import de.benshu.cofi.types.impl.AdHoc;
 import de.benshu.cofi.types.impl.Error;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
@@ -36,7 +35,6 @@ import de.benshu.cofi.types.tags.IndividualTags;
 import de.benshu.commons.core.Pair;
 
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static de.benshu.cofi.types.impl.test.Util.flattenFqn;
 import static de.benshu.commons.core.streams.Collectors.list;
@@ -62,16 +60,16 @@ public class TypeBuilder {
 
     public IntersectionOrUnionTypeToBeNamed<IntersectionTypeDeclaration<TestContext>, AbstractIntersectionTypeConstructor<TestContext>, ConstructedIntersectionTypeImpl<TestContext>> createIntersectionType() {
         return new IntersectionOrUnionTypeToBeNamed<>(
-                name -> parameters -> elements -> tieTheKnot(m -> AbstractIntersectionTypeConstructor.create(
+                name -> parameters -> elements -> AbstractIntersectionTypeConstructor.create(
                         typeDeclarationFactory.createIntersectionTypeDeclaration(() -> parameters, () -> elements, () -> StringNameTag.labeled(name))
-                ).bind(context)));
+                ).bind(context));
     }
 
     public IntersectionOrUnionTypeToBeNamed<UnionTypeDeclaration<TestContext>, AbstractUnionTypeConstructor<TestContext>, ConstructedUnionTypeImpl<TestContext>> createUnionType() {
         return new IntersectionOrUnionTypeToBeNamed<>(
-                name -> parameters -> elements -> tieTheKnot(m -> AbstractUnionTypeConstructor.create(
+                name -> parameters -> elements -> AbstractUnionTypeConstructor.create(
                         typeDeclarationFactory.createUnionTypeDeclaration(() -> parameters, () -> elements, () -> StringNameTag.labeled(name))
-                ).bind(context)));
+                ).bind(context));
     }
 
     public Error<TestContext> createErrorType() {
@@ -80,34 +78,6 @@ public class TypeBuilder {
 
     public Error<TestContext> createErrorType(String name) {
         return Error.create(StringNameTag.labeled(name));
-    }
-
-    private <C extends AbstractTypeConstructor<TestContext, ?, T>, T extends TypeMixin<TestContext, ?>> C tieTheKnot(
-            Function<Supplier<AbstractTypeConstructor<TestContext, ?, TemplateTypeImpl<TestContext>>>, C> typeFactory
-    ) {
-        return tieTheKnot(
-                t -> AdHoc.typeConstructor(
-                        context, t.getParameters(),
-                        typeSystem.getMetaType().apply(AbstractTypeList.of(t.applyTrivially()))),
-                typeFactory
-
-        );
-    }
-
-    // and what a knot it is...
-    private <C extends AbstractTypeConstructor<TestContext, ?, T>, T extends TypeMixin<TestContext, ?>> C tieTheKnot(
-            Function<C, AbstractTypeConstructor<TestContext, ?, TemplateTypeImpl<TestContext>>> metaTypeFactory,
-            Function<Supplier<AbstractTypeConstructor<TestContext, ?, TemplateTypeImpl<TestContext>>>, C> typeFactory
-    ) {
-        // *sadface 2 * TODO extract this "pattern" to somewhere else (also used in TestTypeSytemModule)
-        @SuppressWarnings("unchecked")
-        C[] type = (C[]) new AbstractTypeConstructor<?, ?, ?>[1];
-        @SuppressWarnings("unchecked")
-        AbstractTypeConstructor<TestContext, ?, TemplateTypeImpl<TestContext>>[] metaType = (AbstractTypeConstructor<TestContext, ?, TemplateTypeImpl<TestContext>>[]) new AbstractTypeConstructor<?, ?, ?>[1];
-
-        return type[0] = typeFactory.apply(() -> metaType[0] == null
-                ? metaType[0] = metaTypeFactory.apply(type[0])
-                : metaType[0]);
     }
 
     public class ParametersToBeConstrained {
@@ -274,13 +244,13 @@ public class TypeBuilder {
             // TODO FIXME context
             SourceMemberDescriptors<TestContext> descriptors = new SourceMemberDescriptors<>(AbstractConstraints.none(), members);
 
-            return tieTheKnot(meta -> AbstractTemplateTypeConstructor.create(
+            return AbstractTemplateTypeConstructor.create(
                     typeDeclarationFactory.createTemplateTypeDeclaration(
                             () -> parameters,
                             () -> Util.source(AbstractTypeList.<TestContext, TypeMixin<TestContext, ?>>of(supertypes)),
                             () -> descriptors,
                             () -> StringNameTag.labeled(name))
-            ).bind(context));
+            ).bind(context);
         }
     }
 
