@@ -4,6 +4,8 @@ import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
+import de.benshu.cofi.binary.internal.BinaryModuleMixin;
+import de.benshu.cofi.binary.internal.BinaryTypeDeclarationMixin;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
 import de.benshu.cofi.types.tags.IndividualTag;
@@ -20,16 +22,16 @@ public abstract class AbstractBinaryModelContext<X extends AbstractBinaryModelCo
 
     private Cache<BinaryModuleMixin, Cache<ImmutableList<String>, ProperTypeConstructorMixin<X, ?, ?>>> typeCache = CacheBuilder.newBuilder().build();
 
-    protected abstract X self();
+    protected abstract TypeMixin<X, ?> bind(BinaryTypeDeclarationMixin typeDeclaration);
 
-    protected final Optional<ProperTypeConstructorMixin<X, ?, ?>> resolveTypeInModule(BinaryModuleMixin module, ImmutableList<String> relativeName) {
+    protected final Optional<ProperTypeConstructorMixin<X, ?, ?>> tryResolveTypeInModule(BinaryModuleMixin module, ImmutableList<String> relativeName) {
         final Cache<ImmutableList<String>, ProperTypeConstructorMixin<X, ?, ?>> moduleCache = computeIfAbsent(typeCache, module, () -> CacheBuilder.newBuilder().build());
 
         return Optional.ofNullable(moduleCache.getIfPresent(relativeName))
                 .map(Optional::<ProperTypeConstructorMixin<X, ?, ?>>of)
                 .orElseGet(() -> {
                     final Optional<ProperTypeConstructorMixin<X, ?, ?>> resolved = resolveIn(Optional.of(module), relativeName)
-                            .map(t -> t.<X>bind(self()))
+                            .map(this::bind)
                             .map(t -> t.getTags().tryGet(ACCOMPANIED_TAG).<TypeMixin<?, ?>>map(identity()).getOrReturn(t))
                             .map(t -> (ProperTypeConstructorMixin<X, ?, ?>) t);
 

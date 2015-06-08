@@ -1,7 +1,7 @@
 package de.benshu.cofi.cofic.model.binary;
 
 import de.benshu.cofi.binary.deserialization.internal.BinaryModelContext;
-import de.benshu.cofi.binary.deserialization.internal.BinaryModuleMixin;
+import de.benshu.cofi.binary.internal.BinaryModuleMixin;
 import de.benshu.cofi.binary.deserialization.internal.UnboundTypeParameterList;
 import de.benshu.cofi.binary.internal.Ancestry;
 import de.benshu.cofi.binary.internal.Constructor;

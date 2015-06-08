@@ -22,6 +22,7 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import de.benshu.cofi.binary.deserialization.internal.AbstractBinaryModelContext;
 import de.benshu.cofi.binary.deserialization.internal.BinaryModelContext;
 import de.benshu.cofi.binary.deserialization.internal.TypeParser;
 import de.benshu.cofi.binary.internal.Ancestry;
@@ -48,14 +49,12 @@ import de.benshu.cofi.runtime.Package;
 import de.benshu.cofi.runtime.Parameter;
 import de.benshu.cofi.runtime.PropertyDeclaration;
 import de.benshu.cofi.runtime.RootExpression;
-import de.benshu.cofi.runtime.Singleton;
 import de.benshu.cofi.runtime.SingletonCompanion;
 import de.benshu.cofi.runtime.ThisExpression;
 import de.benshu.cofi.runtime.Trait;
 import de.benshu.cofi.runtime.TypeBody;
 import de.benshu.cofi.runtime.TypeDeclaration;
 import de.benshu.cofi.runtime.Union;
-import de.benshu.cofi.runtime.context.FqnResolver;
 import de.benshu.cofi.runtime.context.RuntimeContext;
 import de.benshu.cofi.runtime.context.RuntimeTypeName;
 import de.benshu.cofi.runtime.internal.Resolution;
@@ -94,8 +93,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.Comparator;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -163,8 +162,16 @@ public class ModuleDeserializer {
         return checkNotNull(type);
     }
 
+    private final RuntimeContext runtimeContext;
+    private final ImmutableSet<Module> dependencies;
+
+    public ModuleDeserializer(RuntimeContext runtimeContext, ImmutableSet<Module> dependencies) {
+        this.runtimeContext = runtimeContext;
+        this.dependencies = dependencies;
+    }
+
     // TODO Decouple RuntimeContext and Module; RuntimeContext should be a constructor argument to ModuleDeserializer.
-    public RuntimeContext deserialize(Reader reader) {
+    public Module deserialize(Reader reader) {
         return new Deserialization(reader).getResult();
     }
 
@@ -183,9 +190,20 @@ public class ModuleDeserializer {
                         .put(RootExpression.class, "type", (SimpleSpecialPropertyDeserializer) this::deserializeRootSignatureType)
                         .build();
 
-        private final RuntimeContext runtimeContext;
+        private final TypeParser typeParser = new TypeParser(
+                new TypeParser.Namer() {
+                    @Override
+                    public IndividualTags name(String name) {
+                        return IndividualTags.of(RuntimeTypeName.TAG, RuntimeTypeName.of(name));
+                    }
+
+                    @Override
+                    public String getNameOf(TypeParameterImpl<?> typeParameter) {
+                        return typeParameter.getTags().get(RuntimeTypeName.TAG).toDescriptor();
+                    }
+                });
+
         private final Supplier<Module> result;
-        private final TypeParser typeParser;
 
         public Deserialization(Reader reader) {
             final Gson gson = new GsonBuilder().setPrettyPrinting()
@@ -201,25 +219,10 @@ public class ModuleDeserializer {
                     .create();
 
             this.result = MemoizingSupplier.of(() -> gson.fromJson(reader, Module.class));
-            this.runtimeContext = new RuntimeContext(this.result);
-
-            final FqnResolver fqnResolver = new FqnResolver(this.result);
-            this.typeParser = new TypeParser(
-                    new TypeParser.Namer() {
-                        @Override
-                        public IndividualTags name(String name) {
-                            return IndividualTags.of(RuntimeTypeName.TAG, RuntimeTypeName.of(name));
-                        }
-
-                        @Override
-                        public String getNameOf(TypeParameterImpl<?> typeParameter) {
-                            return typeParameter.getTags().get(RuntimeTypeName.TAG).toDescriptor();
-                        }
-                    });
         }
 
-        public RuntimeContext getResult() {
-            return runtimeContext;
+        public Module getResult() {
+            return result.get();
         }
 
         private ModelNode deserializeModelNode(JsonElement json, Type requiredType, JsonDeserializationContext context) throws JsonParseException {
@@ -294,9 +297,14 @@ public class ModuleDeserializer {
                         .map(JsonElement::getAsString)
                         .getOrSupply(() -> jsonObject.get("fqn").getAsString());
 
-                return IndividualTags.empty()
+                final IndividualTags regular = IndividualTags.empty()
                         .set(RuntimeTypeName.TAG, RuntimeTypeName.of(name))
                         .set(TypeDeclaration.TAG, declaration);
+
+                return declaration instanceof Companion
+                        ? regular.set(AbstractBinaryModelContext.ACCOMPANIED_TAG, ProperTypeConstructorMixin.rebind(((Companion) declaration).getAccompanied().getType()))
+                        : regular;
+
             };
 
             BiFunction<JsonArray, RuntimeContext, ImmutableList<SourceType<RuntimeContext>>> hierarchySupplier =
@@ -496,7 +504,7 @@ public class ModuleDeserializer {
 
             return new SourceTypeDescriptor<RuntimeContext>() {
                 @Override
-                public SourceType<RuntimeContext> getType(RuntimeContext context) {
+                public SourceType<RuntimeContext> getType() {
                     return SourceType.of(TypeMixin.<RuntimeContext>rebind(multiton.getType()));
                 }
 
@@ -517,45 +525,63 @@ public class ModuleDeserializer {
         }
 
         private ObjectSingleton createRootObjectSingleton() {
-            // TODO Handle module dependencies.
-            Singleton current = result.get().getPakkage();
-            for (Fqn memberFqn : result.get().getFqn().getAncestry().stream().filter(n -> n.length() > 0).sorted(Comparator.<Fqn>naturalOrder().reversed()).collect(set())) {
-                final Singleton member = current;
+            final ImmutableSet<Module> modules = Stream.concat(Stream.of(result.get()), dependencies.stream()).collect(set());
 
-                final TemplateTypeConstructor typeConstructor = AbstractTemplateTypeConstructor.<RuntimeContext>create(
-                        TemplateTypeDeclaration.memoizing(
-                                x -> TypeParameterListImpl.empty(),
-                                x -> ImmutableList.of(),
-                                x -> SourceMemberDescriptors.create(ImmutableSet.of(new SourceTypeDescriptor<RuntimeContext>() {
-                                    @Override
-                                    public String getName() {
-                                        return memberFqn.getLocalName();
-                                    }
+            final ImmutableSet<Fqn> glueObjectFqns = modules.stream()
+                    .filter(m -> modules.stream().noneMatch(other -> other.getFqn().strictlyContains(m.getFqn())))
+                    .flatMap(m -> m.getFqn().getParent().getAncestry().stream())
+                    .distinct()
+                    .collect(set());
 
-                                    @Override
-                                    public SourceType<RuntimeContext> getType(RuntimeContext context) {
-                                        return SourceType.of(TypeMixin.<RuntimeContext>rebind(member.getType()));
-                                    }
+            final AtomicReference<ImmutableMap<Fqn, ObjectSingleton>> hack = new AtomicReference<>();
+            final ImmutableMap<Fqn, ObjectSingleton> glueTypes = glueObjectFqns.stream()
+                    .map(fqn -> immutableEntry(fqn, AbstractTemplateTypeConstructor.<RuntimeContext>create(
+                            TemplateTypeDeclaration.memoizing(
+                                    x -> TypeParameterListImpl.empty(),
+                                    x -> ImmutableList.of(),
+                                    x -> {
+                                        final Stream<Map.Entry<String, TypeDeclaration>> containedModules = modules.stream()
+                                                .filter(m -> m.getFqn().getParent().equals(fqn))
+                                                .map(m -> immutableEntry(m.getFqn().getLocalName(), m));
 
-                                    @Override
-                                    public IndividualTags getTags(RuntimeContext context) {
-                                        return IndividualTags.of(MemberDeclaration.TAG, member);
-                                    }
-                                })),
-                                x -> IndividualTags.of(RuntimeTypeName.TAG, RuntimeTypeName.of(memberFqn.getParent().toCanonicalString())))
-                ).bind(runtimeContext).unbind();
+                                        final Stream<Map.Entry<String, TypeDeclaration>> containedGlueObjects = hack.get().entrySet().stream()
+                                                .filter(e -> e.getKey().length() > 0)
+                                                .filter(e -> e.getKey().getParent().equals(fqn))
+                                                .map(e -> immutableEntry(e.getKey().getLocalName(), e.getValue()));
 
-                current = new ObjectSingleton(
-                        Ancestry.empty(),
-                        ImmutableSet.of(),
-                        memberFqn.length() == 1 ? "<root>" : memberFqn.getParent().getLocalName(),
-                        x -> typeConstructor.getParameters(),
-                        x -> typeConstructor,
-                        x -> new TypeBody(x, ImmutableList.of())
-                );
-            }
+                                        return SourceMemberDescriptors.create(Stream.concat(containedModules, containedGlueObjects)
+                                                .map(e -> new SourceTypeDescriptor<RuntimeContext>() {
+                                                    @Override
+                                                    public String getName() {
+                                                        return e.getKey();
+                                                    }
 
-            return (ObjectSingleton) current;
+                                                    @Override
+                                                    public SourceType<RuntimeContext> getType() {
+                                                        return SourceType.of(TypeMixin.<RuntimeContext>rebind(e.getValue().getType()));
+                                                    }
+
+                                                    @Override
+                                                    public IndividualTags getTags(RuntimeContext context) {
+                                                        return IndividualTags.of(MemberDeclaration.TAG, e.getValue());
+                                                    }
+                                                })
+                                                .collect(set()));
+                                    },
+                                    x -> IndividualTags.of(RuntimeTypeName.TAG, RuntimeTypeName.of(fqn.toCanonicalString())))
+                    ).bind(runtimeContext)))
+                    .map(e -> immutableEntry(e.getKey(), new ObjectSingleton(
+                            Ancestry.empty(),
+                            ImmutableSet.of(),
+                            e.getKey().isRoot() ? "<root>" : e.getKey().getLocalName(),
+                            x -> e.getValue().getParameters().unbind(),
+                            x -> e.getValue().unbind(),
+                            x -> new TypeBody(x, ImmutableList.of())
+                    )))
+                    .collect(map());
+            hack.set(glueTypes);
+
+            return glueTypes.get(Fqn.root());
         }
 
         private TypeParameterListReference createEmptyTypeParameters(JsonObject jsonObject, Optional<Ancestry> ancestry, ImmutableMap<String, Supplier<?>> otherProperties) {

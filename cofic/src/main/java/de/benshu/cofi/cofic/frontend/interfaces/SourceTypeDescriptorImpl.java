@@ -7,11 +7,13 @@ import de.benshu.cofi.types.impl.declarations.source.SourceTypeDescriptor;
 import de.benshu.cofi.types.tags.IndividualTags;
 
 class SourceTypeDescriptorImpl implements SourceTypeDescriptor<Pass> {
+    private final Pass pass;
     private final AbstractTypeDeclaration<Pass> declaration;
     private final String name;
     private final IndividualTags tags;
 
-    public SourceTypeDescriptorImpl(AbstractTypeDeclaration<Pass> declaration, String name, IndividualTags tags) {
+    public SourceTypeDescriptorImpl(Pass pass, AbstractTypeDeclaration<Pass> declaration, String name, IndividualTags tags) {
+        this.pass = pass;
         this.declaration = declaration;
         this.name = name;
         this.tags = tags;
@@ -28,7 +30,7 @@ class SourceTypeDescriptorImpl implements SourceTypeDescriptor<Pass> {
     }
 
     @Override
-    public SourceType<Pass> getType(Pass context) {
-        return SourceType.of(context.lookUpTypeOf(declaration));
+    public SourceType<Pass> getType() {
+        return SourceType.of(pass.lookUpTypeOf(declaration));
     }
 }

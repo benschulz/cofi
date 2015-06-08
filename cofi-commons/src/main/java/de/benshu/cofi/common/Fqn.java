@@ -109,6 +109,10 @@ public class Fqn implements Comparable<Fqn>, Iterable<String> {
         return ids.length;
     }
 
+    public boolean isRoot() {
+        return length() == 0;
+    }
+
     public String get(int index) {
         return ids[index];
     }

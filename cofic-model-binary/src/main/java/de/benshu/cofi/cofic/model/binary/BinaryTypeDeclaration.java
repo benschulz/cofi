@@ -1,7 +1,7 @@
 package de.benshu.cofi.cofic.model.binary;
 
 import de.benshu.cofi.binary.deserialization.internal.BinaryModelContext;
-import de.benshu.cofi.binary.deserialization.internal.BinaryTypeDeclarationMixin;
+import de.benshu.cofi.binary.internal.BinaryTypeDeclarationMixin;
 import de.benshu.cofi.types.impl.ProperTypeConstructorMixin;
 import de.benshu.cofi.types.impl.declarations.source.CombinableSourceMemberDescriptor;
 import de.benshu.commons.core.Optional;
@@ -23,6 +23,6 @@ public interface BinaryTypeDeclaration extends BinaryMemberDeclaration, BinaryTy
 
     @Override
     default <X extends BinaryModelContext<X>> CombinableSourceMemberDescriptor<X> toDescriptor(X context) {
-        return new TypeDeclarationDescriptor<>(this);
+        return new TypeDeclarationDescriptor<>(context, this);
     }
 }

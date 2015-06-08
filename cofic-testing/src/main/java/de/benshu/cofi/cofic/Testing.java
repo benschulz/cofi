@@ -68,13 +68,13 @@ public class Testing {
         final long start = System.currentTimeMillis();
 
         compile();
-        //interpret();
+        interpret();
 
         return System.currentTimeMillis() - start;
     }
 
     private static void compile() throws IOException {
-        final Path cofiLangPath = findRoot().resolve("target").resolve(Fqn.from("cofi", "lang").toCanonicalString() + ".cm");
+        final Path cofiLangPath = findRoot().resolve("target/.cofi.lang.cm");
 
         final BinaryModule cofiLang = Files.exists(cofiLangPath)
                 ? read(cofiLangPath, new BinaryDeserializer()::deserialize)
@@ -158,15 +158,17 @@ public class Testing {
     }
 
     private static void interpret() throws IOException {
-        begin("Loading module file…");
-        String json = new String(Files.readAllBytes(findRoot().resolve("target").resolve("core.cm")), StandardCharsets.UTF_8);
-        final RuntimeContext runtimeContext = new ModuleDeserializer().deserialize(new StringReader(json));
-        Module deserializedLangModule = runtimeContext.getModule();
+        begin("Loading module files…");
+        RuntimeContext runtimeContext = new RuntimeContext();
+        final Module cofiLang = read(findRoot().resolve("target/.cofi.lang.cm"), new ModuleDeserializer(runtimeContext, ImmutableSet.of())::deserialize);
+        final Module helloworld = read(findRoot().resolve("target/.helloworld.cm"), new ModuleDeserializer(runtimeContext, ImmutableSet.of(cofiLang))::deserialize);
+        runtimeContext.load(cofiLang);
+        runtimeContext.load(helloworld);
         end();
 
         begin("Interpreting program…");
         System.out.println();
-        new CofiInterpreter(runtimeContext).start(deserializedLangModule);
+        new CofiInterpreter(runtimeContext).start(helloworld, "HelloWorld");
         System.out.print(" … ...........................");
         end();
     }

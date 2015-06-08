@@ -164,7 +164,7 @@ public class MemberDescriptorsInterpreter<X extends TypeSystemContext<X>> implem
     }
 
     private InterpretedTypeDescriptor<X> interpretTypeDescriptor(SourceTypeDescriptor<X> typeDescriptor) {
-        final ProperTypeConstructorMixin<X, ?, ?> type = interpretTypeAsProperTypeConstructor(typeDescriptor.getType(context));
+        final ProperTypeConstructorMixin<X, ?, ?> type = interpretTypeAsProperTypeConstructor(typeDescriptor.getType());
         final String name = typeDescriptor.getName();
         final IndividualTags tags = typeDescriptor.getTags(context);
 

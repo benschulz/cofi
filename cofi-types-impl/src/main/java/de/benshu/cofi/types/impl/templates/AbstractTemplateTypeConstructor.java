@@ -4,7 +4,7 @@ import de.benshu.cofi.types.TemplateType;
 import de.benshu.cofi.types.TemplateTypeConstructor;
 import de.benshu.cofi.types.TypeList;
 import de.benshu.cofi.types.impl.AbstractTypeConstructor;
-import de.benshu.cofi.types.impl.AbstractUnboundTypeConstructor;
+import de.benshu.cofi.types.impl.AbstractUnboundProperTypeConstructor;
 import de.benshu.cofi.types.impl.Substitutions;
 import de.benshu.cofi.types.impl.TypeConstructorMixin;
 import de.benshu.cofi.types.impl.TypeMixin;
@@ -62,7 +62,7 @@ public abstract class AbstractTemplateTypeConstructor<X extends TypeSystemContex
     }
 
     private static class Unbound<X extends TypeSystemContext<X>>
-            extends AbstractUnboundTypeConstructor<X, AbstractTemplateTypeConstructor<X>, TemplateType>
+            extends AbstractUnboundProperTypeConstructor<X, AbstractTemplateTypeConstructor<X>, TemplateType>
             implements de.benshu.cofi.types.TemplateTypeConstructor {
 
         public Unbound(AbstractTemplateTypeConstructor<X> unbound) {

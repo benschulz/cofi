@@ -6,7 +6,6 @@ import de.benshu.cofi.runtime.MethodDeclaration;
 import de.benshu.cofi.runtime.Module;
 import de.benshu.cofi.runtime.Singleton;
 import de.benshu.cofi.runtime.context.FqnResolver;
-import de.benshu.cofi.runtime.context.RuntimeContext;
 import de.benshu.cofi.types.TemplateType;
 import de.benshu.cofi.types.TypeList;
 
@@ -14,6 +13,7 @@ import static de.benshu.commons.core.streams.Collectors.single;
 
 public class ModuleInterpretation {
     private final Module module;
+    private final ImmutableList<String> relativeApplicationName;
     private final FqnResolver fqnResolver;
     private final Singletons singletons;
     private final StatementEvaluator statementEvaluator;
@@ -21,10 +21,11 @@ public class ModuleInterpretation {
 
     public final Utilities util;
 
-    public ModuleInterpretation(RuntimeContext context, Module module) {
+    public ModuleInterpretation(Module module, ImmutableList<String> relativeApplicationName) {
         this.module = module;
+        this.relativeApplicationName = relativeApplicationName;
         this.fqnResolver = new FqnResolver(() -> module);
-        this.singletons = new Singletons(context, module);
+        this.singletons = new Singletons();
         this.statementEvaluator = new StatementEvaluator(this);
         this.expressionEvaluator = new ExpressionEvaluator(this);
 
@@ -32,7 +33,7 @@ public class ModuleInterpretation {
     }
 
     public void perform() {
-        final Singleton mainDeclaration = util.lookUpSingleton("cofi", "lang", "helloworld", "HelloWorld");
+        final Singleton mainDeclaration = util.lookUpSingleton(module.getFqn().getDescendant(relativeApplicationName));
         final CofiObject main = singletons.lookUpOrCreate(mainDeclaration);
 
         final Class immutableList = util.lookUpClass("cofi", "lang", "collect", "EmptyImmutableList");

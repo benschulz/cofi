@@ -1,4 +1,4 @@
-package de.benshu.cofi.binary.deserialization.internal;
+package de.benshu.cofi.binary.internal;
 
 public interface BinaryModuleMixin extends BinaryTypeDeclarationMixin {
 }

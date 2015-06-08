@@ -12,10 +12,10 @@ import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.CompilationUnit;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
+import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
 import de.benshu.cofi.types.impl.declarations.source.SourceMemberDescriptors;
 import de.benshu.cofi.types.impl.declarations.source.SourceType;
 import de.benshu.cofi.types.impl.declarations.source.SourceTypeDescriptor;
-import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
 import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.templates.TemplateTypeConstructorMixin;
 import de.benshu.cofi.types.tags.IndividualTags;
@@ -63,11 +63,11 @@ public class ModuleGlueTyper {
                 .map(d -> immutableEntry(d.getKey(), (Supplier<TemplateTypeConstructorMixin<Pass>>) d::getValue))
                 .collect(map());
 
-        // TODO this is broken w.r.t. nested modules
-        final ImmutableSet<Fqn> glueObjectFqns = Stream.concat(
-                Stream.of(moduleFqn.getParent()),
-                dependencies.entrySet().stream().map(d -> d.getKey().getParent()))
-                .flatMap(fqn -> fqn.getAncestry().stream())
+        final ImmutableSet<Fqn> moduleFqns = Stream.concat(Stream.of(moduleFqn), dependencies.keySet().stream()).collect(set());
+
+        final ImmutableSet<Fqn> glueObjectFqns = moduleFqns.stream()
+                .filter(fqn -> moduleFqns.stream().noneMatch(other -> other.strictlyContains(fqn)))
+                .flatMap(fqn -> fqn.getParent().getAncestry().stream())
                 .distinct()
                 .collect(set());
 
@@ -102,7 +102,7 @@ public class ModuleGlueTyper {
                                                 }
 
                                                 @Override
-                                                public SourceType<Pass> getType(Pass context) {
+                                                public SourceType<Pass> getType() {
                                                     return SourceType.of(e.getValue());
                                                 }
                                             })

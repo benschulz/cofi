@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
 import de.benshu.cofi.binary.deserialization.internal.AbstractBinaryModelContext;
+import de.benshu.cofi.binary.internal.BinaryTypeDeclarationMixin;
 import de.benshu.cofi.cofic.frontend.GenericModelData;
 import de.benshu.cofi.cofic.frontend.companions.CompanionData;
 import de.benshu.cofi.cofic.frontend.constraints.ConstraintsData;
@@ -14,6 +15,7 @@ import de.benshu.cofi.cofic.frontend.implementations.ImplementationData;
 import de.benshu.cofi.cofic.frontend.interfaces.InterfaceData;
 import de.benshu.cofi.cofic.frontend.namespace.AbstractResolution;
 import de.benshu.cofi.cofic.model.binary.BinaryModule;
+import de.benshu.cofi.cofic.model.binary.BinaryTypeDeclaration;
 import de.benshu.cofi.cofic.notes.PrintStreamNotes;
 import de.benshu.cofi.cofic.notes.async.Checker;
 import de.benshu.cofi.common.Fqn;
@@ -79,8 +81,8 @@ public final class Pass extends AbstractBinaryModelContext<Pass> implements Mode
     }
 
     @Override
-    protected Pass self() {
-        return this;
+    protected TypeMixin<Pass, ?> bind(BinaryTypeDeclarationMixin typeDeclaration) {
+        return ((BinaryTypeDeclaration) typeDeclaration).<Pass>bind(this);
     }
 
     @Override
@@ -288,7 +290,7 @@ public final class Pass extends AbstractBinaryModelContext<Pass> implements Mode
                 .findFirst();
 
         return Optional.from(dependency
-                .map(d -> resolveTypeInModule(d, d.getFqn().getRelativeNameOf(fqn)))
+                .map(d -> tryResolveTypeInModule(d, d.getFqn().getRelativeNameOf(fqn)))
                 .orElseGet(() -> resolveInModule(fqn)));
     }
 

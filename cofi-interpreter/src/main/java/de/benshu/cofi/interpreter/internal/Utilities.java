@@ -77,6 +77,10 @@ public class Utilities {
     }
 
     public Singleton lookUpSingleton(String... fqn) {
+        return lookUpSingleton(Fqn.from(fqn));
+    }
+
+    public Singleton lookUpSingleton(Fqn fqn) {
         final TypeDeclaration typeDeclaration = lookUpTypeDeclaration(fqn);
         return typeDeclaration instanceof Singleton
                 ? (Singleton) typeDeclaration
@@ -84,7 +88,11 @@ public class Utilities {
     }
 
     public TypeDeclaration lookUpTypeDeclaration(String... fqn) {
-        return (TypeDeclaration) moduleInterpretation.getFqnResolver().resolve(Fqn.from(fqn));
+        return lookUpTypeDeclaration(Fqn.from(fqn));
+    }
+
+    public TypeDeclaration lookUpTypeDeclaration(Fqn fqn) {
+        return (TypeDeclaration) moduleInterpretation.getFqnResolver().resolve(fqn);
     }
 
     public CofiObject lookUpOrCreateSingleton(String... fqn) {

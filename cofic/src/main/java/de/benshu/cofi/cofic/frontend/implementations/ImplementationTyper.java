@@ -50,7 +50,7 @@ import static java.util.stream.Collectors.joining;
 public class ImplementationTyper {
     public static ImplementationData type(Pass pass, ImmutableSet<CompilationUnit<Pass>> compilationUnits) {
         return compilationUnits
-                .parallelStream()
+                .stream()
                 .map(u -> new Visitor(pass).visit(u, ImplementationData.builder()))
                 .collect(ImplementationData::builder, ImplementationDataBuilder::addAll, ImplementationDataBuilder::addAll)
                 .addAll(new ImplementationDataBuilder(pass.getGenericModelData()))

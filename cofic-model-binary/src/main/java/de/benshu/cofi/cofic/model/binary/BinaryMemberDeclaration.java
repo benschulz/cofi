@@ -1,6 +1,6 @@
 package de.benshu.cofi.cofic.model.binary;
 
-import de.benshu.cofi.binary.deserialization.internal.BinaryMemberDeclarationMixin;
+import de.benshu.cofi.binary.internal.BinaryMemberDeclarationMixin;
 import de.benshu.cofi.binary.deserialization.internal.BinaryModelContext;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
