@@ -16,6 +16,7 @@ import de.benshu.cofi.model.impl.LiteralTypeExpression;
 import de.benshu.cofi.model.impl.LocalVariableDeclaration;
 import de.benshu.cofi.model.impl.MethodDeclarationImpl;
 import de.benshu.cofi.model.impl.ModifierImpl;
+import de.benshu.cofi.model.impl.ModuleObjectDeclaration;
 import de.benshu.cofi.model.impl.NameExpression;
 import de.benshu.cofi.model.impl.NameImpl;
 import de.benshu.cofi.model.impl.NamedTypeExpression;
@@ -77,7 +78,7 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
 
         aggregate = visit(compilationUnit.packageDeclaration, aggregate);
         final Fqn packageFqn = compilationUnit.packageDeclaration.name.fqn;
-        namespaces.push(PackageNs.wrap(getNs(), packageFqn, pass.lookUpPackageObjectDeclarationOf(packageFqn)));
+        namespaces.push(PackageNs.wrap(getNs(), packageFqn, pass.lookUpModuleOrPackageObjectDeclarationOf(packageFqn)));
 
         aggregate = visitAll(compilationUnit.imports, aggregate);
 
@@ -153,6 +154,11 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
     @Override
     public T visitModifier(ModifierImpl<Pass> modifier, T aggregate) {
         return visitAnnotation(modifier, aggregate);
+    }
+
+    @Override
+    public T visitModuleObjectDeclaration(ModuleObjectDeclaration<Pass> moduleObjectDeclaration, T aggregate) {
+        return visitTypeDeclaration(moduleObjectDeclaration, aggregate);
     }
 
     @Override
@@ -243,7 +249,7 @@ public abstract class NamespaceTrackingVisitor<T extends GenericModelDataBuilder
         aggregate = visitAll(typeDeclaration.modifiers, aggregate);
 
         namespaces.push(typeDeclaration instanceof PackageObjectDeclaration<?>
-                ? PackageObjectNs.wrap(getNs(), getNs().getPackageFqn(), (PackageObjectDeclaration<Pass>) typeDeclaration)
+                ? ModuleOrPackageObjectNs.wrap(getNs(), getNs().getPackageFqn(), (PackageObjectDeclaration<Pass>) typeDeclaration)
                 : TypeDeclarationNs.within(getNs(), typeDeclaration));
 
         if (typeDeclaration instanceof ObjectDeclaration<?>)

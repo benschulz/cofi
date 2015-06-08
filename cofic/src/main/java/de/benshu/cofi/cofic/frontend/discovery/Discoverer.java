@@ -7,6 +7,7 @@ import de.benshu.cofi.model.impl.AnnotationImpl;
 import de.benshu.cofi.model.impl.ClassDeclaration;
 import de.benshu.cofi.model.impl.CompilationUnit;
 import de.benshu.cofi.model.impl.MethodDeclarationImpl;
+import de.benshu.cofi.model.impl.ModuleObjectDeclaration;
 import de.benshu.cofi.model.impl.ObjectDeclaration;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
 import de.benshu.cofi.model.impl.PropertyDeclaration;
@@ -46,6 +47,13 @@ public class Discoverer {
             for (MethodDeclarationImpl.Piece<Pass> piece : methodDeclaration.pieces)
                 aggregate.defineTypeParametersOf(piece, piece.typeParameters.bind(pass));
             return aggregate;
+        }
+
+
+        @Override
+        public DiscoveryDataBuilder visitModuleObjectDeclaration(ModuleObjectDeclaration<Pass> moduleObjectDeclaration, DiscoveryDataBuilder aggregate) {
+            visitTypeDeclaration(moduleObjectDeclaration, aggregate);
+            return super.visitModuleObjectDeclaration(moduleObjectDeclaration, aggregate);
         }
 
         @Override

@@ -4,9 +4,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import de.benshu.cofi.binary.internal.Ancestry;
+import de.benshu.cofi.binary.internal.Constructor;
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.frontend.namespace.AbstractResolution;
 import de.benshu.cofi.common.Fqn;
+import de.benshu.cofi.model.impl.AbstractModuleOrPackageObjectDeclaration;
 import de.benshu.cofi.model.impl.AnnotatedNodeMixin;
 import de.benshu.cofi.model.impl.AnnotationImpl;
 import de.benshu.cofi.model.impl.ClassDeclaration;
@@ -17,6 +20,7 @@ import de.benshu.cofi.model.impl.LiteralExpression;
 import de.benshu.cofi.model.impl.MemberAccessExpression;
 import de.benshu.cofi.model.impl.MethodDeclarationImpl;
 import de.benshu.cofi.model.impl.ModelTransformer;
+import de.benshu.cofi.model.impl.ModuleObjectDeclaration;
 import de.benshu.cofi.model.impl.ObjectDeclaration;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
 import de.benshu.cofi.model.impl.ParameterImpl;
@@ -49,12 +53,14 @@ import de.benshu.cofi.runtime.SingletonCompanion;
 import de.benshu.cofi.runtime.Statement;
 import de.benshu.cofi.runtime.Trait;
 import de.benshu.cofi.runtime.TypeBody;
+import de.benshu.cofi.runtime.TypeDeclaration;
 import de.benshu.cofi.runtime.TypeExpression;
 import de.benshu.cofi.runtime.Union;
-import de.benshu.cofi.binary.internal.Constructor;
+import de.benshu.cofi.runtime.internal.TypeParameterListReference;
 import de.benshu.cofi.runtime.internal.TypeReference;
 import de.benshu.cofi.types.TemplateTypeConstructor;
 import de.benshu.cofi.types.Type;
+import de.benshu.cofi.types.UnionTypeConstructor;
 import de.benshu.cofi.types.impl.AdHoc;
 import de.benshu.cofi.types.impl.ProperTypeMixin;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
@@ -62,8 +68,7 @@ import de.benshu.cofi.types.impl.members.AbstractMember;
 import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.commons.core.Optional;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collector;
 
 import static com.google.common.collect.Maps.immutableEntry;
@@ -71,7 +76,6 @@ import static de.benshu.cofi.types.impl.lists.AbstractTypeList.typeList;
 import static de.benshu.commons.core.streams.Collectors.list;
 import static de.benshu.commons.core.streams.Collectors.set;
 import static de.benshu.commons.core.streams.Collectors.setMultimap;
-import static java.util.Comparator.naturalOrder;
 
 public class ToRuntimeModelTransformer implements ModelTransformer<
         Pass,
@@ -95,55 +99,55 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
     }
 
     private Module transformModule(ImmutableSet<CompilationUnit<Pass>> compilationUnits) {
+        final Fqn moduleName = compilationUnits.iterator().next().moduleDeclaration.name.fqn;
+        final ModuleObjectDeclaration<Pass> declaration = pass.lookUpModuleObjectDeclaration();
+        final TemplateTypeConstructor type = pass.lookUpTypeOf(declaration).unbind();
+
+        final ImmutableSetMultimap<Fqn, de.benshu.cofi.model.impl.AbstractTypeDeclaration<Pass>> topLevelDeclarations = compilationUnits.stream()
+                .flatMap(u -> u.declarations.stream().map(d -> immutableEntry(u.packageDeclaration.name.fqn, d)))
+                .collect(setMultimap());
+
         return new Module(
-                compilationUnits.iterator().next().moduleDeclaration.name.fqn,
-                transformPackages(compilationUnits.stream()
-                        .flatMap(u -> u.declarations.stream().map(d -> immutableEntry(u.packageDeclaration.name.fqn, d)))
-                        .collect(setMultimap())),
-                () -> { throw new AssertionError(); },
-                x -> TypeParameterListImpl.empty().unbind());
+                transformAnnotationsOf(declaration),
+                moduleName,
+                x -> type.getParameters(),
+                d -> type,
+                transformTypeBody(declaration.body),
+                transformNonMapAndNonCompanionTopLevelDeclarationsOf(moduleName, topLevelDeclarations),
+                transformSubpackagesOf(moduleName, topLevelDeclarations),
+                () -> { throw new AssertionError(); });
     }
 
-    private Constructor<Package> transformPackages(ImmutableSetMultimap<Fqn, de.benshu.cofi.model.impl.AbstractTypeDeclaration<Pass>> topLevelDeclarations) {
-        Map<Fqn, Constructor<Package>> transformed = new HashMap<>();
+    private Constructor<Package> transformPackage(Fqn fqn, ImmutableSetMultimap<Fqn, de.benshu.cofi.model.impl.AbstractTypeDeclaration<Pass>> topLevelDeclarations) {
+        final PackageObjectDeclaration<Pass> declaration = pass.lookUpPackageObjectDeclarationOf(fqn);
 
-        topLevelDeclarations.asMap().entrySet().stream()
-                .sorted((a, b) -> -a.getKey().compareTo(b.getKey()))
-                .collect(list()).forEach(e -> {
-            final ImmutableSet<Constructor<Package>> subpackages = transformed.entrySet().stream()
-                    .filter(te -> te.getKey().getParent().equals(e.getKey()))
-                    .map(Map.Entry::getValue)
-                    .collect(set());
+        final TemplateTypeConstructor type = pass.lookUpTypeOf(declaration).unbind();
 
-            transformed.put(e.getKey(), transformPackage(e.getKey(), ImmutableSet.copyOf(e.getValue()), subpackages));
-        });
-
-        return transformed.get(topLevelDeclarations.keySet().stream().min(naturalOrder()).get());
+        return as -> new Package(
+                as,
+                transformAnnotationsOf(declaration),
+                fqn.getLocalName(),
+                x -> type.getParameters(),
+                d -> type,
+                transformTypeBody(declaration.body),
+                transformNonMapAndNonCompanionTopLevelDeclarationsOf(fqn, topLevelDeclarations),
+                transformSubpackagesOf(fqn, topLevelDeclarations));
     }
 
-    private Constructor<Package> transformPackage(Fqn fqn, ImmutableSet<de.benshu.cofi.model.impl.AbstractTypeDeclaration<Pass>> topLevelDeclarations, ImmutableSet<Constructor<Package>> subpackages) {
-        final PackageObjectDeclaration<Pass> packageObjectDeclaration = topLevelDeclarations.stream()
-                .filter(d -> d instanceof PackageObjectDeclaration<?>)
-                .map(d -> (PackageObjectDeclaration<Pass>) d)
-                .findAny().get();
+    private ImmutableSet<Constructor<Package>> transformSubpackagesOf(Fqn fqn, ImmutableSetMultimap<Fqn, de.benshu.cofi.model.impl.AbstractTypeDeclaration<Pass>> topLevelDeclarations) {
+        return topLevelDeclarations.keySet().stream()
+                .filter(n -> n.getParent().equals(fqn))
+                .map(n -> transformPackage(n, topLevelDeclarations))
+                .collect(set());
+    }
 
-        final ImmutableSet<Constructor<AbstractTypeDeclaration<?>>> otherNonCompanionObjectDeclarations = topLevelDeclarations.stream()
-                .filter(d -> !(d instanceof PackageObjectDeclaration<?>))
+    private ImmutableSet<Constructor<AbstractTypeDeclaration<?>>> transformNonMapAndNonCompanionTopLevelDeclarationsOf(Fqn fqn, ImmutableSetMultimap<Fqn, de.benshu.cofi.model.impl.AbstractTypeDeclaration<Pass>> topLevelDeclarations) {
+        return topLevelDeclarations.get(fqn).stream()
+                .filter(d -> !(d instanceof AbstractModuleOrPackageObjectDeclaration<?>))
                 .filter(d -> !pass.isCompanion(d))
                 .map(this::transform)
                 .map(this::covariant)
                 .collect(set());
-
-        final TemplateTypeConstructor type = pass.lookUpTypeOf(packageObjectDeclaration).unbind();
-        return as -> new Package(
-                as,
-                transformAnnotationsOf(packageObjectDeclaration),
-                fqn.getLocalName(),
-                x -> type.getParameters(),
-                d -> type,
-                transformTypeBody(packageObjectDeclaration.body),
-                otherNonCompanionObjectDeclarations,
-                subpackages);
     }
 
     @Override
@@ -166,12 +170,14 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
 
     @Override
     public Constructor<Class> transformClassDeclaration(ClassDeclaration<Pass> classDeclaration) {
+        final TemplateTypeConstructor type = pass.lookUpTypeOf(classDeclaration).unbind();
+
         return as -> new Class(
                 as,
                 transformAnnotationsOf(classDeclaration),
                 classDeclaration.id.getLexeme(),
-                x -> pass.lookUpTypeParametersOf(classDeclaration).unbind(),
-                d -> pass.lookUpTypeOf(classDeclaration).unbind(),
+                x -> type.getParameters(),
+                d -> type,
                 classDeclaration.getParameters().stream().map(this::transformParameter).map(this::covariant).collect(list()),
                 transformTypeBody(classDeclaration.body),
                 (Constructor<Companion>) transformObjectDeclaration(pass.lookUpCompanionObjectOf(classDeclaration))
@@ -295,37 +301,33 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
                         x -> pass.lookUpTypeOf(nameExpression).unbind()));
     }
 
+    interface AbstractObjectConstructor<O extends AbstractObject> {
+        O construct(
+                Ancestry ancestry,
+                ImmutableSet<Constructor<Annotation>> annotations,
+                String name,
+                TypeParameterListReference typeParameters,
+                Function<TypeDeclaration, TemplateTypeConstructor> type,
+                Constructor<TypeBody> body);
+    }
+
     @Override
     public Constructor<? extends AbstractObject> transformObjectDeclaration(ObjectDeclaration<Pass> objectDeclaration) {
-        // TODO clean this mess up
-        if (pass.isCompanion(objectDeclaration)) {
-            if (pass.lookUpTypeParametersOf(objectDeclaration).isEmpty())
-                return as -> new SingletonCompanion(
-                        as,
-                        transformAnnotationsOf(objectDeclaration),
-                        objectDeclaration.id.getLexeme(),
-                        x -> pass.lookUpTypeParametersOf(objectDeclaration).unbind(),
-                        d -> pass.lookUpTypeOf(objectDeclaration).unbind(),
-                        transformTypeBody(objectDeclaration.body)
-                );
-            else
-                return as -> new Companion.MultitonCompanion(
-                        as,
-                        transformAnnotationsOf(objectDeclaration),
-                        objectDeclaration.id.getLexeme(),
-                        x -> pass.lookUpTypeParametersOf(objectDeclaration).unbind(),
-                        d -> pass.lookUpTypeOf(objectDeclaration).unbind(),
-                        transformTypeBody(objectDeclaration.body)
-                );
-        } else
-            return as -> new ObjectSingleton(
-                    as,
-                    transformAnnotationsOf(objectDeclaration),
-                    objectDeclaration.id.getLexeme(),
-                    x -> pass.lookUpTypeParametersOf(objectDeclaration).unbind(),
-                    d -> pass.lookUpTypeOf(objectDeclaration).unbind(),
-                    transformTypeBody(objectDeclaration.body)
-            );
+        final TemplateTypeConstructor type = pass.lookUpTypeOf(objectDeclaration).unbind();
+
+        final AbstractObjectConstructor constructor = pass.isCompanion(objectDeclaration)
+                ? type.getParameters().isEmpty()
+                ? SingletonCompanion::new
+                : Companion.MultitonCompanion::new
+                : ObjectSingleton::new;
+
+        return as -> constructor.construct(
+                as,
+                transformAnnotationsOf(objectDeclaration),
+                objectDeclaration.id.getLexeme(),
+                x -> type.getParameters(),
+                d -> type,
+                transformTypeBody(objectDeclaration.body));
     }
 
     @Override
@@ -372,12 +374,14 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
 
     @Override
     public Constructor<Trait> transformTraitDeclaration(TraitDeclaration<Pass> traitDeclaration) {
+        final TemplateTypeConstructor type = pass.lookUpTypeOf(traitDeclaration).unbind();
+
         return as -> new Trait(
                 as,
                 transformAnnotationsOf(traitDeclaration),
                 traitDeclaration.id.getLexeme(),
-                x -> pass.lookUpTypeParametersOf(traitDeclaration).unbind(),
-                d -> pass.lookUpTypeOf(traitDeclaration).unbind(),
+                x -> type.getParameters(),
+                d -> type,
                 transformTypeBody(traitDeclaration.body),
                 (Constructor<Companion>) transformObjectDeclaration(pass.lookUpCompanionObjectOf(traitDeclaration))
         );
@@ -397,12 +401,14 @@ public class ToRuntimeModelTransformer implements ModelTransformer<
 
     @Override
     public Constructor<AbstractTypeDeclaration<?>> transformUnionDeclaration(UnionDeclaration<Pass> unionDeclaration) {
+        final UnionTypeConstructor type = pass.lookUpTypeOf(unionDeclaration).unbind();
+
         return as -> new Union(
                 as,
                 transformAnnotationsOf(unionDeclaration),
                 unionDeclaration.id.getLexeme(),
-                x -> pass.lookUpTypeParametersOf(unionDeclaration).unbind(),
-                d -> pass.lookUpTypeOf(unionDeclaration).unbind(),
+                x -> type.getParameters(),
+                d -> type,
                 transformTypeBody(unionDeclaration.body),
                 (Constructor<Companion>) transformObjectDeclaration(pass.lookUpCompanionObjectOf(unionDeclaration))
         );

@@ -4,7 +4,7 @@ package .helloworld;
 import .cofi.lang.collect.ArrayList;
 import .cofi.lang.collect.ImmutableList;
 
-public package {}
+public module {}
 
 public object HelloWorld extends Application {
     public id<I, O | I <: O>(value : I) : O { return (value); }

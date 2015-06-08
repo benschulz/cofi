@@ -50,7 +50,7 @@ import static java.util.stream.Collectors.joining;
 public class ImplementationTyper {
     public static ImplementationData type(Pass pass, ImmutableSet<CompilationUnit<Pass>> compilationUnits) {
         return compilationUnits
-                .stream()
+                .parallelStream()
                 .map(u -> new Visitor(pass).visit(u, ImplementationData.builder()))
                 .collect(ImplementationData::builder, ImplementationDataBuilder::addAll, ImplementationDataBuilder::addAll)
                 .addAll(new ImplementationDataBuilder(pass.getGenericModelData()))
@@ -218,7 +218,9 @@ public class ImplementationTyper {
         public ImplementationDataBuilder visitPropertyDeclaration(PropertyDeclaration<Pass> propertyDeclaration, ImplementationDataBuilder aggregate) {
             ExpressionNode<Pass> initialValue = propertyDeclaration.initialValue;
 
-            return new UserDefinedNodeTransformer<Pass>(transformationContext(aggregate)).transform(initialValue).stream()
+            final ImmutableList<TransformedUserDefinedNode<Pass, ExpressionNode<Pass>>> transformed = new UserDefinedNodeTransformer<Pass>(transformationContext(aggregate)).transform(initialValue).stream().collect(list());
+
+            final ImmutableList<ImplementationDataBuilder> validTransformations = transformed.stream()
                     .map(t -> {
                         ImplementationDataBuilder tmp = visit(t.getTransformedNode(), aggregate.copy().defineTransformation(initialValue, t.getTransformedNode()));
                         java.util.Optional<ImplementationDataBuilder> result = inferencer.infer(pass, getContextualConstraints(aggregate), pass.lookUpProperTypeOf(propertyDeclaration.type), tmp);
@@ -227,7 +229,9 @@ public class ImplementationTyper {
                     })
                     .filter(java.util.Optional::isPresent)
                     .map(java.util.Optional::get)
-                    .collect(single());
+                    .collect(list());
+
+            return validTransformations.stream().collect(single());
         }
 
         @Override

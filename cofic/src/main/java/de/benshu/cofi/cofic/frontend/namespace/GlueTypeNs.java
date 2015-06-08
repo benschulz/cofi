@@ -38,7 +38,7 @@ public class GlueTypeNs extends AbstractNamespace {
         final Fqn childFqn = fqn.getChild(name);
 
         for (PackageObjectDeclaration<Pass> packageObjectDeclaration : lookUp.tryLookUpPackageObjectDeclarationOf(childFqn))
-            return some(PackageObjectNs.create(this, childFqn, packageObjectDeclaration));
+            return some(ModuleOrPackageObjectNs.create(this, childFqn, packageObjectDeclaration));
 
         return Optional.from(lookUp.getGlueTypes().get(childFqn))
                 .map(g -> GlueTypeNs.create(this, childFqn));

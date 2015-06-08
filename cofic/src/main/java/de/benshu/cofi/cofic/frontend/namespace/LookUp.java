@@ -37,8 +37,9 @@ public class LookUp {
         return pass.tryLookUpPackageObjectDeclarationOf(fullyQualifiedName);
     }
 
-    public ImmutableSet<AbstractTypeDeclaration<Pass>> lookUpTopLevelDeclarationIn(PackageObjectDeclaration<Pass> packageObjectDeclaration) {
-        return pass.lookUpTopLevelDeclarationIn(packageObjectDeclaration);
+
+    public ImmutableSet<AbstractTypeDeclaration<Pass>> lookUpTopLevelDeclarationIn(Fqn packageFqn) {
+        return pass.lookUpTopLevelDeclarationIn(packageFqn);
     }
 
     public TypeSystemImpl<Pass> getTypeSystem() {

@@ -10,6 +10,7 @@ import de.benshu.cofi.cofic.model.common.TypeTags;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.CompilationUnit;
+import de.benshu.cofi.model.impl.ModuleObjectDeclaration;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
 import de.benshu.cofi.types.impl.TypeParameterListImpl;
 import de.benshu.cofi.types.impl.declarations.TemplateTypeDeclaration;
@@ -26,38 +27,49 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.Maps.immutableEntry;
+import static de.benshu.commons.core.streams.Collectors.listMultimap;
 import static de.benshu.commons.core.streams.Collectors.map;
 import static de.benshu.commons.core.streams.Collectors.set;
 import static de.benshu.commons.core.streams.Collectors.setMultimap;
+import static de.benshu.commons.core.streams.Collectors.single;
 
 public class ModuleGlueTyper {
     public static void type(Pass pass, Fqn moduleFqn, ImmutableSet<CompilationUnit<Pass>> compilationUnits) {
-        final ImmutableMap.Builder<Fqn, PackageObjectDeclaration<Pass>> packageObjectDeclarationsBuilder = ImmutableMap.builder();
-        final ImmutableSetMultimap.Builder<Fqn, AbstractTypeDeclaration<Pass>> topLevelDeclarationsBuilder = ImmutableSetMultimap.builder();
+        final ImmutableMap<Fqn, ImmutableSetMultimap<Class<?>, AbstractTypeDeclaration<Pass>>> delcarationsByPackageAndClass = compilationUnits.stream()
+                .flatMap(u -> u.declarations.stream().map(d -> immutableEntry(u.packageDeclaration.name.fqn, d)))
+                .collect(listMultimap()).asMap().entrySet().stream()
+                .<Map.Entry<Fqn, ImmutableSetMultimap<Class<?>, AbstractTypeDeclaration<Pass>>>>map(e -> immutableEntry(
+                        e.getKey(),
+                        e.getValue().stream()
+                                .map(d -> immutableEntry(
+                                        Stream.<Class<?>>of(ModuleObjectDeclaration.class, PackageObjectDeclaration.class)
+                                                .filter(c -> c.isAssignableFrom(d.getClass()))
+                                                .findAny().orElse(AbstractTypeDeclaration.class),
+                                        d))
+                                .collect(setMultimap())))
+                .collect(map());
 
-        compilationUnits.forEach(u -> {
-            if (!moduleFqn.equals(u.moduleDeclaration.name.fqn))
-                throw new AssertionError(); // TODO note an error
-            if (!moduleFqn.contains(u.packageDeclaration.name.fqn))
-                throw new AssertionError(); // TODO note an error
+        final ModuleObjectDeclaration<Pass> moduleObjectDeclaration = delcarationsByPackageAndClass.values().stream()
+                .flatMap(ds -> ds.get(ModuleObjectDeclaration.class).stream())
+                .map(d -> (ModuleObjectDeclaration<Pass>) d)
+                .collect(single());
+        pass.defineModuleDeclarations(moduleObjectDeclaration);
 
-            u.declarations.stream()
-                    .filter(d -> d instanceof PackageObjectDeclaration<?>)
-                    .forEach(d -> packageObjectDeclarationsBuilder.put(u.packageDeclaration.name.fqn, (PackageObjectDeclaration<Pass>) d));
+        final ImmutableMap<Fqn, PackageObjectDeclaration<Pass>> packageObjectDeclarations = delcarationsByPackageAndClass.entrySet().stream()
+                .filter(e -> !e.getKey().equals(moduleFqn))
+                .map(e -> immutableEntry(
+                        e.getKey(),
+                        e.getValue().get(PackageObjectDeclaration.class).stream()
+                                .map(d -> (PackageObjectDeclaration<Pass>) d)
+                                .collect(single())))
+                .collect(map());
+        pass.definePackageObjectDeclarations(packageObjectDeclarations);
 
-            u.declarations.stream()
-                    .filter(d -> !(d instanceof PackageObjectDeclaration<?>))
-                    .forEach(d -> topLevelDeclarationsBuilder.put(u.packageDeclaration.name.fqn, d));
-        });
-
-        final ImmutableMap<Fqn, PackageObjectDeclaration<Pass>> packageObjectDeclarations = packageObjectDeclarationsBuilder.build();
-        pass.addPackageObjectDeclarations(packageObjectDeclarations);
-
-        pass.defineTopLevelDeclarations(topLevelDeclarationsBuilder.build().entries().stream()
-                .map(e -> immutableEntry(packageObjectDeclarations.get(e.getKey()), e.getValue()))
-                .collect(setMultimap()));
-
-        final PackageObjectDeclaration<Pass> module = packageObjectDeclarations.get(moduleFqn);
+        final ImmutableSetMultimap<Fqn, AbstractTypeDeclaration<Pass>> topLevelDeclarations = delcarationsByPackageAndClass.entrySet().stream()
+                .flatMap(e -> e.getValue().get(AbstractTypeDeclaration.class).stream()
+                        .map(d -> immutableEntry(e.getKey(), d)))
+                .collect(setMultimap());
+        pass.defineTopLevelDeclarations(topLevelDeclarations);
 
         final ImmutableMap<Fqn, Supplier<TemplateTypeConstructorMixin<Pass>>> dependencies = pass.getDependencyTypes().entrySet().stream()
                 .map(d -> immutableEntry(d.getKey(), (Supplier<TemplateTypeConstructorMixin<Pass>>) d::getValue))
@@ -84,7 +96,7 @@ public class ModuleGlueTyper {
                                     final Stream<Map.Entry<String, TemplateTypeConstructorMixin<Pass>>> containedModules = Stream.concat(
                                             Optional.some(moduleFqn)
                                                     .filter(n -> n.getParent().equals(fqn))
-                                                    .map(n -> immutableEntry(n.getLocalName(), x.lookUpTypeOf(module)))
+                                                    .map(n -> immutableEntry(n.getLocalName(), x.lookUpTypeOf(moduleObjectDeclaration)))
                                                     .stream(),
                                             containedDependencies
                                     );

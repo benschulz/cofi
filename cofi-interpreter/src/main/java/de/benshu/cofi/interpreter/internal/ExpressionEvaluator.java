@@ -13,7 +13,6 @@ import de.benshu.cofi.runtime.MethodDeclaration;
 import de.benshu.cofi.runtime.Multiton;
 import de.benshu.cofi.runtime.NameExpression;
 import de.benshu.cofi.runtime.RootExpression;
-import de.benshu.cofi.runtime.Singleton;
 import de.benshu.cofi.runtime.ThisExpression;
 import de.benshu.cofi.runtime.context.tags.Implementations;
 import de.benshu.cofi.types.Member;
@@ -104,9 +103,7 @@ public class ExpressionEvaluator {
                             FunctionEvaluator.forMethod(moduleInterpretation, primary, effectiveImplementation));
                     return functionObject;
                 case TYPE:
-                    return typeArguments.isEmpty()
-                            ? moduleInterpretation.getSingletons().lookUpOrCreate((Singleton) member.getTags().get(MemberDeclaration.TAG))
-                            : moduleInterpretation.getSingletons().lookUpOrCreate((Multiton) member.getTags().get(MemberDeclaration.TAG), typeArguments);
+                    return moduleInterpretation.getSingletons().lookUpOrCreate((Multiton) member.getTags().get(MemberDeclaration.TAG), typeArguments);
                 case PROPERTY:
                     return primary.getProperties().get(member.getTags().get(MemberDeclaration.TAG));
                 default:

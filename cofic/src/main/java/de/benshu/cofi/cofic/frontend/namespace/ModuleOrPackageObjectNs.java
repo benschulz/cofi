@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.notes.Source;
 import de.benshu.cofi.common.Fqn;
+import de.benshu.cofi.model.impl.AbstractModuleOrPackageObjectDeclaration;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.ExpressionNode;
 import de.benshu.cofi.model.impl.ObjectDeclaration;
@@ -14,29 +15,30 @@ import java.util.Optional;
 import static de.benshu.commons.core.Optional.from;
 import static de.benshu.commons.core.Optional.some;
 
-public class PackageObjectNs extends AbstractNamespace {
-    static PackageObjectNs wrap(AbstractNamespace parent,
-                                Fqn packageFqn,
-                                PackageObjectDeclaration<Pass> packageObjectDeclaration) {
-        return new PackageObjectNs(parent, packageFqn, packageObjectDeclaration);
+public class ModuleOrPackageObjectNs extends AbstractNamespace {
+    static ModuleOrPackageObjectNs wrap(AbstractNamespace parent,
+                                        Fqn packageFqn,
+                                        AbstractModuleOrPackageObjectDeclaration<Pass> declaration) {
+        return new ModuleOrPackageObjectNs(parent, packageFqn, declaration);
     }
 
-    static PackageObjectNs create(AbstractNamespace parent,
-                                  Fqn packageFqn,
-                                  PackageObjectDeclaration<Pass> packageObjectDeclaration) {
-        return new PackageObjectNs(parent, packageFqn, packageObjectDeclaration);
+    static ModuleOrPackageObjectNs create(AbstractNamespace parent,
+                                          Fqn packageFqn,
+                                          AbstractModuleOrPackageObjectDeclaration<Pass> declaration) {
+        return new ModuleOrPackageObjectNs(parent, packageFqn, declaration);
     }
 
     private final Fqn packageFqn;
-    private final PackageObjectDeclaration<Pass> packageObjectDeclaration;
+    private final AbstractModuleOrPackageObjectDeclaration<Pass> declaration;
 
-    private PackageObjectNs(AbstractNamespace parent,
-                            Fqn packageFqn,
-                            PackageObjectDeclaration<Pass> packageObjectDeclaration) {
+    private ModuleOrPackageObjectNs(
+            AbstractNamespace parent,
+            Fqn packageFqn,
+            AbstractModuleOrPackageObjectDeclaration<Pass> declaration) {
         super(parent);
 
         this.packageFqn = packageFqn;
-        this.packageObjectDeclaration = packageObjectDeclaration;
+        this.declaration = declaration;
     }
 
     @Override
@@ -46,7 +48,7 @@ public class PackageObjectNs extends AbstractNamespace {
 
     @Override
     public AbstractTypeDeclaration<Pass> getContainingTypeDeclaration() {
-        return packageObjectDeclaration;
+        return declaration;
     }
 
     @Override
@@ -54,9 +56,9 @@ public class PackageObjectNs extends AbstractNamespace {
         final Fqn childFqn = packageFqn.getChild(name);
 
         for (PackageObjectDeclaration<Pass> packageObjectDeclaration : lookUp.tryLookUpPackageObjectDeclarationOf(childFqn))
-            return some(PackageObjectNs.create(this, childFqn, packageObjectDeclaration));
+            return some(ModuleOrPackageObjectNs.create(this, childFqn, packageObjectDeclaration));
 
-        final ImmutableSet<AbstractTypeDeclaration<Pass>> tlds = lookUp.lookUpTopLevelDeclarationIn(packageObjectDeclaration);
+        final ImmutableSet<AbstractTypeDeclaration<Pass>> tlds = lookUp.lookUpTopLevelDeclarationIn(packageFqn);
 
         final Optional<AbstractTypeDeclaration<Pass>> tld = tlds.stream()
                 .filter(d -> d.getName().equals(name))
@@ -68,7 +70,7 @@ public class PackageObjectNs extends AbstractNamespace {
 
     @Override
     protected de.benshu.commons.core.Optional<AbstractResolution> tryResolveLocally(LookUp lookUp, AbstractNamespace fromNamespace, String name) {
-        return lookUp.lookUpTypeOf(packageObjectDeclaration).applyTrivially().lookupMember(name)
+        return lookUp.lookUpTypeOf(declaration).applyTrivially().lookupMember(name)
                 .map(m -> new DefaultResolution(m.getType(), getAccessor(lookUp), m));
     }
 }

@@ -16,7 +16,10 @@ import de.benshu.jswizzle.copyable.CopyFactory;
 import de.benshu.jswizzle.copyable.Copyable;
 
 @Copyable
-public class PackageObjectDeclaration<X extends ModelContext<X>> extends AbstractObjectDeclaration<X> implements AnnotatedNodeMixin<X>, CopyablePackageObjectDeclaration<X> {
+public class PackageObjectDeclaration<X extends ModelContext<X>>
+        extends AbstractModuleOrPackageObjectDeclaration<X>
+        implements AnnotatedNodeMixin<X>, CopyablePackageObjectDeclaration<X> {
+
     @AstNodeConstructorMethod
     public static <X extends ModelContext<X>> PackageObjectDeclaration<X> of(ImmutableList<AnnotationImpl<X>> annotations,
                                                                              ImmutableList<ModifierImpl<X>> modifiers, ImmutableList<TypeExpression<X>> extending,
@@ -56,11 +59,6 @@ public class PackageObjectDeclaration<X extends ModelContext<X>> extends Abstrac
     @Override
     public <N, L extends N, D extends L, S extends N, E extends N, T extends N> D accept(ModelTransformer<X, N, L, D, S, E, T> transformer) {
         return transformer.transformPackageObjectDeclaration(this);
-    }
-
-    @Override
-    public Token getId() {
-        throw new AssertionError();
     }
 
     @Override
