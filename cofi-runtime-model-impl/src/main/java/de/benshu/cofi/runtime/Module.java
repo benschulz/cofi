@@ -1,5 +1,6 @@
 package de.benshu.cofi.runtime;
 
+import com.google.common.collect.ImmutableSet;
 import de.benshu.cofi.binary.internal.Ancestry;
 import de.benshu.cofi.binary.internal.BinaryModuleMixin;
 import de.benshu.cofi.binary.internal.Constructor;
@@ -9,32 +10,38 @@ import de.benshu.cofi.types.TemplateTypeConstructor;
 import de.benshu.cofi.types.TypeParameterList;
 import de.benshu.jswizzle.data.Data;
 
+import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import static de.benshu.cofi.runtime.internal.Resolution.resolve;
 
-public class Module implements Singleton, ModuleAccessors, BinaryModuleMixin {
+public class Module extends AbstractModuleOrPackage<Module> implements ModuleAccessors, BinaryModuleMixin {
     @Data
     final Fqn fqn;
-    @Data
-    final Package pakkage;
-
     final transient Supplier<ObjectSingleton> root;
-    final transient Supplier<TypeParameterList> typeParameters;
+    final Supplier<TypeParameterList> typeParameters;
 
     public Module(
+            ImmutableSet<Constructor<Annotation>> annotations,
             Fqn fqn,
-            Constructor<Package> pakkage,
-            Supplier<ObjectSingleton> root,
-            TypeParameterListReference typeParameters) {
+            TypeParameterListReference typeParameters,
+            Function<Module, TemplateTypeConstructor> type,
+            Constructor<TypeBody> body,
+            ImmutableSet<Constructor<AbstractTypeDeclaration<?>>> topLevelDeclarations,
+            ImmutableSet<Constructor<Package>> subpackages,
+            Supplier<ObjectSingleton> root) {
+        super(Ancestry.empty(), annotations, fqn, type, body, topLevelDeclarations, subpackages);
 
         final Ancestry ancestryIncludingMe = Ancestry.first(this);
 
         this.fqn = fqn;
         this.typeParameters = resolve(ancestryIncludingMe, typeParameters);
-        this.pakkage = ancestryIncludingMe.construct(pakkage);
         this.root = root;
+    }
+
+    @Override
+    protected Module self() {
+        return this;
     }
 
     @Override
@@ -43,28 +50,8 @@ public class Module implements Singleton, ModuleAccessors, BinaryModuleMixin {
     }
 
     @Override
-    public TypeBody getBody() {
-        throw null;
-    }
-
-    @Override
-    public TemplateTypeConstructor getType() {
-        return pakkage.getType();
-    }
-
-    @Override
-    public String getName() {
-        throw null;
-    }
-
-    @Override
     public TypeParameterList getTypeParameters() {
         return typeParameters.get();
-    }
-
-    @Override
-    public Stream<? extends MemberDeclaration> getMemberDeclarations() {
-        return pakkage.getMemberDeclarations();
     }
 
     public ObjectSingleton getRoot() {
@@ -73,6 +60,6 @@ public class Module implements Singleton, ModuleAccessors, BinaryModuleMixin {
 
     @Override
     public String debug() {
-        return "module " + fqn;
+        return "module " + getFqn();
     }
 }

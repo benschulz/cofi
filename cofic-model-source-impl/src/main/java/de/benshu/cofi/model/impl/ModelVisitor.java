@@ -2,7 +2,7 @@ package de.benshu.cofi.model.impl;
 
 public interface ModelVisitor<X extends ModelContext<X>, T> {
     default T defaultAction(T aggregate) {
-        throw new AssertionError();
+        throw new AssertionError(getClass().toString());
     }
 
     default T visit(ModelNodeMixin<X> modelNode, T aggregate) {
@@ -104,6 +104,10 @@ public interface ModelVisitor<X extends ModelContext<X>, T> {
     }
 
     default T visitModifier(ModifierImpl<X> modifier, T aggregate) {
+        return defaultAction(aggregate);
+    }
+
+    default T visitModuleObjectDeclaration(ModuleObjectDeclaration<X> moduleObjectDeclaration, T aggregate) {
         return defaultAction(aggregate);
     }
 

@@ -85,6 +85,13 @@ public class Fqn implements Comparable<Fqn>, Iterable<String> {
                 .collect(Collectors.set());
     }
 
+    public Fqn getAncestor(ImmutableList<String> relativeName) {
+        final int length = length() - relativeName.size();
+        for (int i = 0; i < relativeName.size(); ++i)
+            checkArgument(relativeName.get(i).equals(ids[length + i]));
+        return getAncestor(length);
+    }
+
     private Fqn getAncestor(int length) {
         checkArgument(length <= ids.length);
         return new Fqn(Arrays.copyOf(ids, length));

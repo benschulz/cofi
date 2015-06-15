@@ -8,6 +8,7 @@ import de.benshu.cofi.cofic.frontend.namespace.NamespaceTrackingVisitor;
 import de.benshu.cofi.cofic.frontend.namespace.TypeParametersNs;
 import de.benshu.cofi.common.Fqn;
 import de.benshu.cofi.model.Modifier;
+import de.benshu.cofi.model.impl.AbstractModuleOrPackageObjectDeclaration;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.CompilationUnit;
 import de.benshu.cofi.model.impl.MethodDeclarationImpl;
@@ -142,20 +143,19 @@ public class InterfaceTyper {
 
         @Override
         protected InterfaceDataBuilder visitTypeDeclaration(AbstractTypeDeclaration<Pass> typeDeclaration, InterfaceDataBuilder aggregate) {
-            // TODO These instanceof checks aren't pretty.. use the relevant visit-methods
-            if (typeDeclaration instanceof PackageObjectDeclaration<?>)
+            // TODO Move the defineFqnOf calls to the discovery phase.
+            if (typeDeclaration instanceof AbstractModuleOrPackageObjectDeclaration<?>)
                 aggregate.defineFqnOf(typeDeclaration, getNs().getContainingEntityFqn());
             else
                 aggregate.defineFqnOf(typeDeclaration, getNs().getContainingEntityFqn().getChild(typeDeclaration.getName()));
 
+            // TODO This instanceof check isn't pretty.. use the relevant visit-methods
             if (typeDeclaration instanceof PackageObjectDeclaration<?>) {
                 final Fqn packageFqn = getNs().getPackageFqn();
 
-                for (PackageObjectDeclaration<Pass> containingPackage : pass.tryLookUpPackageObjectDeclarationOf(packageFqn.getParent())) {
-                    final SourceTypeDescriptorImpl descriptor = new SourceTypeDescriptorImpl(pass, typeDeclaration, packageFqn.getLocalName(), IndividualTags.empty());
-
-                    aggregate.addType(containingPackage, descriptor);
-                }
+                final AbstractModuleOrPackageObjectDeclaration<Pass> containingMop = pass.lookUpModuleOrPackageObjectDeclarationOf(packageFqn.getParent());
+                final SourceTypeDescriptorImpl descriptor = new SourceTypeDescriptorImpl(pass, typeDeclaration, packageFqn.getLocalName(), IndividualTags.empty());
+                aggregate.addType(containingMop, descriptor);
             } else if (typeDeclaration instanceof ObjectDeclaration<?>) {
                 final SourceTypeDescriptorImpl descriptor = new SourceTypeDescriptorImpl(pass, typeDeclaration, typeDeclaration.getName(), IndividualTags.empty());
 

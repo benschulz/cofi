@@ -1,21 +1,21 @@
 package de.benshu.cofi.cofic.frontend.namespace;
 
 import de.benshu.cofi.cofic.Pass;
-import de.benshu.cofi.common.Fqn;
-import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
-import de.benshu.cofi.model.impl.PackageObjectDeclaration;
-import de.benshu.commons.core.Optional;
 import de.benshu.cofi.cofic.notes.Source;
+import de.benshu.cofi.common.Fqn;
+import de.benshu.cofi.model.impl.AbstractModuleOrPackageObjectDeclaration;
+import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
+import de.benshu.commons.core.Optional;
 
 class PackageNs extends AbstractNamespace {
-    public static AbstractNamespace wrap(AbstractNamespace parent, Fqn packageFqn, PackageObjectDeclaration<Pass> declaration) {
+    public static AbstractNamespace wrap(AbstractNamespace parent, Fqn packageFqn, AbstractModuleOrPackageObjectDeclaration<Pass> declaration) {
         return new PackageNs(parent, packageFqn, declaration);
     }
 
     private final Fqn packageFqn;
-    private final PackageObjectDeclaration<Pass> declaration;
+    private final AbstractModuleOrPackageObjectDeclaration<Pass> declaration;
 
-    PackageNs(AbstractNamespace parent, Fqn packageFqn, PackageObjectDeclaration<Pass> declaration) {
+    PackageNs(AbstractNamespace parent, Fqn packageFqn, AbstractModuleOrPackageObjectDeclaration<Pass> declaration) {
         super(parent);
 
         this.packageFqn = packageFqn;
@@ -39,15 +39,15 @@ class PackageNs extends AbstractNamespace {
 
     @Override
     protected Optional<AbstractNamespace> tryResolveNamespaceLocally(LookUp lookUp, String name, Source.Snippet src) {
-        return packageObjectNs(lookUp).tryResolveNamespaceLocally(lookUp, name, src);
+        return packageObjectNs().tryResolveNamespaceLocally(lookUp, name, src);
     }
 
     @Override
     protected Optional<AbstractResolution> tryResolveLocally(LookUp lookUp, AbstractNamespace fromNamespace, String name) {
-        return packageObjectNs(lookUp).tryResolveLocally(lookUp, fromNamespace, name);
+        return packageObjectNs().tryResolveLocally(lookUp, fromNamespace, name);
     }
 
-    private PackageObjectNs packageObjectNs(LookUp lookUp) {
-        return PackageObjectNs.create(this, packageFqn, lookUp.lookUpPackageObjectDeclarationOf(packageFqn));
+    private ModuleOrPackageObjectNs packageObjectNs() {
+        return ModuleOrPackageObjectNs.create(this, packageFqn, declaration);
     }
 }

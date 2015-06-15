@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Maps;
 import de.benshu.cofi.binary.deserialization.internal.AbstractBinaryModelContext;
 import de.benshu.cofi.binary.internal.BinaryTypeDeclarationMixin;
 import de.benshu.cofi.cofic.frontend.GenericModelData;
@@ -19,11 +18,14 @@ import de.benshu.cofi.cofic.model.binary.BinaryTypeDeclaration;
 import de.benshu.cofi.cofic.notes.PrintStreamNotes;
 import de.benshu.cofi.cofic.notes.async.Checker;
 import de.benshu.cofi.common.Fqn;
+import de.benshu.cofi.model.impl.AbstractModuleOrPackageObjectDeclaration;
+import de.benshu.cofi.model.impl.AbstractObjectDeclaration;
 import de.benshu.cofi.model.impl.AbstractTypeDeclaration;
 import de.benshu.cofi.model.impl.ClassDeclaration;
 import de.benshu.cofi.model.impl.ExpressionNode;
 import de.benshu.cofi.model.impl.MemberDeclarationImpl;
 import de.benshu.cofi.model.impl.ModelContext;
+import de.benshu.cofi.model.impl.ModuleObjectDeclaration;
 import de.benshu.cofi.model.impl.NameExpression;
 import de.benshu.cofi.model.impl.NameImpl;
 import de.benshu.cofi.model.impl.ObjectDeclaration;
@@ -61,9 +63,10 @@ public final class Pass extends AbstractBinaryModelContext<Pass> implements Mode
     private final TypeSystemImpl<Pass> typeSystem;
 
     // ModuleGlueTyper
-    private final Map<Fqn, PackageObjectDeclaration<Pass>> packageObjectDeclarations = Maps.newConcurrentMap();
+    private ModuleObjectDeclaration<Pass> moduleObjectDeclaration;
+    private ImmutableMap<Fqn, PackageObjectDeclaration<Pass>> packageObjectDeclarations;
     private ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> glueTypes;
-    private ImmutableSetMultimap<PackageObjectDeclaration<Pass>, AbstractTypeDeclaration<Pass>> topLevelDeclarations;
+    private ImmutableSetMultimap<Fqn, AbstractTypeDeclaration<Pass>> topLevelDeclarations;
 
     private CompanionData companionData;
     private DiscoveryData discoveryData;
@@ -137,8 +140,16 @@ public final class Pass extends AbstractBinaryModelContext<Pass> implements Mode
         return glueTypes;
     }
 
-    public void addPackageObjectDeclarations(ImmutableMap<Fqn, PackageObjectDeclaration<Pass>> packageObjectDeclarations) {
-        this.packageObjectDeclarations.putAll(packageObjectDeclarations);
+    public void defineModuleDeclarations(ModuleObjectDeclaration<Pass> moduleObjectDeclaration) {
+        this.moduleObjectDeclaration = moduleObjectDeclaration;
+    }
+
+    public void definePackageObjectDeclarations(ImmutableMap<Fqn, PackageObjectDeclaration<Pass>> packageObjectDeclarations) {
+        this.packageObjectDeclarations = packageObjectDeclarations;
+    }
+
+    public ModuleObjectDeclaration<Pass> lookUpModuleObjectDeclaration() {
+        return (ModuleObjectDeclaration<Pass>) lookUpModuleOrPackageObjectDeclarationOf(moduleFqn);
     }
 
     public PackageObjectDeclaration<Pass> lookUpPackageObjectDeclarationOf(Fqn fullyQualifiedName) {
@@ -149,12 +160,25 @@ public final class Pass extends AbstractBinaryModelContext<Pass> implements Mode
         return Optional.from(packageObjectDeclarations.get(fullyQualifiedName));
     }
 
-    public void defineTopLevelDeclarations(ImmutableSetMultimap<PackageObjectDeclaration<Pass>, AbstractTypeDeclaration<Pass>> topLevelDeclarations) {
+    public AbstractModuleOrPackageObjectDeclaration<Pass> lookUpModuleOrPackageObjectDeclarationOf(Fqn fullyQualifiedName) {
+        return fullyQualifiedName.equals(moduleFqn)
+                ? moduleObjectDeclaration
+                : lookUpPackageObjectDeclarationOf(fullyQualifiedName);
+    }
+
+    public Optional<AbstractModuleOrPackageObjectDeclaration<Pass>> tryLookUpModuleOrPackageObjectDeclarationOf(Fqn fullyQualifiedName) {
+        return fullyQualifiedName.equals(moduleFqn)
+                ? Optional.some(moduleObjectDeclaration)
+                : tryLookUpPackageObjectDeclarationOf(fullyQualifiedName)
+                .<AbstractModuleOrPackageObjectDeclaration<Pass>>map(x -> x);
+    }
+
+    public void defineTopLevelDeclarations(ImmutableSetMultimap<Fqn, AbstractTypeDeclaration<Pass>> topLevelDeclarations) {
         this.topLevelDeclarations = topLevelDeclarations;
     }
 
-    public ImmutableSet<AbstractTypeDeclaration<Pass>> lookUpTopLevelDeclarationIn(PackageObjectDeclaration<Pass> packageObjectDeclaration) {
-        return topLevelDeclarations.get(packageObjectDeclaration);
+    public ImmutableSet<AbstractTypeDeclaration<Pass>> lookUpTopLevelDeclarationIn(Fqn packageFqn) {
+        return topLevelDeclarations.get(packageFqn);
     }
 
     public boolean isCompanion(AbstractTypeDeclaration<Pass> typeDeclaration) {
@@ -192,24 +216,20 @@ public final class Pass extends AbstractBinaryModelContext<Pass> implements Mode
         return constraints;
     }
 
+    public TemplateTypeConstructorMixin<Pass> lookUpTypeOf(AbstractObjectDeclaration<Pass> objectDeclaration) {
+        return (TemplateTypeConstructorMixin<Pass>) lookUpTypeOf((AbstractTypeDeclaration<Pass>) objectDeclaration);
+    }
+
     public TemplateTypeConstructorMixin<Pass> lookUpTypeOf(ClassDeclaration<Pass> classDeclaration) {
         return (TemplateTypeConstructorMixin<Pass>) lookUpTypeOf((AbstractTypeDeclaration<Pass>) classDeclaration);
     }
 
-    public TemplateTypeConstructorMixin<Pass> lookUpTypeOf(ObjectDeclaration<Pass> classDeclaration) {
-        return (TemplateTypeConstructorMixin<Pass>) lookUpTypeOf((AbstractTypeDeclaration<Pass>) classDeclaration);
+    public TemplateTypeConstructorMixin<Pass> lookUpTypeOf(TraitDeclaration<Pass> traitDeclaration) {
+        return (TemplateTypeConstructorMixin<Pass>) lookUpTypeOf((AbstractTypeDeclaration<Pass>) traitDeclaration);
     }
 
-    public TemplateTypeConstructorMixin<Pass> lookUpTypeOf(PackageObjectDeclaration<Pass> classDeclaration) {
-        return (TemplateTypeConstructorMixin<Pass>) lookUpTypeOf((AbstractTypeDeclaration<Pass>) classDeclaration);
-    }
-
-    public TemplateTypeConstructorMixin<Pass> lookUpTypeOf(TraitDeclaration<Pass> classDeclaration) {
-        return (TemplateTypeConstructorMixin<Pass>) lookUpTypeOf((AbstractTypeDeclaration<Pass>) classDeclaration);
-    }
-
-    public AbstractUnionTypeConstructor<Pass> lookUpTypeOf(UnionDeclaration<Pass> classDeclaration) {
-        return (AbstractUnionTypeConstructor<Pass>) lookUpTypeOf((AbstractTypeDeclaration<Pass>) classDeclaration);
+    public AbstractUnionTypeConstructor<Pass> lookUpTypeOf(UnionDeclaration<Pass> unionDeclaration) {
+        return (AbstractUnionTypeConstructor<Pass>) lookUpTypeOf((AbstractTypeDeclaration<Pass>) unionDeclaration);
     }
 
     @Override
@@ -298,20 +318,20 @@ public final class Pass extends AbstractBinaryModelContext<Pass> implements Mode
         if (!moduleFqn.contains(fqn))
             return java.util.Optional.empty();
 
-        Map.Entry<PackageObjectDeclaration<Pass>, ImmutableList<String>> pkgAndRemaining = fqn.getAncestry().stream()
+        Map.Entry<AbstractModuleOrPackageObjectDeclaration<Pass>, ImmutableList<String>> mopAndRemaining = fqn.getAncestry().stream()
                 .sorted(Comparator.<Fqn>naturalOrder().reversed())
-                .map(c -> tryLookUpPackageObjectDeclarationOf(c).map(p -> immutableEntry(p, c.getRelativeNameOf(fqn))))
+                .map(c -> tryLookUpModuleOrPackageObjectDeclarationOf(c).map(p -> immutableEntry(p, c.getRelativeNameOf(fqn))))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .findFirst().get();
 
-        PackageObjectDeclaration<Pass> pkg = pkgAndRemaining.getKey();
-        ImmutableList<String> remaining = pkgAndRemaining.getValue();
+        AbstractModuleOrPackageObjectDeclaration<Pass> mop = mopAndRemaining.getKey();
+        ImmutableList<String> remaining = mopAndRemaining.getValue();
 
         if (remaining.isEmpty())
-            return java.util.Optional.of(lookUpTypeOf(pkg));
+            return java.util.Optional.of(lookUpTypeOf(mop));
 
-        final ImmutableSet<AbstractTypeDeclaration<Pass>> tlds = this.lookUpTopLevelDeclarationIn(pkg);
+        final ImmutableSet<AbstractTypeDeclaration<Pass>> tlds = this.lookUpTopLevelDeclarationIn(fqn.getAncestor(remaining));
 
         final String n0 = remaining.get(0);
         java.util.Optional<ObjectDeclaration<Pass>> result = tlds.stream()

@@ -97,6 +97,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
@@ -226,7 +227,9 @@ public class ModuleDeserializer {
         }
 
         private ModelNode deserializeModelNode(JsonElement json, Type requiredType, JsonDeserializationContext context) throws JsonParseException {
-            return deserializeModelNode(none(), json, requiredType, context);
+            final Predicate<Object> isModule = x -> Module.class.equals(requiredType);
+
+            return deserializeModelNode(some(Ancestry.empty()).filter(isModule), json, requiredType, context);
         }
 
         private ModelNode deserializeModelNode(Optional<Ancestry> ancestry, JsonElement json, Type requiredType, JsonDeserializationContext context) throws JsonParseException {

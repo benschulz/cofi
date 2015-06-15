@@ -13,6 +13,7 @@ import de.benshu.cofi.model.impl.CompilationUnit;
 import de.benshu.cofi.model.impl.FullyQualifiedName;
 import de.benshu.cofi.model.impl.MethodDeclarationImpl;
 import de.benshu.cofi.model.impl.ModelVisitor;
+import de.benshu.cofi.model.impl.ModuleObjectDeclaration;
 import de.benshu.cofi.model.impl.NamedTypeExpression;
 import de.benshu.cofi.model.impl.ObjectDeclaration;
 import de.benshu.cofi.model.impl.PackageObjectDeclaration;
@@ -89,6 +90,11 @@ public class CompanionObjectNormalizer {
             @Override
             public Stream<AbstractTypeDeclaration<Pass>> visitClassDeclaration(ClassDeclaration<Pass> classDeclaration, Stream<AbstractTypeDeclaration<Pass>> unused) {
                 return normalizeClassDeclaration(classDeclaration, siblingsByName, aggregate);
+            }
+
+            @Override
+            public Stream<AbstractTypeDeclaration<Pass>> visitModuleObjectDeclaration(ModuleObjectDeclaration<Pass> moduleObjectDeclaration, Stream<AbstractTypeDeclaration<Pass>> aggregate) {
+                return Stream.of(moduleObjectDeclaration);
             }
 
             @Override

@@ -1,7 +1,7 @@
 module .cofi.lang;
 package .cofi.lang;
 
-public package {
+public module {
     @RuntimeImplemented
     public return<implicit R>(value : R) : () {}
 }

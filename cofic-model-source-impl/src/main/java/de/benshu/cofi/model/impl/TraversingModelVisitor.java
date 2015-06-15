@@ -159,6 +159,16 @@ public class TraversingModelVisitor<X extends ModelContext<X>, T> implements Mod
     }
 
     @Override
+    public T visitModuleObjectDeclaration(ModuleObjectDeclaration<X> moduleObjectDeclaration, T aggregate) {
+        aggregate = visitAll(moduleObjectDeclaration.annotations, aggregate);
+        aggregate = visitAll(moduleObjectDeclaration.modifiers, aggregate);
+        aggregate = visit(moduleObjectDeclaration.typeParameters, aggregate);
+        aggregate = visitAll(moduleObjectDeclaration.extending, aggregate);
+        aggregate = visit(moduleObjectDeclaration.body, aggregate);
+        return aggregate;
+    }
+
+    @Override
     public T visitNamedType(NamedTypeExpression<X> namedType, T aggregate) {
         aggregate = visit(namedType.name, aggregate);
         return aggregate;
