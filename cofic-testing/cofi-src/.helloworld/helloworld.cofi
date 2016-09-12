@@ -4,19 +4,19 @@ package .helloworld;
 import .cofi.lang.collect.ArrayList;
 import .cofi.lang.collect.ImmutableList;
 
-public module {}
+public module {
+    public id<I, O | I <: O>(value : I) : O { return (value); }
+}
 
 public object HelloWorld extends Application {
-    public id<I, O | I <: O>(value : I) : O { return (value); }
-
     public start(args : ImmutableList<String>) : () {
-        xs : ArrayList<String> := this.id(ArrayList.create(100));
+        xs : ArrayList<String> := id(ArrayList.create(100));
         
         xs.append("abc");
         
         i : Natural := 0;
         Bool.while({ -> return (i.lessThan(10)); }, { ->
-            i := i.plus(1);
+            i := i + 1;
             xs.append(i.asString());
         });
         
