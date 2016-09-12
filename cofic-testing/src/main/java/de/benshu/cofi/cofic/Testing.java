@@ -77,7 +77,7 @@ public class Testing {
     private static void compile() throws IOException {
         final Path cofiLangPath = findRoot().resolve("target/.cofi.lang.cm");
 
-        final BinaryModule cofiLang = Files.exists(cofiLangPath)
+        final BinaryModule cofiLang = Files.exists(cofiLangPath) && System.getProperty("clean") == null
                 ? read(cofiLangPath, new BinaryDeserializer()::deserialize)
                 : compile(Fqn.from("cofi", "lang"));
 

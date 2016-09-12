@@ -234,14 +234,16 @@ public class OverloadedMemberAccessInferencer<T> implements OverloadedExpression
                 public T apply(Substitutions<Pass> substitutions, T aggregate) {
                     aggregate = p.apply(substitutions, aggregate);
 
-                    int implicitTpCount = m.getTags().getOrFallbackToDefault(Implicits.TAG).getTypeParamCount();
+                    AbstractMember<Pass> sm = m.getOwner().substitute(substitutions).getMembers().get(m.getName());
+
+                    int implicitTpCount = sm.getTags().getOrFallbackToDefault(Implicits.TAG).getTypeParamCount();
                     if (implicitTpCount > 0) {
                         if (toIndex != fromIndex)
                             throw null;
 
-                        aggregate = memberAccess.setTypeArgs(m, inferImplicitTypeArgs(pass, m), aggregate);
+                        aggregate = memberAccess.setTypeArgs(sm, inferImplicitTypeArgs(pass, sm), aggregate);
                     } else {
-                        aggregate = memberAccess.setTypeArgs(m, getConstraints().getTypeParams().getVariables().subList(fromIndex, toIndex).map(substitutions::substitute), aggregate);
+                        aggregate = memberAccess.setTypeArgs(sm, getConstraints().getTypeParams().getVariables().subList(fromIndex, toIndex).map(substitutions::substitute), aggregate);
                     }
 
                     return aggregate;

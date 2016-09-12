@@ -28,17 +28,11 @@ class SmallNatural(magnitude : Int32) extends Natural {
 
     public lessThan(other : Natural) : Bool {
         o : SmallNatural := SmallNatural.cast(other);
-
-        t : Function1<Int32, Bool> := mag.lessThan;
-        r : Bool := t(o.mag);
-
-        return (r);
+        return (mag.lessThan(o.mag));
     }
 
     public plus(addend : Natural) : Natural {
         a : SmallNatural := SmallNatural.cast(addend);
-        sum : Int32 := mag.plus(a.mag);
-
-        return (SmallNatural.create(sum));
+        return (SmallNatural.create(mag.plus(a.mag)));
     }
 }

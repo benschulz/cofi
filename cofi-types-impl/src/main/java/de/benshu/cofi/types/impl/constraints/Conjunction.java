@@ -40,6 +40,7 @@ import static de.benshu.commons.core.streams.Collectors.setMultimap;
 public final class Conjunction<X extends TypeSystemContext<X>> extends Monosemous<X> {
     // TODO way too complicated.. needs to be refactored
     private static <X extends TypeSystemContext<X>> ImmutableMap<TypeVariableImpl<X, ?>, TypeVariableImpl<X, ?>> getEquivalents(
+            TypeParameterListImpl<X> params,
             Iterable<Map.Entry<TypeVariableImpl<X, ?>, Constraint<X>>> constraints,
             ImmutableMap<TypeVariableImpl<X, ?>, TypeVariableImpl<X, ?>> equivalentsA,
             ImmutableMap<TypeVariableImpl<X, ?>, TypeVariableImpl<X, ?>> equivalentsB) {
@@ -53,10 +54,12 @@ public final class Conjunction<X extends TypeSystemContext<X>> extends Monosemou
         for (Entry<TypeVariableImpl<X, ?>, Constraint<X>> entry : constraints) {
             final Constraint<X> c = entry.getValue();
 
-            if (c.getKind() != Constraint.Kind.META && c.getBound() instanceof TypeVariableImpl<?, ?>) {
+            if( c.getKind() != Constraint.Kind.META && c.getBound() instanceof TypeVariableImpl<?, ?> ) {
                 final TypeVariableImpl<X, ?> bound = (TypeVariableImpl<X, ?>) c.getBound();
 
-                if (c.getKind() == Constraint.Kind.LOWER) {
+                if( bound.getParameterList() != params ) {
+                    // contextual variabe
+                } else if( c.getKind() == Constraint.Kind.LOWER) {
                     subtypes.put(entry.getKey(), bound);
                 } else {
                     subtypes.put(bound, entry.getKey());
@@ -225,8 +228,8 @@ public final class Conjunction<X extends TypeSystemContext<X>> extends Monosemou
         final Iterable<Map.Entry<TypeVariableImpl<X, ?>, Constraint<X>>> both = Iterables.concat(this.constraints.entries(),
                 other.constraints.entries());
 
-        final ImmutableMap<TypeVariableImpl<X, ?>, TypeVariableImpl<X, ?>> equivalents = getEquivalents(both, this.equivalents,
-                other.equivalents);
+        final ImmutableMap<TypeVariableImpl<X, ?>, TypeVariableImpl<X, ?>> equivalents =
+            getEquivalents(params, both, this.equivalents, other.equivalents);
 
         final ImmutableSetMultimap.Builder<TypeVariableImpl<X, ?>, Constraint<X>> builder = ImmutableSetMultimap.builder();
 

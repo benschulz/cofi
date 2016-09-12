@@ -3,7 +3,7 @@ package .cofi.lang.collect;
 
 public class ArrayList<E>(capacity : Natural) extends MutableList<E> {
     private Field len : Natural := 0;
-    private Field felements : Array<E> := Array<E>.create(capacity);
+    private Field felements : Array<E> := Array.create(capacity);
     
     public append(e : E) : () {
         growCapacityToAtLeast(len.plus(1));
@@ -15,7 +15,7 @@ public class ArrayList<E>(capacity : Natural) extends MutableList<E> {
     public growCapacityToAtLeast(minCapacity : Natural) : () {
         felements.length().lessThan(minCapacity).ifTrue({ ->
             old : Array<E> := felements;
-            new : Array<E> := Array<E>.create(minCapacity);
+            new : Array<E> := Array.create(minCapacity);
             
             i : Natural := 0;
             Bool.while({ -> return (i.lessThan(len)); }, { ->

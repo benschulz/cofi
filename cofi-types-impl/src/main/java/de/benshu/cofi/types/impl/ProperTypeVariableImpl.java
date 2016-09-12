@@ -38,10 +38,13 @@ public class ProperTypeVariableImpl<X extends TypeSystemContext<X>>
     }
 
     @Override
+    public AbstractConstraints<X> establishSubtype( TypeVariableImpl<X, ?> other, Monosemous<X> cs ) {
+        return other.establishSupertype(this, cs);
+    }
+
+    @Override
     public AbstractConstraints<X> establishSubtypeGeneric(TypeMixin<X, ?> other, Monosemous<X> cs) {
-        if (equals(other))
-            return cs;
-        else if (cs.includesUpperBound(this, other))
+        if (cs.includesUpperBound(this, other))
             return cs;
         else if (cs.getTypeParams().contains(this))
             return cs.and(getContext(), this, Constraint.upper(other));
@@ -55,10 +58,24 @@ public class ProperTypeVariableImpl<X extends TypeSystemContext<X>>
     }
 
     @Override
-    public AbstractConstraints<X> establishSupertypeGeneric(TypeMixin<X, ?> other, Monosemous<X> cs) {
+    public AbstractConstraints<X> establishSupertype(TypeVariableImpl<X, ?> other, Monosemous<X> cs) {
         if (equals(other))
             return cs;
         else if (cs.includesLowerBound(this, other))
+            return cs;
+        else if (cs.includesUpperBound(other, this))
+            return cs;
+        else if (cs.getTypeParams().contains(this))
+            return cs.and(getContext(), this, Constraint.lower(other));
+        else if (cs.getTypeParams().contains(other))
+            return cs.and(getContext(), other, Constraint.upper(this));
+        else
+            return all();
+    }
+
+    @Override
+    public AbstractConstraints<X> establishSupertypeGeneric(TypeMixin<X, ?> other, Monosemous<X> cs) {
+        if (cs.includesLowerBound(this, other))
             return cs;
         else if (cs.getTypeParams().contains(this))
             return cs.and(getContext(), this, Constraint.lower(other));

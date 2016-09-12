@@ -218,14 +218,14 @@ public class ImplementationTyper {
         public ImplementationDataBuilder visitPropertyDeclaration(PropertyDeclaration<Pass> propertyDeclaration, ImplementationDataBuilder aggregate) {
             ExpressionNode<Pass> initialValue = propertyDeclaration.initialValue;
 
-            final ImmutableList<TransformedUserDefinedNode<Pass, ExpressionNode<Pass>>> transformed = new UserDefinedNodeTransformer<Pass>(transformationContext(aggregate)).transform(initialValue).stream().collect(list());
+            final ImmutableList<TransformedUserDefinedNode<Pass, ExpressionNode<Pass>>> transformed = new UserDefinedNodeTransformer<>(transformationContext(aggregate)).transform(initialValue).stream().collect(list());
 
             final ImmutableList<ImplementationDataBuilder> validTransformations = transformed.stream()
                     .map(t -> {
                         ImplementationDataBuilder tmp = visit(t.getTransformedNode(), aggregate.copy().defineTransformation(initialValue, t.getTransformedNode()));
                         java.util.Optional<ImplementationDataBuilder> result = inferencer.infer(pass, getContextualConstraints(aggregate), pass.lookUpProperTypeOf(propertyDeclaration.type), tmp);
 
-                        return java.util.Optional.ofNullable(result.isPresent() && t.test(transformationContext(result.get())) ? result.get() : null);
+                        return result.filter(r -> t.test(transformationContext(r)));
                     })
                     .filter(java.util.Optional::isPresent)
                     .map(java.util.Optional::get)
