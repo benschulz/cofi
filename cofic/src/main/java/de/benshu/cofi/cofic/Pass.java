@@ -10,6 +10,7 @@ import de.benshu.cofi.cofic.frontend.GenericModelData;
 import de.benshu.cofi.cofic.frontend.companions.CompanionData;
 import de.benshu.cofi.cofic.frontend.constraints.ConstraintsData;
 import de.benshu.cofi.cofic.frontend.discovery.DiscoveryData;
+import de.benshu.cofi.cofic.frontend.glue.ModuleGlueData;
 import de.benshu.cofi.cofic.frontend.implementations.ImplementationData;
 import de.benshu.cofi.cofic.frontend.interfaces.InterfaceData;
 import de.benshu.cofi.cofic.frontend.namespace.AbstractResolution;
@@ -130,6 +131,13 @@ public final class Pass extends AbstractBinaryModelContext<Pass> implements Mode
         return binaryDependencies.stream()
                 .map(d -> immutableEntry(d.getFqn(), (TemplateTypeConstructorMixin<Pass>) resolveQualifiedTypeName(d.getFqn())))
                 .collect(map());
+    }
+
+    public void setModuleGlueData(ModuleGlueData moduleGlueData) {
+        this.defineModuleDeclarations(moduleGlueData.moduleObjectDeclaration);
+        this.definePackageObjectDeclarations(moduleGlueData.packageObjectDeclarations);
+        this.defineTopLevelDeclarations(moduleGlueData.topLevelDeclarations);
+        this.defineGlueTypes(moduleGlueData.glueTypes);
     }
 
     public void defineGlueTypes(ImmutableMap<Fqn, TemplateTypeConstructorMixin<Pass>> glueTypes) {

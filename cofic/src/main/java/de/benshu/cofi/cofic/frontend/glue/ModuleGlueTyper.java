@@ -1,4 +1,4 @@
-package de.benshu.cofi.cofic.frontend;
+package de.benshu.cofi.cofic.frontend.glue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -34,7 +34,7 @@ import static de.benshu.commons.core.streams.Collectors.setMultimap;
 import static de.benshu.commons.core.streams.Collectors.single;
 
 public class ModuleGlueTyper {
-    public static void type(Pass pass, Fqn moduleFqn, ImmutableSet<CompilationUnit<Pass>> compilationUnits) {
+    public static ModuleGlueData type(Pass pass, Fqn moduleFqn, ImmutableSet<CompilationUnit<Pass>> compilationUnits) {
         final ImmutableMap<Fqn, ImmutableSetMultimap<Class<?>, AbstractTypeDeclaration<Pass>>> delcarationsByPackageAndClass = compilationUnits.stream()
                 .flatMap(u -> u.declarations.stream().map(d -> immutableEntry(u.packageDeclaration.name.fqn, d)))
                 .collect(listMultimap()).asMap().entrySet().stream()
@@ -53,7 +53,6 @@ public class ModuleGlueTyper {
                 .flatMap(ds -> ds.get(ModuleObjectDeclaration.class).stream())
                 .map(d -> (ModuleObjectDeclaration<Pass>) d)
                 .collect(single());
-        pass.defineModuleDeclarations(moduleObjectDeclaration);
 
         final ImmutableMap<Fqn, PackageObjectDeclaration<Pass>> packageObjectDeclarations = delcarationsByPackageAndClass.entrySet().stream()
                 .filter(e -> !e.getKey().equals(moduleFqn))
@@ -63,13 +62,11 @@ public class ModuleGlueTyper {
                                 .map(d -> (PackageObjectDeclaration<Pass>) d)
                                 .collect(single())))
                 .collect(map());
-        pass.definePackageObjectDeclarations(packageObjectDeclarations);
 
         final ImmutableSetMultimap<Fqn, AbstractTypeDeclaration<Pass>> topLevelDeclarations = delcarationsByPackageAndClass.entrySet().stream()
                 .flatMap(e -> e.getValue().get(AbstractTypeDeclaration.class).stream()
                         .map(d -> immutableEntry(e.getKey(), d)))
                 .collect(setMultimap());
-        pass.defineTopLevelDeclarations(topLevelDeclarations);
 
         final ImmutableMap<Fqn, Supplier<TemplateTypeConstructorMixin<Pass>>> dependencies = pass.getDependencyTypes().entrySet().stream()
                 .map(d -> immutableEntry(d.getKey(), (Supplier<TemplateTypeConstructorMixin<Pass>>) d::getValue))
@@ -124,6 +121,6 @@ public class ModuleGlueTyper {
                 ).bind(pass)))
                 .collect(map());
 
-        pass.defineGlueTypes(glueTypes);
+        return new ModuleGlueData(moduleObjectDeclaration, packageObjectDeclarations, topLevelDeclarations, glueTypes);
     }
 }

@@ -3,7 +3,8 @@ package de.benshu.cofi.cofic;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import de.benshu.cofi.cofic.backend.ToRuntimeModelTransformer;
-import de.benshu.cofi.cofic.frontend.ModuleGlueTyper;
+import de.benshu.cofi.cofic.frontend.glue.ModuleGlueData;
+import de.benshu.cofi.cofic.frontend.glue.ModuleGlueTyper;
 import de.benshu.cofi.cofic.frontend.companions.CompanionObjectNormalizer;
 import de.benshu.cofi.cofic.frontend.constraints.HierarchyAndConstraintEstablisher;
 import de.benshu.cofi.cofic.frontend.discovery.Discoverer;
@@ -99,7 +100,7 @@ public class Testing {
         end();
 
         begin("Creating glue types…");
-        ModuleGlueTyper.type(pass, moduleName, normalizedCompilationUnints);
+        pass.setModuleGlueData(ModuleGlueTyper.type(pass, moduleName, normalizedCompilationUnints));
         end();
 
         begin("Discovering types…");
