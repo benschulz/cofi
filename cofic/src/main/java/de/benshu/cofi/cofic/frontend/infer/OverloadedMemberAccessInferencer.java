@@ -7,6 +7,9 @@ import de.benshu.cofi.cofic.Pass;
 import de.benshu.cofi.cofic.frontend.Implicits;
 import de.benshu.cofi.cofic.frontend.Owners;
 import de.benshu.cofi.inference.Parametrization;
+import de.benshu.cofi.model.ModelNode;
+import de.benshu.cofi.model.impl.Closure;
+import de.benshu.cofi.model.impl.MethodDeclarationImpl;
 import de.benshu.cofi.types.Variance;
 import de.benshu.cofi.types.impl.AdHoc;
 import de.benshu.cofi.types.impl.NullaryTypeConstructor;
@@ -45,14 +48,14 @@ public class OverloadedMemberAccessInferencer<T> implements OverloadedExpression
                 .getOrSupply(() -> primary.getTypeArgCount() + member.getType().getParameters().size());
     }
 
-    private static <T> ProperTypeConstructorMixin<Pass, ?, ?> determineImplicitType(Pass pass, InferMemberAccess<T> memberAccess, AbstractMember<Pass> member) {
+    private static <T> ProperTypeConstructorMixin<Pass, ?, ?> determineImplicitType(Pass pass, InferMemberAccess<T> memberAccess, AbstractMember<Pass> member, ImmutableList<ModelNode<Pass>> path) {
         Implicits implicits = member.getTags().getOrFallbackToDefault(Implicits.TAG);
         ProperTypeConstructorMixin<Pass, ?, ?> type = member.getType();
 
         int implicitTpCount = implicits.getTypeParamCount();
 
         if (implicitTpCount > 0) {
-            AbstractTypeList<Pass, ?> implicitTypeArgs = inferImplicitTypeArgs(pass, member);
+            AbstractTypeList<Pass, ?> implicitTypeArgs = inferImplicitTypeArgs(pass, member, path);
 
             Substitutions<Pass> substitutions = Substitutions.firstOfThrough(type.getParameters(), implicitTypeArgs);
 
@@ -132,12 +135,23 @@ public class OverloadedMemberAccessInferencer<T> implements OverloadedExpression
     }
 
     // TODO actually infer the type args
-    private static AbstractTypeList<Pass, ?> inferImplicitTypeArgs(Pass pass, AbstractMember<Pass> member) {
-        TypeConstructorMixin<Pass, ?, ? extends ProperTypeMixin<Pass, ?>> type = member.getType();
+    private static AbstractTypeList<Pass, ?> inferImplicitTypeArgs(Pass pass, AbstractMember<Pass> member, ImmutableList<ModelNode<Pass>> path) {
         int implicitTpCount = member.getTags().get(Implicits.TAG).getTypeParamCount();
 
         ProperTypeMixin<Pass, ?>[] implicitTypeArgs = new ProperTypeMixin[implicitTpCount];
         Arrays.fill(implicitTypeArgs, pass.getTypeSystem().getTop());
+        // TODO the module author needs to provide a strategy
+        if (implicitTpCount == 1 && member.getName().equals("return")) {
+            final ModelNode<Pass> callFrameOwner = path.reverse().stream()
+                    .filter(n -> n instanceof MethodDeclarationImpl<?> || n instanceof Closure<?>)
+                    .findFirst().get();
+
+            // TODO inference variable for return type in case of closure
+            if (callFrameOwner instanceof MethodDeclarationImpl<?>) {
+                final MethodDeclarationImpl<Pass> methodDeclaration = (MethodDeclarationImpl<Pass>) callFrameOwner;
+                implicitTypeArgs[0] = pass.lookUpProperTypeOf(methodDeclaration.returnType);
+            }
+        }
 
         return AbstractTypeList.of(implicitTypeArgs);
     }
@@ -201,7 +215,7 @@ public class OverloadedMemberAccessInferencer<T> implements OverloadedExpression
             final int fromIndex = offset + primary.getTypeArgCount() + implicitTpCount;
             final int toIndex = offset + getTypeArgCount();
 
-            ProperTypeConstructorMixin<Pass, ?, ?> implicitDeclaredType = determineImplicitType(pass, memberAccess, m);
+            ProperTypeConstructorMixin<Pass, ?, ?> implicitDeclaredType = determineImplicitType(pass, memberAccess, m, memberAccess.getPath());
 
             TypeParameterListImpl<Pass> params = p.getConstraints().getTypeParams();
             Implicits implicits = m.getTags().getOrFallbackToDefault(Implicits.TAG);
@@ -241,7 +255,7 @@ public class OverloadedMemberAccessInferencer<T> implements OverloadedExpression
                         if (toIndex != fromIndex)
                             throw null;
 
-                        aggregate = memberAccess.setTypeArgs(sm, inferImplicitTypeArgs(pass, sm), aggregate);
+                        aggregate = memberAccess.setTypeArgs(sm, inferImplicitTypeArgs(pass, sm, memberAccess.getPath()), aggregate);
                     } else {
                         aggregate = memberAccess.setTypeArgs(sm, getConstraints().getTypeParams().getVariables().subList(fromIndex, toIndex).map(substitutions::substitute), aggregate);
                     }

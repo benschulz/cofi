@@ -12,6 +12,7 @@ import de.benshu.cofi.cofic.frontend.namespace.AbstractResolution;
 import de.benshu.cofi.cofic.frontend.namespace.NamespaceTrackingVisitor;
 import de.benshu.cofi.cofic.frontend.namespace.ParametersNs;
 import de.benshu.cofi.common.Fqn;
+import de.benshu.cofi.model.ModelNode;
 import de.benshu.cofi.model.impl.Closure;
 import de.benshu.cofi.model.impl.CompilationUnit;
 import de.benshu.cofi.model.impl.ExpressionNode;
@@ -20,6 +21,7 @@ import de.benshu.cofi.model.impl.FunctionInvocationExpression;
 import de.benshu.cofi.model.impl.LiteralExpression;
 import de.benshu.cofi.model.impl.LocalVariableDeclaration;
 import de.benshu.cofi.model.impl.MemberAccessExpression;
+import de.benshu.cofi.model.impl.ModelNodeMixin;
 import de.benshu.cofi.model.impl.NameExpression;
 import de.benshu.cofi.model.impl.PropertyDeclaration;
 import de.benshu.cofi.model.impl.RootExpression;
@@ -39,6 +41,8 @@ import de.benshu.cofi.types.impl.templates.AbstractTemplateTypeConstructor;
 import de.benshu.cofi.types.impl.templates.TemplateTypeImpl;
 import de.benshu.commons.core.Optional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -59,6 +63,7 @@ public class ImplementationTyper {
 
     private static final class Visitor extends NamespaceTrackingVisitor<ImplementationDataBuilder> {
         private final Pass pass;
+        private final List<ModelNode<Pass>> path = new ArrayList<>(64);
         private ExpressionTreeInferencer<ImplementationDataBuilder> inferencer;
 
         public Visitor(Pass pass) {
@@ -66,6 +71,16 @@ public class ImplementationTyper {
 
             this.pass = pass;
             this.inferencer = new ExpressionTreeInferencer<>(pass);
+        }
+
+        @Override
+        public ImplementationDataBuilder visit(ModelNodeMixin<Pass> modelNode, ImplementationDataBuilder aggregate) {
+            try {
+                path.add(modelNode);
+                return super.visit(modelNode, aggregate);
+            } finally {
+                path.remove(path.size() - 1);
+            }
         }
 
         @Override
@@ -181,7 +196,7 @@ public class ImplementationTyper {
                             .map(aggregate::lookUpTypeOf)
                             .collect(AbstractTypeList.typeList()));
 
-            inferencer.accessMember(new MemberAccessInference(explicitTypeArguments, memberAccessExpression));
+            inferencer.accessMember(new MemberAccessInference(explicitTypeArguments, memberAccessExpression, ImmutableList.copyOf(path)));
 
             return aggregate;
         }
@@ -203,7 +218,7 @@ public class ImplementationTyper {
                                 .map(aggregate::lookUpTypeOf)
                                 .collect(AbstractTypeList.typeList()));
 
-                inferencer.accessMember(new NameExpressionInference(typeConstructor, nameExpression, explicitTypeArguments));
+                inferencer.accessMember(new NameExpressionInference(typeConstructor, nameExpression, explicitTypeArguments, ImmutableList.copyOf(path)));
             } else {
                 final ProperTypeMixin<Pass, ?> properType = (ProperTypeMixin<Pass, ?>) resolvedType;
 
@@ -313,10 +328,12 @@ public class ImplementationTyper {
         private static class MemberAccessInference implements InferMemberAccess<ImplementationDataBuilder> {
             private final Optional<AbstractTypeList<Pass, ?>> explicitTypeArguments;
             private final MemberAccessExpression<Pass> memberAccessExpression;
+            private final ImmutableList<ModelNode<Pass>> path;
 
-            public MemberAccessInference(Optional<AbstractTypeList<Pass, ?>> explicitTypeArguments, MemberAccessExpression<Pass> memberAccessExpression) {
+            public MemberAccessInference(Optional<AbstractTypeList<Pass, ?>> explicitTypeArguments, MemberAccessExpression<Pass> memberAccessExpression, ImmutableList<ModelNode<Pass>> path) {
                 this.explicitTypeArguments = explicitTypeArguments;
                 this.memberAccessExpression = memberAccessExpression;
+                this.path = path;
             }
 
             @Override
@@ -337,17 +354,24 @@ public class ImplementationTyper {
             public String getName() {
                 return memberAccessExpression.name.ids.stream().map(Token::getLexeme).collect(joining());
             }
+
+            @Override
+            public ImmutableList<ModelNode<Pass>> getPath() {
+                return path;
+            }
         }
 
         private static class NameExpressionInference implements InferMemberAccess<ImplementationDataBuilder> {
             private final TypeConstructorMixin<Pass, ?, ?> typeConstructor;
             private final NameExpression<Pass> nameExpression;
             private final Optional<AbstractTypeList<Pass, ?>> explicitTypeArguments;
+            private final ImmutableList<ModelNode<Pass>> path;
 
-            public NameExpressionInference(TypeConstructorMixin<Pass, ?, ?> typeConstructor, NameExpression<Pass> nameExpression, Optional<AbstractTypeList<Pass, ?>> explicitTypeArguments) {
+            public NameExpressionInference(TypeConstructorMixin<Pass, ?, ?> typeConstructor, NameExpression<Pass> nameExpression, Optional<AbstractTypeList<Pass, ?>> explicitTypeArguments, ImmutableList<ModelNode<Pass>> path) {
                 this.typeConstructor = typeConstructor;
                 this.nameExpression = nameExpression;
                 this.explicitTypeArguments = explicitTypeArguments;
+                this.path = path;
             }
 
             @Override
@@ -369,6 +393,11 @@ public class ImplementationTyper {
             public String getName() {
                 checkState(nameExpression.name.ids.size() == 1);
                 return nameExpression.name.ids.get(0).getLexeme();
+            }
+
+            @Override
+            public ImmutableList<ModelNode<Pass>> getPath() {
+                return path;
             }
         }
     }

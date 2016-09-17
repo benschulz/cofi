@@ -10,12 +10,12 @@ public interface ModelVisitor<X extends ModelContext<X>, T> {
     }
 
     default T visitNonNull(ModelNodeMixin<X> modelNode, T aggregate) {
-        return modelNode == null ? aggregate : modelNode.accept(this, aggregate);
+        return modelNode == null ? aggregate : visit(modelNode, aggregate);
     }
 
     default T visitAll(Iterable<? extends ModelNodeMixin<X>> modelNodes, T aggregate) {
         for (ModelNodeMixin<X> n : modelNodes)
-            aggregate = n.accept(this, aggregate);
+            aggregate = visit(n, aggregate);
         return aggregate;
     }
 
